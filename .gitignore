@@ -72,3 +72,12 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# CocoaPods Lockfile
+Podfile.lock
+
+# NPM Lockfile
+package-lock.json
+
+# Yarn Lockfile
+yarn.lock
