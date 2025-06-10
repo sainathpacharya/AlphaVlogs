@@ -1,5 +1,5 @@
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {AuthStackScreen} from '../AuthStack';
+import {AuthStack} from '../AuthStack';
 
 const Stack = createNativeStackNavigator<any>();
 
@@ -8,7 +8,7 @@ const RootNavigator = () => {
     <Stack.Navigator>
       <Stack.Screen
         name="AuthStack"
-        component={AuthStackScreen}
+        component={AuthStack}
         options={{
           headerShown: false,
         }}
@@ -16,3 +16,5 @@ const RootNavigator = () => {
     </Stack.Navigator>
   );
 };
+
+export default RootNavigator;

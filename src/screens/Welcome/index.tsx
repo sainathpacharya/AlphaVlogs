@@ -1,7 +1,7 @@
 import React from 'react';
 import {VStack} from '../../components';
 
-const LoginScreen = () => {
+const WelcomeScreen = () => {
   return (
     <>
       <VStack></VStack>
@@ -9,4 +9,4 @@ const LoginScreen = () => {
   );
 };
 
-export default LoginScreen;
+export default WelcomeScreen;
