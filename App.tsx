@@ -23,7 +23,7 @@ function App(): React.JSX.Element {
 
   return (
     <>
-      <GestureHandlerRootView>
+      <GestureHandlerRootView style={{flex: 1}}>
         <GluestackUIProvider>
           <SafeAreaProvider>
             <Navigation />
