@@ -1,12 +1,14 @@
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import {
   VStack,
+  HStack,
   Input,
   InputField,
   Button,
@@ -14,78 +16,225 @@ import {
   Pressable,
   StatusBar,
   Box,
-  useToast,
 } from '../../components';
 import {MotiImage} from 'moti';
 import {Easing} from 'react-native-reanimated';
 import ConfettiCannon from 'react-native-confetti-cannon';
+import OTPTextInput from 'react-native-otp-textinput';
 import appLogo from '../../assets/png/appLogo.png';
-import colors from '../../utils/colors';
+import {useThemeColors} from '../../utils/colors';
 import {Phone, XCircle} from 'lucide-react-native';
+import authService from '../../services/auth-service';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {STORAGE_KEYS} from '@/constants';
+import {useUserStore} from '../../stores';
 
 const {width} = Dimensions.get('window');
 
-const LoginScreen = ({navigation}: any) => {
+const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
+  const colors = useThemeColors();
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
   const [errors, setErrors] = useState<{mobile?: string; otp?: string}>({});
   const [isMobileFocused, setIsMobileFocused] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(0);
+  const [canResendOtp, setCanResendOtp] = useState(false);
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const otpRef = useRef<any>(null);
-  const toast = useToast();
+  const timerRef = useRef<any>(null);
+
+  const otpTextStyle = {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    backgroundColor: colors.transparent,
+    color: colors.inputText,
+  };
 
   const isMobileValid = mobile.length === 10 && /^\d{10}$/.test(mobile);
+
+  // Cleanup timer on component unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+
+  // Reset OTP flow if mobile changes significantly
+  useEffect(() => {
+    if (!isMobileValid) {
+      setIsOtpSent(false);
+      setOtp('');
+    }
+  }, [isMobileValid]);
+
+  // Timer effect
+  useEffect(() => {
+    if (otpTimer > 0) {
+      timerRef.current = setTimeout(() => {
+        setOtpTimer(otpTimer - 1);
+      }, 1000);
+    } else if (otpTimer === 0 && !canResendOtp) {
+      setCanResendOtp(true);
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [otpTimer, canResendOtp]);
+
+  const startOtpTimer = () => {
+    setOtpTimer(60);
+    setCanResendOtp(false);
+  };
+
+  const handleResendOtp = async () => {
+    if (canResendOtp) {
+      try {
+        setIsLoading(true);
+        setOtp('');
+        if (errors.otp) setErrors(prev => ({...prev, otp: ''}));
+        if (otpRef.current) {
+          otpRef.current.clear();
+        }
+
+        const response = await authService.sendOTP({mobile, type: 'login'});
+        if (response.success) {
+          Alert.alert(
+            '✅ OTP Resent Successfully',
+            `New OTP has been sent to +91 ${mobile}. Please check your messages.`,
+            [{text: 'OK', style: 'default'}],
+          );
+          startOtpTimer();
+          setIsOtpSent(true);
+        } else {
+          Alert.alert(
+            '❌ Failed to Resend OTP',
+            response.error || 'Please try again.',
+          );
+        }
+      } catch (error) {
+        Alert.alert(
+          '❌ Network Error',
+          'Unable to resend OTP. Please try again.',
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
 
   const validate = () => {
     const newErrors: typeof errors = {};
     let valid = true;
+
+    console.log(
+      'Validating - Mobile:',
+      mobile,
+      'OTP:',
+      otp,
+      'OTP Length:',
+      otp.length,
+    );
 
     if (!isMobileValid) {
       newErrors.mobile = 'Enter a valid 10-digit mobile number';
       valid = false;
     }
 
-    if (!otp || otp.length < 4) {
-      newErrors.otp = 'Enter a valid OTP';
-      valid = false;
+    // For verify step, require OTP
+    if (isOtpSent) {
+      if (!otp || otp.trim().length < 6) {
+        newErrors.otp = `Please enter the complete 6-digit OTP${otp.trim().length > 0 ? ` (${otp.trim().length}/6 digits entered)` : ''}`;
+        valid = false;
+      }
     }
 
     setErrors(newErrors);
     return valid;
   };
 
-  const handleLogin = () => {
-    if (validate()) {
-      toast.show({
-        placement: 'top',
-        render: () => (
-          <Box
-            bg={colors.success}
-            p="$4"
-            borderRadius="$md"
-            shadowColor={colors.shadow}
-            shadowOffset={{width: 0, height: 2}}
-            shadowOpacity={0.3}
-            shadowRadius={4}>
-            <Text color={colors.white} fontWeight="$bold" mb="$2">
-              ✅ Success
-            </Text>
-            <Text color={colors.white}>
-              Mobile: {mobile}
-              {'\n'}OTP: {otp}
-            </Text>
-          </Box>
-        ),
-      });
+  const handleLogin = async () => {
+    if (!validate()) {
+      const errorMessages = [] as string[];
+      if (errors.mobile) errorMessages.push(`Mobile: ${errors.mobile}`);
+      if (errors.otp) errorMessages.push(`OTP: ${errors.otp}`);
+      Alert.alert(
+        '❌ Validation Failed',
+        errorMessages.join('\n') || 'Please check your inputs.',
+      );
+      return;
+    }
 
-      setShowConfetti(true);
+    try {
+      setIsLoading(true);
+      if (!isOtpSent) {
+        // Step 1: Send OTP
+        const response = await authService.sendOTP({mobile, type: 'login'});
+        if (response.success) {
+          setIsOtpSent(true);
+          startOtpTimer();
+          Alert.alert('✅ OTP Sent', `OTP has been sent to +91 ${mobile}.`);
+          setTimeout(() => otpRef.current?.focus(), 300);
+        } else {
+          Alert.alert(
+            '❌ Failed to Send OTP',
+            response.error || 'Please try again.',
+          );
+        }
+      } else {
+        // Step 2: Verify OTP
+        const response = await authService.verifyOTP({mobile, otp});
+        if (response.success && response.data) {
+          const {user, tokens} = response.data;
 
-      setTimeout(() => {
-        navigation.reset({
-          index: 0,
-          routes: [{name: 'Dashboard'}],
-        });
-      }, 1500);
+          // Persist tokens and user
+          await AsyncStorage.setItem(
+            STORAGE_KEYS.AUTH_TOKENS,
+            JSON.stringify(tokens),
+          );
+          await AsyncStorage.setItem(
+            STORAGE_KEYS.USER_DATA,
+            JSON.stringify(user),
+          );
+
+          const {setUser, setAuthenticated} = useUserStore.getState();
+          setUser(user || null);
+          setAuthenticated(true);
+
+          Alert.alert(
+            '✅ Login Successful',
+            `Welcome ${user?.firstName || ''}!`,
+            [
+              {
+                text: 'Continue',
+                style: 'default',
+                onPress: () => {
+                  setShowConfetti(true);
+                  setTimeout(() => setIsLoggedIn(true), 800);
+                },
+              },
+            ],
+          );
+        } else {
+          Alert.alert(
+            '❌ Invalid or Expired OTP',
+            response.error || 'Please request a new OTP.',
+          );
+        }
+      }
+    } catch (error) {
+      Alert.alert(
+        '❌ Network Error',
+        'Please check your connection and try again.',
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -93,16 +242,29 @@ const LoginScreen = ({navigation}: any) => {
     navigation.navigate('Signup');
   };
 
+  const handleOtpChange = (text: string) => {
+    console.log('OTP changed to:', text, 'Length:', text.length);
+    setOtp(text);
+    if (errors.otp) setErrors(prev => ({...prev, otp: ''}));
+  };
+
   return (
     <KeyboardAvoidingView
+      testID="login-screen"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{flex: 1, backgroundColor: colors.primaryBackground}}>
       <StatusBar
+        testID="login-status-bar"
         backgroundColor={colors.primaryBackground}
-        barStyle="light-content"
+        barStyle={
+          colors.primaryBackground === '#FFFFFF'
+            ? 'dark-content'
+            : 'light-content'
+        }
       />
 
       <VStack
+        testID="login-container"
         flex={1}
         justifyContent="center"
         alignItems="center"
@@ -110,6 +272,7 @@ const LoginScreen = ({navigation}: any) => {
         space="lg">
         {/* ✅ Animated Logo */}
         <MotiImage
+          testID="login-logo"
           source={appLogo}
           style={{
             width: width,
@@ -128,6 +291,7 @@ const LoginScreen = ({navigation}: any) => {
         />
 
         <Text
+          testID="login-title"
           fontSize="$3xl"
           fontWeight="$bold"
           mb="$5"
@@ -137,29 +301,34 @@ const LoginScreen = ({navigation}: any) => {
 
         {/* ✅ Mobile Input with icon and clear */}
         <Input
+          testID="login-mobile-input"
           w="$full"
           size="lg"
           variant="outline"
           borderColor={colors.accentAction}
           bg={colors.primaryBackground}
           isInvalid={!!errors.mobile}>
-          <Box pl="$3" justifyContent="center" height="100%">
+          <Box
+            testID="login-mobile-icon"
+            pl="$3"
+            justifyContent="center"
+            height="100%">
             <Phone size={20} color={colors.accentAction} />
           </Box>
           <InputField
+            testID="login-mobile-field"
             placeholder="Enter Mobile Number"
             keyboardType="number-pad"
             maxLength={10}
             value={mobile}
-            editable={!isMobileValid || otp.length === 0}
+            editable={!isMobileValid}
             onChangeText={val => {
-              if (!isMobileValid || otp.length === 0) {
-                setMobile(val.trim());
-                if (otp.length > 0) setOtp('');
-                if (errors.mobile) setErrors(prev => ({...prev, mobile: ''}));
-              }
+              setMobile(val.trim());
+              if (otp.length > 0) setOtp('');
+              if (errors.mobile) setErrors(prev => ({...prev, mobile: ''}));
             }}
             placeholderTextColor={colors.mutedText}
+            color={colors.inputText}
             onFocus={() => setIsMobileFocused(true)}
             onBlur={() => setIsMobileFocused(false)}
             returnKeyType="next"
@@ -169,6 +338,7 @@ const LoginScreen = ({navigation}: any) => {
             isMobileFocused &&
             (!isMobileValid || otp.length === 0) && (
               <TouchableOpacity
+                testID="login-mobile-clear"
                 onPress={() => setMobile('')}
                 style={{
                   position: 'absolute',
@@ -181,64 +351,142 @@ const LoginScreen = ({navigation}: any) => {
             )}
         </Input>
         {errors.mobile && (
-          <Text color={colors.danger} mt="$2">
+          <Text testID="login-mobile-error" color={colors.danger} mt="$2">
             {errors.mobile}
           </Text>
         )}
 
-        {/* ✅ OTP */}
-        {isMobileValid && (
+        {/* ✅ OTP Pin View - shown after OTP is sent */}
+        {isOtpSent && (
           <>
-            <Input
-              w="$full"
-              size="lg"
-              variant="outline"
-              borderColor={colors.accentAction}
-              bg={colors.primaryBackground}
-              isInvalid={!!errors.otp}
-              mt="$4">
-              <InputField
+            <Box testID="login-otp-container" w="$full" mt="$4">
+              <Text
+                testID="login-otp-label"
+                color={colors.primaryText}
+                fontSize="$md"
+                fontWeight="$medium"
+                mb="$3"
+                textAlign="center">
+                Enter OTP
+              </Text>
+              <OTPTextInput
+                testID="login-otp-input"
                 ref={otpRef}
-                placeholder="Enter OTP"
+                inputCount={6}
+                handleTextChange={handleOtpChange}
                 keyboardType="number-pad"
-                maxLength={6}
-                value={otp}
-                onChangeText={val => {
-                  setOtp(val.trim());
-                  if (errors.otp) setErrors(prev => ({...prev, otp: ''}));
+                tintColor={colors.accentAction}
+                offTintColor={colors.mutedText}
+                defaultValue=""
+                autoFocus={false}
+                textInputStyle={otpTextStyle}
+                containerStyle={{
+                  backgroundColor: colors.transparent,
                 }}
-                placeholderTextColor={colors.mutedText}
-                returnKeyType="done"
               />
-            </Input>
+
+              {/* Timer and Resend Section */}
+              <HStack
+                testID="login-otp-timer-container"
+                justifyContent="center"
+                alignItems="center"
+                mt="$4"
+                space="md">
+                {otpTimer > 0 ? (
+                  <Text
+                    testID="login-otp-timer"
+                    color={colors.mutedText}
+                    fontSize="$sm"
+                    textAlign="center">
+                    Resend OTP in {otpTimer}s
+                  </Text>
+                ) : (
+                  <HStack space="sm" alignItems="center">
+                    <Text
+                      testID="login-otp-resend-label"
+                      color={colors.mutedText}
+                      fontSize="$sm">
+                      Didn't receive OTP?
+                    </Text>
+                    <Pressable
+                      testID="login-otp-resend-button"
+                      onPress={handleResendOtp}
+                      $pressed={{opacity: 0.6}}>
+                      <Text
+                        testID="login-otp-resend-text"
+                        color={colors.accentAction}
+                        fontSize="$sm"
+                        fontWeight="$semibold"
+                        textDecorationLine="underline">
+                        Resend OTP
+                      </Text>
+                    </Pressable>
+                  </HStack>
+                )}
+              </HStack>
+            </Box>
             {errors.otp && (
-              <Text color={colors.danger} mt="$2">
+              <Text
+                testID="login-otp-error"
+                color={colors.danger}
+                mt="$2"
+                textAlign="center">
                 {errors.otp}
               </Text>
             )}
           </>
         )}
 
-        {/* ✅ Login Button */}
+        {/* ✅ Send/Verify Button */}
         <Button
+          testID="login-submit-button"
           onPress={handleLogin}
-          isDisabled={!isMobileValid || !otp}
+          isDisabled={
+            isLoading ||
+            (!isOtpSent
+              ? !isMobileValid
+              : !isMobileValid || !otp || otp.length < 6)
+          }
           w="$full"
           size="lg"
           borderRadius="$md"
           mt="$6"
           bg={colors.accentAction}
-          opacity={!isMobileValid || !otp ? 0.6 : 1}>
-          <Text color={colors.primaryBackground} fontWeight="$bold">
-            Login
+          opacity={
+            isLoading ||
+            (!isOtpSent
+              ? !isMobileValid
+              : !isMobileValid || !otp || otp.length < 6)
+              ? 0.6
+              : 1
+          }>
+          <Text
+            testID="login-submit-text"
+            color={colors.white}
+            fontWeight="$bold">
+            {isLoading
+              ? isOtpSent
+                ? 'Verifying...'
+                : 'Sending OTP...'
+              : isOtpSent
+                ? 'Verify OTP'
+                : 'Send OTP'}
           </Text>
         </Button>
 
         {/* ✅ Register Prompt */}
-        <Box flexDirection="row" mt="$5">
-          <Text color={colors.primaryText}>Not registered? </Text>
-          <Pressable onPress={handleRegister} $pressed={{opacity: 0.6}}>
-            <Text color={colors.accentAction} fontWeight="$semibold">
+        <Box testID="login-register-container" flexDirection="row" mt="$5">
+          <Text testID="login-register-label" color={colors.primaryText}>
+            Not registered?{' '}
+          </Text>
+          <Pressable
+            testID="login-register-button"
+            onPress={handleRegister}
+            $pressed={{opacity: 0.6}}>
+            <Text
+              testID="login-register-text"
+              color={colors.accentAction}
+              fontWeight="$semibold">
               Register
             </Text>
           </Pressable>
@@ -248,6 +496,7 @@ const LoginScreen = ({navigation}: any) => {
       {/* ✅ Confetti Cannon 🎉 */}
       {showConfetti && (
         <ConfettiCannon
+          testID="login-confetti"
           count={70}
           origin={{x: width / 2, y: 0}}
           fadeOut={true}

@@ -316,4 +316,13 @@ const StyledIcon = styled(
 
 const Badge = StyledRoot;
 
-export { Badge, StyledIcon as BadgeIcon, StyledText as BadgeText };
+// Create a proper Badge component that includes text
+const BadgeComponent = ({ children, ...props }: any) => {
+  return (
+    <StyledRoot {...props}>
+      <StyledText>{children}</StyledText>
+    </StyledRoot>
+  );
+};
+
+export { BadgeComponent as Badge, StyledIcon as BadgeIcon, StyledText as BadgeText };

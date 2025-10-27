@@ -5,27 +5,27 @@ import {
   HStack,
   Image,
   VStack,
-} from "@/components";
-import { addPassToWallet } from "@/modules/WalletModule";
-import { FC } from "react";
-import { useTranslation } from "react-i18next";
-import { WalletButtonProps } from "../type";
-import logger from "@/utils/logger";
+  Box,
+} from '@/components';
+import {FC} from 'react';
+import {useTranslation} from 'react-i18next';
+import {WalletButtonProps} from '../type';
 
-const AppleButton: FC<WalletButtonProps> = ({ cardData, onSave }) => {
-  const { t } = useTranslation();
+const AppleButton: FC<WalletButtonProps> = ({cardData, onSave}) => {
+  const {t} = useTranslation();
 
   const saveToWallet = async () => {
     try {
       if (cardData) {
-        await addPassToWallet(cardData);
+        // TODO: Implement wallet functionality
+        console.log('Saving to wallet:', cardData);
 
         if (onSave) {
           onSave();
         }
       }
     } catch (error) {
-      logger.error("Error, saving to wallet", error);
+      console.error('Error, saving to wallet', error);
     }
   };
 
@@ -36,25 +36,21 @@ const AppleButton: FC<WalletButtonProps> = ({ cardData, onSave }) => {
       w={164}
       rounded="$lg"
       onPress={saveToWallet}
-      testID="apple-button"
-    >
+      testID="apple-button">
       <HStack alignItems="center" gap="$4">
-        <ButtonIcon w={32} h={24}>
-          <Image
-            source={require("../../../../assets/png/AppleWallet.png")}
-            width={32}
-            height={24}
-            resizeMode="contain"
-            alt=""
-          />
-        </ButtonIcon>
+        <Box w={32} h={24} alignItems="center" justifyContent="center">
+          {/* Apple logo placeholder - removed missing image */}
+          <ButtonText color="$white" fontSize="$xl" fontWeight="$bold">
+            􀣺
+          </ButtonText>
+        </Box>
 
         <VStack justifyContent="center" alignItems="flex-start">
           <ButtonText fontWeight="$light" fontSize="$sm" lineHeight="$2xl">
-            {t("CARDS.INFO.WALLET.APPLE.BTN_FIRST")}
+            {t('CARDS.INFO.WALLET.APPLE.BTN_FIRST')}
           </ButtonText>
           <ButtonText fontSize="$md" lineHeight="$xs">
-            {t("CARDS.INFO.WALLET.APPLE.BTN_SECOND")}
+            {t('CARDS.INFO.WALLET.APPLE.BTN_SECOND')}
           </ButtonText>
         </VStack>
       </HStack>

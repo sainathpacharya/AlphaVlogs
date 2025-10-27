@@ -1,0 +1,15 @@
+module.exports = {
+  styled: jest.fn((Component) => Component),
+  createBox: jest.fn(),
+  createText: jest.fn(),
+  createVStack: jest.fn(),
+  createHStack: jest.fn(),
+  createButton: jest.fn(),
+  createInput: jest.fn(),
+  createImage: jest.fn(),
+  createIcon: jest.fn(),
+  createSelect: jest.fn(),
+  createScrollView: jest.fn(),
+  createKeyboardAvoidingView: jest.fn(),
+  createStatusBar: jest.fn(),
+};

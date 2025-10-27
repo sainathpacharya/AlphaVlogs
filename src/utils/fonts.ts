@@ -1,6 +1,11 @@
 import { Platform } from "react-native";
 
 export function mapFonts(style: any) {
+  // Handle null, undefined, or non-object inputs
+  if (!style || typeof style !== 'object') {
+    return {};
+  }
+
   const fontWeights: any = {
     "100": "Thin",
     // "200": "ExtraLight", //Mising
@@ -22,10 +27,10 @@ export function mapFonts(style: any) {
   const regex = /^([^_]*_){1,2}[^_]*$/;
 
   // Check if the fontFamily matches the regex pattern
-  if (style.fontFamily.match(regex)) {
+  if (style.fontFamily && style.fontFamily.match(regex)) {
     delete style.fontWeight;
     delete style.fontStyle;
-    return;
+    return style;
   }
 
   let fontFamilyValue = style.fontFamily
@@ -76,4 +81,6 @@ export function mapFonts(style: any) {
   style.fontFamily = fontFamilyValue;
   delete style.fontWeight;
   delete style.fontStyle;
+  
+  return style;
 }

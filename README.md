@@ -1,79 +1,326 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# JackMarvelsApp
 
-# Getting Started
+A React Native talent show application for kids, built with a modern, scalable architecture.
 
->**Note**: Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions till "Creating a new application" step, before proceeding.
+## 🏗️ Architecture Overview
 
-## Step 1: Start the Metro Server
+This project follows a comprehensive architecture designed for scalability, maintainability, and performance:
 
-First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
+### 📁 Project Structure
 
-To start Metro, run the following command from the _root_ of your React Native project:
-
-```bash
-# using npm
-npm start
-
-# OR using Yarn
-yarn start
+```
+src/
+├── components/          # Reusable UI components
+├── navigation/          # Navigation configuration
+├── screens/            # Screen components
+├── services/           # API and external services
+├── stores/             # State management (Zustand)
+├── context/            # React Context providers
+├── hooks/              # Custom React hooks
+├── utils/              # Utility functions
+├── types/              # TypeScript type definitions
+├── constants/          # App-wide constants
+└── assets/             # Images, fonts, etc.
 ```
 
-## Step 2: Start your Application
+### 🎯 Key Features
 
-Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
+- **State Management**: Zustand for global state with persistent storage
+- **API Layer**: Axios with interceptors, JWT refresh, and error handling
+- **Navigation**: React Navigation with type-safe routing
+- **UI Framework**: Gluestack UI with custom theming
+- **Authentication**: JWT-based with biometric support
+- **Caching**: React Query for server state management
+- **TypeScript**: Strict typing throughout the application
+- **Testing**: Jest and React Native Testing Library
+- **Code Quality**: ESLint, Prettier, and TypeScript
 
-### For Android
+## 🚀 Getting Started
 
-```bash
-# using npm
-npm run android
+### Prerequisites
 
-# OR using Yarn
-yarn android
+- Node.js >= 18
+- React Native CLI
+- Xcode (for iOS)
+- Android Studio (for Android)
+- CocoaPods (for iOS)
+
+### Installation
+
+1. **Clone the repository**
+
+   ```bash
+   git clone <repository-url>
+   cd JackMarvelsApp
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **iOS Setup**
+
+   ```bash
+   cd ios && pod install && cd ..
+   ```
+
+4. **Start the development server**
+
+   ```bash
+   npm start
+   ```
+
+5. **Run the app**
+
+   ```bash
+   # iOS
+   npm run ios
+
+   # Android
+   npm run android
+   ```
+
+## 📱 Available Scripts
+
+- `npm start` - Start Metro bundler
+- `npm run ios` - Run on iOS simulator
+- `npm run android` - Run on Android emulator
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Fix ESLint issues
+- `npm test` - Run tests
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:coverage` - Run tests with coverage
+- `npm run type-check` - Run TypeScript type checking
+- `npm run clean` - Clean and reinstall dependencies
+- `npm run clean:metro` - Clear Metro cache
+
+## 🏛️ Architecture Components
+
+### State Management
+
+#### Runtime Store (`user-store.ts`)
+
+- UI state (loading, authentication status)
+- Network status
+- Location data
+- Theme and language preferences
+
+#### Persistent Store (`user-cached-store.ts`)
+
+- Authentication tokens (secure storage)
+- User data
+- App settings
+- Cached data
+
+### API Layer
+
+#### Base API Service (`api.ts`)
+
+- Axios configuration with interceptors
+- Automatic JWT token refresh
+- Network connectivity checks
+- Error handling and retry logic
+- Request/response logging
+
+#### Service Modules
+
+- `auth-service.ts` - Authentication operations
+- `events-service.ts` - Event management
+- `quiz-service.ts` - Quiz functionality
+
+### Navigation
+
+#### Stack Structure
+
+```
+RootNavigator
+├── LoadingStack (App initialization)
+├── AuthStack (Authentication flow)
+│   ├── Welcome
+│   ├── Login
+│   ├── Registration
+│   └── OTPVerification
+└── AppStack (Main app)
+    ├── MainTabs
+    │   ├── Dashboard
+    │   ├── Events
+    │   ├── Profile
+    │   └── Settings
+    ├── Quiz
+    ├── Results
+    └── Modal screens
 ```
 
-### For iOS
+### Custom Hooks
 
-```bash
-# using npm
-npm run ios
+- `useAuth` - Authentication management
+- `useNetwork` - Network status monitoring
+- `useEvents` - Event data management
+- `useQuiz` - Quiz functionality
 
-# OR using Yarn
-yarn ios
+## 🔧 Configuration
+
+### Environment Variables
+
+Create a `.env` file in the root directory:
+
+```env
+API_URL=https://api.jackmarvels.com
+ENVIRONMENT=development
 ```
 
-If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
+### TypeScript Configuration
 
-This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
+The project uses strict TypeScript configuration with:
 
-## Step 3: Modifying your App
+- Path mapping for clean imports
+- Strict type checking
+- No implicit any
+- Strict null checks
 
-Now that you have successfully run the app, let's modify it.
+### ESLint Configuration
 
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
+Custom ESLint rules for:
 
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
+- React Native best practices
+- TypeScript compliance
+- Code formatting consistency
 
-## Congratulations! :tada:
+## 🧪 Testing
 
-You've successfully run and modified your React Native App. :partying_face:
+### Test Structure
 
-### Now what?
+```
+__tests__/
+├── components/     # Component tests
+├── screens/        # Screen tests
+├── services/       # Service tests
+└── utils/          # Utility tests
+```
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [Introduction to React Native](https://reactnative.dev/docs/getting-started).
+### Running Tests
 
-# Troubleshooting
+```bash
+# Run all tests
+npm test
 
-If you can't get this to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+# Run tests in watch mode
+npm run test:watch
 
-# Learn More
+# Run tests with coverage
+npm run test:coverage
+```
 
-To learn more about React Native, take a look at the following resources:
+## 📦 Build & Deployment
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+### Android
+
+```bash
+# Build release APK
+npm run build:android
+```
+
+### iOS
+
+```bash
+# Build release archive
+npm run build:ios
+```
+
+## 🔐 Security Features
+
+- Secure token storage using React Native Keychain
+- Biometric authentication support
+- Network security with certificate handling
+- Input validation and sanitization
+- JWT token refresh mechanism
+
+## 🎨 UI/UX Features
+
+- Gluestack UI design system
+- Custom theme configuration
+- Responsive design
+- Accessibility support
+- Dark/Light mode support
+- Internationalization (i18next)
+
+## 📊 Performance Optimizations
+
+- React Query for efficient caching
+- Lazy loading for screens
+- Image optimization
+- Bundle optimization
+- Memory management
+- Network request optimization
+
+## 🔄 Development Workflow
+
+1. **Feature Development**
+   - Create feature branch
+   - Implement with TypeScript
+   - Add tests
+   - Update documentation
+
+2. **Code Quality**
+   - Run linting: `npm run lint`
+   - Fix issues: `npm run lint:fix`
+   - Type checking: `npm run type-check`
+
+3. **Testing**
+   - Unit tests for utilities
+   - Component tests
+   - Integration tests for API calls
+
+4. **Review & Merge**
+   - Code review
+   - Performance testing
+   - Merge to main branch
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Metro Cache Issues**
+
+   ```bash
+   npm run clean:metro
+   ```
+
+2. **iOS Build Issues**
+
+   ```bash
+   cd ios && pod install && cd ..
+   ```
+
+3. **Android Build Issues**
+
+   ```bash
+   cd android && ./gradlew clean && cd ..
+   ```
+
+4. **TypeScript Errors**
+   ```bash
+   npm run type-check
+   ```
+
+## 📚 Additional Resources
+
+- [React Native Documentation](https://reactnative.dev/)
+- [React Navigation](https://reactnavigation.org/)
+- [Zustand](https://github.com/pmndrs/zustand)
+- [React Query](https://tanstack.com/query)
+- [Gluestack UI](https://ui.gluestack.io/)
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.

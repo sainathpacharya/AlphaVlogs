@@ -1,4 +1,8 @@
 import DeviceInfo from "react-native-device-info";
-import VersionInfo from "react-native-version-info";
 
-export const PLATFORM_STRING = `${DeviceInfo.getSystemName()} ${DeviceInfo.getSystemName()} ApplicationVersion: ${VersionInfo.appVersion}`;
+export const getSystemName = () => DeviceInfo.getSystemName();
+export const getAppVersion = () => DeviceInfo.getVersion();
+export const getPlatformString = () => `${getSystemName()} ${getSystemName()} ApplicationVersion: ${getAppVersion()}`;
+
+// Keep the constant for backward compatibility
+export const PLATFORM_STRING = getPlatformString();

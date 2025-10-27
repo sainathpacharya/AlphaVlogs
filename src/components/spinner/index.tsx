@@ -1,7 +1,7 @@
-import { ComponentProps } from "react";
-import { MaterialIndicator } from "react-native-indicators";
-import { HStack } from "..";
-import { gluestackUIConfig } from "../gluestack-ui.config";
+import {ComponentProps} from 'react';
+import {MaterialIndicator} from 'react-native-indicators';
+import {HStack} from '../hstack';
+import {gluestackUIConfig} from '../gluestack-ui.config';
 
 type IHStackProps = ComponentProps<typeof HStack>;
 
@@ -10,7 +10,7 @@ interface ISpinnerProps extends IHStackProps {
 }
 
 export const Spinner = (props: ISpinnerProps) => {
-  const { size = 25, ...HStackProps } = props;
+  const {size = 25, ...HStackProps} = props;
   return (
     <HStack {...HStackProps} width={size}>
       <MaterialIndicator

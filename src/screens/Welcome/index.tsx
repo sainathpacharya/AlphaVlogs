@@ -3,7 +3,7 @@ import {Dimensions, StatusBar, View} from 'react-native';
 import {SafeAreaView, VStack} from '../../components';
 import appLogo from '../../assets/png/appLogo.png';
 import {MotiImage} from 'moti';
-import colors from '../../utils/colors';
+import {useThemeColors} from '../../utils/colors';
 import {useNavigation} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {AuthStackParamList} from '../../navigation/AuthStack/types';
@@ -17,6 +17,7 @@ type WelcomeScreenNavigationProp = StackNavigationProp<
 >;
 
 const WelcomeScreen = () => {
+  const colors = useThemeColors();
   const navigation = useNavigation<WelcomeScreenNavigationProp>();
 
   useEffect(() => {
@@ -28,28 +29,41 @@ const WelcomeScreen = () => {
   }, [navigation]);
 
   return (
-    <SafeAreaView style={{flex: 1, backgroundColor: colors.white}}>
-      <StatusBar backgroundColor={colors.white} barStyle="dark-content" />
+    <SafeAreaView
+      testID="welcome-screen"
+      style={{flex: 1, backgroundColor: colors.primaryBackground}}>
+      <StatusBar
+        testID="welcome-status-bar"
+        backgroundColor={colors.primaryBackground}
+        barStyle={
+          colors.primaryBackground === '#FFFFFF'
+            ? 'dark-content'
+            : 'light-content'
+        }
+      />
 
       <View
+        testID="welcome-status-bar-overlay"
         style={{
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
           height: StatusBar.currentHeight || 50,
-          backgroundColor: colors.white,
+          backgroundColor: colors.primaryBackground,
           zIndex: 10,
         }}
       />
 
       <VStack
+        testID="welcome-container"
         h="$full"
         w="$full"
-        bg="$white"
+        style={{backgroundColor: colors.primaryBackground}}
         justifyContent="center"
         alignItems="center">
         <MotiImage
+          testID="welcome-logo"
           source={appLogo}
           from={{
             opacity: 0,
