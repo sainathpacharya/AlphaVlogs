@@ -27,7 +27,7 @@ jobs:
           cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --frozen-lockfile --ignore-scripts
 
       - name: Run ESLint
         run: yarn lint
@@ -51,7 +51,7 @@ jobs:
           cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --frozen-lockfile --ignore-scripts
 
       - name: Run tests with coverage
         run: yarn test:ci
