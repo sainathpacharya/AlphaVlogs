@@ -104,36 +104,85 @@ jobs:
           retention-days: 30
 
       - name: Setup Firebase Service Account
-        if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '' || github.event_name == 'push'
+        id: setup_firebase
         run: |
           if [ -n "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" ]; then
             echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" > ${{ runner.temp }}/firebase-service-account.json
             echo "✅ Firebase service account configured"
+            echo "firebase_configured=true" >> $GITHUB_OUTPUT
           else
             echo "⚠️ FIREBASE_SERVICE_ACCOUNT_JSON secret not found. Skipping Firebase App Distribution upload."
+            echo "firebase_configured=false" >> $GITHUB_OUTPUT
           fi
         continue-on-error: true
 
       - name: Upload APK to Firebase App Distribution
-        if: (github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '' || github.event_name == 'push') && secrets.FIREBASE_SERVICE_ACCOUNT_JSON
+        if: (github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '' || github.event_name == 'push') && steps.setup_firebase.outputs.firebase_configured == 'true'
         run: |
+          # Verify APK exists
+          APK_PATH="android/app/build/outputs/apk/develop/release/app-develop-release.apk"
+          if [ ! -f "$APK_PATH" ]; then
+            echo "❌ APK not found at $APK_PATH. Build may have failed."
+            exit 1
+          fi
+
+          echo "✅ APK found: $APK_PATH"
+          echo "📦 APK size: $(du -h "$APK_PATH" | cut -f1)"
+
           cd android
           # Configure Gradle to use service account
-          export FIREBASE_SERVICE_ACCOUNT_FILE="${{ runner.temp }}/firebase-service-account.json"
+          SERVICE_ACCOUNT_FILE="${{ runner.temp }}/firebase-service-account.json"
+          export FIREBASE_SERVICE_ACCOUNT_FILE="$SERVICE_ACCOUNT_FILE"
+
+          if [ ! -f "$SERVICE_ACCOUNT_FILE" ]; then
+            echo "❌ Service account file not found at $SERVICE_ACCOUNT_FILE"
+            exit 1
+          fi
+
+          echo "📤 Uploading APK to Firebase App Distribution..."
+          echo "Using service account: $SERVICE_ACCOUNT_FILE"
+
           ./gradlew appDistributionUploadDevelopRelease \
-            -PfirebaseServiceAccountFile="$FIREBASE_SERVICE_ACCOUNT_FILE" \
-            --no-daemon
+            -PfirebaseServiceAccountFile="$SERVICE_ACCOUNT_FILE" \
+            --no-daemon \
+            --stacktrace
+
+          echo "✅ Successfully uploaded to Firebase App Distribution"
         continue-on-error: true
 
       - name: Upload AAB to Firebase App Distribution
-        if: github.event.inputs.build_type == 'aab' && secrets.FIREBASE_SERVICE_ACCOUNT_JSON
+        if: github.event.inputs.build_type == 'aab' && steps.setup_firebase.outputs.firebase_configured == 'true'
         run: |
+          # Verify AAB exists
+          AAB_PATH="android/app/build/outputs/bundle/develop/release/app-develop-release.aab"
+          if [ ! -f "$AAB_PATH" ]; then
+            echo "❌ AAB not found at $AAB_PATH. Build may have failed."
+            exit 1
+          fi
+
+          echo "✅ AAB found: $AAB_PATH"
+          echo "📦 AAB size: $(du -h "$AAB_PATH" | cut -f1)"
+
           cd android
           # Configure Gradle to use service account
-          export FIREBASE_SERVICE_ACCOUNT_FILE="${{ runner.temp }}/firebase-service-account.json"
-          ./gradlew appDistributionUploadDevelopReleaseBundle \
-            -PfirebaseServiceAccountFile="$FIREBASE_SERVICE_ACCOUNT_FILE" \
-            --no-daemon
+          SERVICE_ACCOUNT_FILE="${{ runner.temp }}/firebase-service-account.json"
+          export FIREBASE_SERVICE_ACCOUNT_FILE="$SERVICE_ACCOUNT_FILE"
+
+          if [ ! -f "$SERVICE_ACCOUNT_FILE" ]; then
+            echo "❌ Service account file not found at $SERVICE_ACCOUNT_FILE"
+            exit 1
+          fi
+
+          echo "📤 Uploading AAB to Firebase App Distribution..."
+          echo "Using service account: $SERVICE_ACCOUNT_FILE"
+
+          # Try using Gradle task (it may auto-detect AAB)
+          ./gradlew appDistributionUploadDevelopRelease \
+            -PfirebaseServiceAccountFile="$SERVICE_ACCOUNT_FILE" \
+            --no-daemon \
+            --stacktrace
+
+          echo "✅ Successfully uploaded to Firebase App Distribution"
         continue-on-error: true
 
   build-ios:
