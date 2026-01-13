@@ -85,7 +85,6 @@ if (keystorePropertiesFile.exists()) {
  */
 def jscFlavor = 'org.webkit:android-jsc:+'
 
-// Android configuration block
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
