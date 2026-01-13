@@ -91,13 +91,26 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace "com.jackmarvelsapp"
+    
+    // Get version code from project property (set via -PversionCode=xxx in CI/CD)
+    // Defaults to 1 if not set (for local builds)
+    def buildVersionCode = project.hasProperty('versionCode') ? project.property('versionCode').toInteger() : 1
+    
+    // Log the version code being used (helpful for debugging)
+    println "📦 Building with version code: $buildVersionCode"
+    if (project.hasProperty('versionCode')) {
+        println "   (from -PversionCode=${project.property('versionCode')})")
+    } else {
+        println "   (using default: 1)")
+    }
+    
     defaultConfig {
         applicationId "com.jackmarvelsapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Version code can be overridden via -PversionCode=xxx
         // This allows CI/CD to set unique version codes for each build
-        versionCode project.hasProperty('versionCode') ? project.property('versionCode').toInteger() : 1
+        versionCode buildVersionCode
         versionName "1.0"
     }
     
@@ -108,12 +121,16 @@ android {
             dimension "environment"
             applicationIdSuffix ".dev"
             versionNameSuffix "-dev"
+            // Ensure version code is set for develop flavor too
+            versionCode buildVersionCode
             resValue "string", "app_name", "Alpha Vlogs Dev"
             // Use debug signing for develop builds
             signingConfig signingConfigs.debug
         }
         production {
             dimension "environment"
+            // Ensure version code is set for production flavor too
+            versionCode buildVersionCode
             resValue "string", "app_name", "Alpha Vlogs"
             // Production builds will use release signing config
         }

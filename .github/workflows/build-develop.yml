@@ -89,9 +89,40 @@ jobs:
           # This prevents Firebase App Distribution from updating the same release
           VERSION_CODE=${{ github.run_number }}
           echo "📦 Building APK with version code: $VERSION_CODE"
+          echo "📦 Build number: ${{ github.run_number }}"
+          echo "📦 Commit SHA: ${{ github.sha }}"
+          
           ./gradlew assembleDevelopRelease \
             -PversionCode=$VERSION_CODE \
             --no-daemon
+            
+          # Verify the version code was applied
+          echo ""
+          echo "🔍 Verifying APK version code..."
+          APK_PATH="app/build/outputs/apk/develop/release/app-develop-release.apk"
+          METADATA_PATH="app/build/outputs/apk/develop/release/output-metadata.json"
+          
+          if [ -f "$METADATA_PATH" ]; then
+            echo "📄 Checking build metadata..."
+            METADATA_VERSION_CODE=$(grep -o '"versionCode":[^,]*' "$METADATA_PATH" | grep -o '[0-9]\+' | head -n 1)
+            METADATA_VERSION_NAME=$(grep -o '"versionName":"[^"]*"' "$METADATA_PATH" | grep -o '"[^"]*"' | head -n 1)
+            echo "   Version Code: ${METADATA_VERSION_CODE:-'not found'} (expected: $VERSION_CODE)"
+            echo "   Version Name: ${METADATA_VERSION_NAME:-'not found'}"
+            if [ -n "$METADATA_VERSION_CODE" ] && [ "$METADATA_VERSION_CODE" != "$VERSION_CODE" ]; then
+              echo "⚠️ Warning: Version code mismatch! Expected $VERSION_CODE but got $METADATA_VERSION_CODE"
+            elif [ -n "$METADATA_VERSION_CODE" ]; then
+              echo "✅ Version code verified: $METADATA_VERSION_CODE"
+            fi
+          else
+            echo "⚠️ Metadata file not found at $METADATA_PATH"
+          fi
+          
+          if [ -f "$APK_PATH" ]; then
+            echo "✅ APK built successfully: $APK_PATH"
+            echo "   Size: $(du -h "$APK_PATH" | cut -f1)"
+          else
+            echo "❌ APK not found at $APK_PATH"
+          fi
 
       - name: Build AAB
         if: github.event.inputs.build_type == 'aab'
@@ -404,7 +435,48 @@ Run: #${BUILD_NUMBER}"
       - name: Check Build Status
         if: steps.build_ios.outputs.build_success != 'true'
         run: |
-          echo "❌ iOS build failed. Check the uploaded build log artifact for details."
+          echo ""
+          echo "❌ iOS build failed. Showing error summary..."
+          echo ""
+          
+          # Try to show error details from the build log if it exists
+          BUILD_LOG_PATH="ios/build.log"
+          if [ -f "$BUILD_LOG_PATH" ]; then
+            echo "=== Build Error Summary ==="
+            echo ""
+            
+            # Show last 100 lines (more context)
+            echo "Last 100 lines of build log:"
+            echo "----------------------------------------"
+            tail -n 100 "$BUILD_LOG_PATH"
+            echo "----------------------------------------"
+            echo ""
+            
+            # Search for common error patterns
+            echo "=== Critical Errors ==="
+            grep -iE "(error|failed|fatal)" "$BUILD_LOG_PATH" | tail -n 30 || echo "No critical errors found"
+            echo ""
+            
+            echo "=== Build Failures ==="
+            grep -i "ARCHIVE FAILED\|BUILD FAILED\|CompileC.*failed" "$BUILD_LOG_PATH" | tail -n 10 || echo "No build failure messages found"
+            echo ""
+            
+            echo "📄 Full build log available in artifact: ios-build-log-develop"
+          else
+            echo "⚠️ Build log file not found at $BUILD_LOG_PATH"
+            echo "   The build may have failed before logging started."
+            echo "   Check the 'Build iOS Archive' step output above for details."
+          fi
+          
+          echo ""
+          echo "💡 Common iOS build issues:"
+          echo "   1. Missing dependencies - check if 'pod install' completed successfully"
+          echo "   2. Code signing issues - ensure CODE_SIGNING_REQUIRED=NO is set"
+          echo "   3. Xcode version compatibility - check if all dependencies support the Xcode version"
+          echo "   4. Memory/timeout - build may have been killed due to resource limits"
+          echo "   5. Firebase SDK not installed - check AppDelegate.mm for conditional Firebase import"
+          echo ""
+          echo "📥 Download the 'ios-build-log-develop' artifact for the complete build log"
           exit 1
 
       - name: Export IPA from Archive

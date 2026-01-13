@@ -257,7 +257,48 @@ jobs:
       - name: Check Build Status
         if: steps.build_ios.outputs.build_success != 'true'
         run: |
-          echo "❌ iOS build failed. Check the uploaded build log artifact for details."
+          echo ""
+          echo "❌ iOS build failed. Showing error summary..."
+          echo ""
+
+          # Try to show error details from the build log if it exists
+          BUILD_LOG_PATH="ios/build.log"
+          if [ -f "$BUILD_LOG_PATH" ]; then
+            echo "=== Build Error Summary ==="
+            echo ""
+            
+            # Show last 100 lines (more context)
+            echo "Last 100 lines of build log:"
+            echo "----------------------------------------"
+            tail -n 100 "$BUILD_LOG_PATH"
+            echo "----------------------------------------"
+            echo ""
+            
+            # Search for common error patterns
+            echo "=== Critical Errors ==="
+            grep -iE "(error|failed|fatal)" "$BUILD_LOG_PATH" | tail -n 30 || echo "No critical errors found"
+            echo ""
+            
+            echo "=== Build Failures ==="
+            grep -i "ARCHIVE FAILED\|BUILD FAILED\|CompileC.*failed" "$BUILD_LOG_PATH" | tail -n 10 || echo "No build failure messages found"
+            echo ""
+            
+            echo "📄 Full build log available in artifact: ios-build-log-production"
+          else
+            echo "⚠️ Build log file not found at $BUILD_LOG_PATH"
+            echo "   The build may have failed before logging started."
+            echo "   Check the 'Build iOS Archive' step output above for details."
+          fi
+
+          echo ""
+          echo "💡 Common iOS build issues:"
+          echo "   1. Missing dependencies - check if 'pod install' completed successfully"
+          echo "   2. Code signing issues - ensure CODE_SIGNING_REQUIRED=NO is set"
+          echo "   3. Xcode version compatibility - check if all dependencies support the Xcode version"
+          echo "   4. Memory/timeout - build may have been killed due to resource limits"
+          echo "   5. Firebase SDK not installed - check AppDelegate.mm for conditional Firebase import"
+          echo ""
+          echo "📥 Download the 'ios-build-log-production' artifact for the complete build log"
           exit 1
 
       - name: Export IPA from Archive
