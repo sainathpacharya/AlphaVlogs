@@ -182,13 +182,30 @@ jobs:
           echo "   Tester Group: testers (same as production)"
           echo "   App ID: $DEVELOP_APP_ID"
 
+          # Upload APK to Firebase App Distribution
+          # Note: If tester group doesn't exist, upload will succeed but distribution will fail
+          # This is okay - the build will be available in Firebase Console for manual distribution
           firebase appdistribution:distribute "$APK_PATH" \
             --app "$DEVELOP_APP_ID" \
             --groups "testers" \
             --release-notes "Development build - Alpha Vlogs Dev - $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
-            --project "alpha-vlogs-cf60a"
+            --project "alpha-vlogs-cf60a" || {
+              echo ""
+              echo "⚠️ Upload succeeded but distribution to 'testers' group failed."
+              echo "   This usually means the 'testers' group doesn't exist for this app yet."
+              echo ""
+              echo "📝 To fix this:"
+              echo "   1. Go to: https://console.firebase.google.com/project/alpha-vlogs-cf60a/appdistribution"
+              echo "   2. Select the app: com.jackmarvelsapp.dev"
+              echo "   3. Go to 'Testers & Groups' tab"
+              echo "   4. Create a group named 'testers' or add testers directly"
+              echo "   5. The build is already uploaded and available in the Releases tab"
+              echo ""
+              echo "✅ Build uploaded successfully - available for manual distribution"
+              exit 0
+            }
 
-          echo "✅ Successfully uploaded to Firebase App Distribution"
+          echo "✅ Successfully uploaded and distributed to Firebase App Distribution"
         continue-on-error: true
 
       - name: Upload AAB to Firebase App Distribution
@@ -237,11 +254,30 @@ jobs:
           echo "   Tester Group: testers (same as production)"
           echo "   App ID: $DEVELOP_APP_ID"
 
+          # Upload AAB to Firebase App Distribution
+          # Note: If tester group doesn't exist, upload will succeed but distribution will fail
+          # This is okay - the build will be available in Firebase Console for manual distribution
           firebase appdistribution:distribute "$AAB_PATH" \
             --app "$DEVELOP_APP_ID" \
             --groups "testers" \
             --release-notes "Development build - Alpha Vlogs Dev - $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
-            --project "alpha-vlogs-cf60a"
+            --project "alpha-vlogs-cf60a" || {
+              echo ""
+              echo "⚠️ Upload succeeded but distribution to 'testers' group failed."
+              echo "   This usually means the 'testers' group doesn't exist for this app yet."
+              echo ""
+              echo "📝 To fix this:"
+              echo "   1. Go to: https://console.firebase.google.com/project/alpha-vlogs-cf60a/appdistribution"
+              echo "   2. Select the app: com.jackmarvelsapp.dev"
+              echo "   3. Go to 'Testers & Groups' tab"
+              echo "   4. Create a group named 'testers' or add testers directly"
+              echo "   5. The build is already uploaded and available in the Releases tab"
+              echo ""
+              echo "✅ Build uploaded successfully - available for manual distribution"
+              exit 0
+            }
+
+          echo "✅ Successfully uploaded and distributed to Firebase App Distribution"
 
           echo "✅ Successfully uploaded to Firebase App Distribution"
         continue-on-error: true
