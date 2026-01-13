@@ -85,13 +85,24 @@ jobs:
         if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '' || github.event_name == 'push'
         run: |
           cd android
-          ./gradlew assembleDevelopRelease --no-daemon
+          # Use GitHub Actions run number as version code to ensure each build is unique
+          # This prevents Firebase App Distribution from updating the same release
+          VERSION_CODE=${{ github.run_number }}
+          echo "📦 Building APK with version code: $VERSION_CODE"
+          ./gradlew assembleDevelopRelease \
+            -PversionCode=$VERSION_CODE \
+            --no-daemon
 
       - name: Build AAB
         if: github.event.inputs.build_type == 'aab'
         run: |
           cd android
-          ./gradlew bundleDevelopRelease --no-daemon
+          # Use GitHub Actions run number as version code to ensure each build is unique
+          VERSION_CODE=${{ github.run_number }}
+          echo "📦 Building AAB with version code: $VERSION_CODE"
+          ./gradlew bundleDevelopRelease \
+            -PversionCode=$VERSION_CODE \
+            --no-daemon
 
       - name: Upload APK artifact
         if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '' || github.event_name == 'push'
@@ -185,10 +196,21 @@ jobs:
           # Upload APK to Firebase App Distribution
           # Note: If tester group doesn't exist, upload will succeed but distribution will fail
           # This is okay - the build will be available in Firebase Console for manual distribution
+          BUILD_NUMBER="${{ github.run_number }}"
+          BUILD_SHA="${{ github.sha }}"
+          BUILD_DATE="$(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          RELEASE_NOTES="Development build #${BUILD_NUMBER} - Alpha Vlogs Dev
+          
+Build Date: ${BUILD_DATE}
+Commit: ${BUILD_SHA:0:7}
+Workflow: ${{ github.workflow }}
+Run: #${BUILD_NUMBER}"
+          
+          echo "📤 Uploading build #${BUILD_NUMBER} to Firebase App Distribution..."
           firebase appdistribution:distribute "$APK_PATH" \
             --app "$DEVELOP_APP_ID" \
             --groups "testers" \
-            --release-notes "Development build - Alpha Vlogs Dev - $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+            --release-notes "$RELEASE_NOTES" \
             --project "alpha-vlogs-cf60a" || {
               echo ""
               echo "⚠️ Upload succeeded but distribution to 'testers' group failed."
@@ -257,10 +279,21 @@ jobs:
           # Upload AAB to Firebase App Distribution
           # Note: If tester group doesn't exist, upload will succeed but distribution will fail
           # This is okay - the build will be available in Firebase Console for manual distribution
+          BUILD_NUMBER="${{ github.run_number }}"
+          BUILD_SHA="${{ github.sha }}"
+          BUILD_DATE="$(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          RELEASE_NOTES="Development build #${BUILD_NUMBER} - Alpha Vlogs Dev
+          
+Build Date: ${BUILD_DATE}
+Commit: ${BUILD_SHA:0:7}
+Workflow: ${{ github.workflow }}
+Run: #${BUILD_NUMBER}"
+          
+          echo "📤 Uploading build #${BUILD_NUMBER} to Firebase App Distribution..."
           firebase appdistribution:distribute "$AAB_PATH" \
             --app "$DEVELOP_APP_ID" \
             --groups "testers" \
-            --release-notes "Development build - Alpha Vlogs Dev - $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+            --release-notes "$RELEASE_NOTES" \
             --project "alpha-vlogs-cf60a" || {
               echo ""
               echo "⚠️ Upload succeeded but distribution to 'testers' group failed."

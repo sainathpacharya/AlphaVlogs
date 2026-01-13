@@ -87,13 +87,24 @@ jobs:
         if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '' || github.event_name == 'push'
         run: |
           cd android
-          ./gradlew assembleProductionRelease --no-daemon
+          # Use GitHub Actions run number as version code to ensure each build is unique
+          # This prevents Firebase App Distribution from updating the same release
+          VERSION_CODE=${{ github.run_number }}
+          echo "📦 Building APK with version code: $VERSION_CODE"
+          ./gradlew assembleProductionRelease \
+            -PversionCode=$VERSION_CODE \
+            --no-daemon
 
       - name: Build AAB
         if: github.event.inputs.build_type == 'aab'
         run: |
           cd android
-          ./gradlew bundleProductionRelease --no-daemon
+          # Use GitHub Actions run number as version code to ensure each build is unique
+          VERSION_CODE=${{ github.run_number }}
+          echo "📦 Building AAB with version code: $VERSION_CODE"
+          ./gradlew bundleProductionRelease \
+            -PversionCode=$VERSION_CODE \
+            --no-daemon
 
       - name: Upload APK artifact
         if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '' || github.event_name == 'push'

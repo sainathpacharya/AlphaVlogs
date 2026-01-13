@@ -95,7 +95,9 @@ android {
         applicationId "com.jackmarvelsapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
+        // Version code can be overridden via -PversionCode=xxx
+        // This allows CI/CD to set unique version codes for each build
+        versionCode project.hasProperty('versionCode') ? project.property('versionCode').toInteger() : 1
         versionName "1.0"
     }
     
