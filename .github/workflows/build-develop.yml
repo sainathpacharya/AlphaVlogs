@@ -1,0 +1,171 @@
+name: Build Develop (Android & iOS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - android
+          - ios
+      build_type:
+        description: 'Android build type (apk or aab)'
+        required: false
+        default: 'apk'
+        type: choice
+        options:
+          - apk
+          - aab
+  push:
+    branches:
+      - develop
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - 'LICENSE'
+
+env:
+  PACKAGE_NAME_DEVELOP: com.jackmarvelsapp.dev
+  BUNDLE_ID_DEVELOP: com.jackmarvelsapp.dev
+
+jobs:
+  build-android:
+    name: Build Android Develop
+    if: github.event.inputs.platform == 'android' || github.event.inputs.platform == 'both' || github.event.inputs.platform == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'yarn'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            android/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build APK
+        if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '' || github.event_name == 'push'
+        run: |
+          cd android
+          ./gradlew assembleDevelopRelease --no-daemon
+
+      - name: Build AAB
+        if: github.event.inputs.build_type == 'aab'
+        run: |
+          cd android
+          ./gradlew bundleDevelopRelease --no-daemon
+
+      - name: Upload APK artifact
+        if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '' || github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-develop
+          path: android/app/build/outputs/apk/develop/release/app-develop-release.apk
+          retention-days: 30
+
+      - name: Upload AAB artifact
+        if: github.event.inputs.build_type == 'aab'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aab-develop
+          path: android/app/build/outputs/bundle/develop/release/app-develop-release.aab
+          retention-days: 30
+
+  build-ios:
+    name: Build iOS Develop
+    if: github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'both' || github.event.inputs.platform == ''
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
+          pod install --repo-update
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Build iOS Archive
+        run: |
+          cd ios
+          xcodebuild clean archive \
+            -workspace JackMarvelsApp.xcworkspace \
+            -scheme JackMarvelsApp \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath $PWD/build/JackMarvelsApp-develop.xcarchive \
+            PRODUCT_BUNDLE_IDENTIFIER=${{ env.BUNDLE_ID_DEVELOP }} \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload iOS Archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-archive-develop
+          path: ios/build/JackMarvelsApp-develop.xcarchive
+          retention-days: 30
+
+  build-summary:
+    name: Build Summary
+    needs: [build-android, build-ios]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## Develop Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** develop" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Date:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- Android: \`android-apk-develop\` or \`android-aab-develop\`" >> $GITHUB_STEP_SUMMARY
+          echo "- iOS: \`ios-archive-develop\`" >> $GITHUB_STEP_SUMMARY
