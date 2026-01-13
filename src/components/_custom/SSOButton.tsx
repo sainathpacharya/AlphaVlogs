@@ -1,17 +1,17 @@
-import { ExternalLink } from "@/assets/icons/ui";
+import { ExternalLink } from '@/assets/icons/ui';
 
-import { HStack, Text, Button, ButtonSpinner, ButtonText } from "@/components";
-import { apiPartner } from "@/services/partner-api";
-import { useMutation } from "@tanstack/react-query";
-import InAppBrowser from "react-native-inappbrowser-reborn";
-import { Linking, Platform, TouchableOpacity } from "react-native";
-import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { useUserCachedStore } from "@/stores/user-cached-store";
-import { IPartnerResponse } from "@/types/partner";
+import { HStack, Text, Button, ButtonSpinner, ButtonText } from '@/components';
+import { apiPartner } from '@/services/partner-api';
+import { useMutation } from '@tanstack/react-query';
+import InAppBrowser from 'react-native-inappbrowser-reborn';
+import { Linking, Platform, TouchableOpacity } from 'react-native';
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useUserCachedStore } from '@/stores/user-cached-store';
+import { IPartnerResponse } from '@/types/partner';
 enum SSOButtonType {
-  Link = "link",
-  Button = "button",
+  Link = 'link',
+  Button = 'button',
 }
 
 interface Props {
@@ -72,13 +72,13 @@ const SSOButton = ({
             forceCloseOnRedirection: false,
             ...Platform.select({
               ios: {
-                dismissButtonStyle: "Close",
-                preferredBarTintColor: "#ffffff",
-                preferredControlTintColor: "#000000",
+                dismissButtonStyle: 'Close',
+                preferredBarTintColor: '#ffffff',
+                preferredControlTintColor: '#000000',
               },
               android: {
-                toolbarColor: "#ffffff",
-                secondaryToolbarColor: "#000000",
+                toolbarColor: '#ffffff',
+                secondaryToolbarColor: '#000000',
                 showInRecents: false,
               },
             }),
@@ -95,7 +95,7 @@ const SSOButton = ({
         if (canOpen) {
           await Linking.openURL(url.toString());
         } else {
-          throw new Error("Cannot open URL with system browser");
+          throw new Error('Cannot open URL with system browser');
         }
       }
     },

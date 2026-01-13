@@ -1,184 +1,184 @@
-import { createAvatar } from "@gluestack-ui/avatar";
+import { createAvatar } from '@gluestack-ui/avatar';
 
-import { styled } from "@gluestack-style/react";
-import { Image, Text, View } from "react-native";
+import { styled } from '@gluestack-style/react';
+import { Image, Text, View } from 'react-native';
 const StyledRoot = styled(
   View,
   {
-    borderRadius: "$full",
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
-    bg: "$primary600",
+    borderRadius: '$full',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    bg: '$primary600',
     variants: {
       size: {
         xs: {
-          w: "$6",
-          h: "$6",
+          w: '$6',
+          h: '$6',
 
           _badge: {
-            w: "$2",
-            h: "$2",
+            w: '$2',
+            h: '$2',
           },
           _image: {
-            w: "$full",
-            h: "$full",
+            w: '$full',
+            h: '$full',
           },
 
           _text: {
-            props: { size: "2xs" },
+            props: { size: '2xs' },
           },
         },
 
         sm: {
-          w: "$8",
-          h: "$8",
+          w: '$8',
+          h: '$8',
 
           _badge: {
-            w: "$2",
-            h: "$2",
+            w: '$2',
+            h: '$2',
           },
           _image: {
-            w: "$full",
-            h: "$full",
+            w: '$full',
+            h: '$full',
           },
 
           _text: {
-            props: { size: "xs" },
+            props: { size: 'xs' },
           },
         },
 
         md: {
-          w: "$12",
-          h: "$12",
+          w: '$12',
+          h: '$12',
 
           _badge: {
-            w: "$3",
-            h: "$3",
+            w: '$3',
+            h: '$3',
           },
           _image: {
-            w: "$full",
-            h: "$full",
+            w: '$full',
+            h: '$full',
           },
 
           _text: {
-            props: { size: "md" },
+            props: { size: 'md' },
           },
         },
 
         lg: {
-          w: "$16",
-          h: "$16",
+          w: '$16',
+          h: '$16',
 
           _badge: {
-            w: "$4",
-            h: "$4",
+            w: '$4',
+            h: '$4',
           },
           _image: {
-            w: "$full",
-            h: "$full",
+            w: '$full',
+            h: '$full',
           },
 
           _text: {
-            props: { size: "xl" },
+            props: { size: 'xl' },
           },
         },
 
         xl: {
-          w: "$24",
-          h: "$24",
+          w: '$24',
+          h: '$24',
 
           _badge: {
-            w: "$6",
-            h: "$6",
+            w: '$6',
+            h: '$6',
           },
           _image: {
-            w: "$full",
-            h: "$full",
+            w: '$full',
+            h: '$full',
           },
 
           _text: {
-            props: { size: "3xl" },
+            props: { size: '3xl' },
           },
         },
 
-        "2xl": {
-          w: "$32",
-          h: "$32",
+        '2xl': {
+          w: '$32',
+          h: '$32',
 
           _badge: {
-            w: "$8",
-            h: "$8",
+            w: '$8',
+            h: '$8',
           },
           _image: {
-            w: "$full",
-            h: "$full",
+            w: '$full',
+            h: '$full',
           },
 
           _text: {
-            props: { size: "5xl" },
+            props: { size: '5xl' },
           },
         },
       },
     },
     defaultProps: {
-      size: "md",
+      size: 'md',
     },
   },
   {
-    descendantStyle: ["_badge", "_text", "_image"],
-    ancestorStyle: ["_avatar"],
+    descendantStyle: ['_badge', '_text', '_image'],
+    ancestorStyle: ['_avatar'],
   }
 );
 
 const StyledBadge = styled(
   View,
   {
-    w: "$5",
-    h: "$5",
-    bg: "$success500",
-    borderRadius: "$full",
-    position: "absolute",
+    w: '$5',
+    h: '$5',
+    bg: '$success500',
+    borderRadius: '$full',
+    position: 'absolute',
     right: 0,
     bottom: 0,
-    borderColor: "white",
+    borderColor: 'white',
     borderWidth: 2,
   },
   {
-    ancestorStyle: ["_badge"],
+    ancestorStyle: ['_badge'],
   }
 );
 const StyledGroup = styled(
   View,
   {
-    flexDirection: "row-reverse",
-    position: "relative",
+    flexDirection: 'row-reverse',
+    position: 'relative',
     _avatar: {
       ml: -10,
     },
   },
   {
-    descendantStyle: ["_avatar"],
+    descendantStyle: ['_avatar'],
   }
 );
 
 const StyledImage = styled(
   Image,
-  { w: "$full", h: "$full", borderRadius: "$full", position: "absolute" },
+  { w: '$full', h: '$full', borderRadius: '$full', position: 'absolute' },
   {
-    ancestorStyle: ["_image"],
+    ancestorStyle: ['_image'],
   }
 );
 
 const StyledText = styled(
   Text,
   {
-    color: "$text700",
+    color: '$text700',
     flex: 1,
-    fontWeight: "$normal",
-    fontFamily: "$body",
-    fontStyle: "normal",
-    letterSpacing: "$md",
+    fontWeight: '$normal',
+    fontFamily: '$body',
+    fontStyle: 'normal',
+    letterSpacing: '$md',
 
     variants: {
       isTruncated: {
@@ -186,110 +186,110 @@ const StyledText = styled(
           props: {
             // @ts-ignore
             numberOfLines: 1,
-            ellipsizeMode: "tail",
+            ellipsizeMode: 'tail',
           },
         },
       },
       bold: {
         true: {
-          fontWeight: "$bold",
+          fontWeight: '$bold',
         },
       },
       underline: {
         true: {
-          textDecorationLine: "underline",
+          textDecorationLine: 'underline',
         },
       },
       strikeThrough: {
         true: {
-          textDecorationLine: "line-through",
+          textDecorationLine: 'line-through',
         },
       },
       size: {
-        "2xs": {
-          fontSize: "$2xs",
+        '2xs': {
+          fontSize: '$2xs',
         },
         xs: {
-          fontSize: "$xs",
+          fontSize: '$xs',
         },
 
         sm: {
-          fontSize: "$sm",
+          fontSize: '$sm',
         },
 
         md: {
-          fontSize: "$md",
+          fontSize: '$md',
         },
 
         lg: {
-          fontSize: "$lg",
+          fontSize: '$lg',
         },
 
         xl: {
-          fontSize: "$xl",
+          fontSize: '$xl',
         },
 
-        "2xl": {
-          fontSize: "$2xl",
+        '2xl': {
+          fontSize: '$2xl',
         },
 
-        "3xl": {
-          fontSize: "$3xl",
+        '3xl': {
+          fontSize: '$3xl',
         },
 
-        "4xl": {
-          fontSize: "$4xl",
+        '4xl': {
+          fontSize: '$4xl',
         },
 
-        "5xl": {
-          fontSize: "$5xl",
+        '5xl': {
+          fontSize: '$5xl',
         },
 
-        "6xl": {
-          fontSize: "$6xl",
+        '6xl': {
+          fontSize: '$6xl',
         },
       },
       sub: {
         true: {
-          fontSize: "$xs",
+          fontSize: '$xs',
         },
       },
       italic: {
         true: {
-          fontStyle: "italic",
+          fontStyle: 'italic',
         },
       },
       highlight: {
         true: {
-          bg: "$yellow500",
+          bg: '$yellow500',
         },
       },
     },
 
     defaultProps: {
-      size: "md",
+      size: 'md',
     },
   },
   {
-    ancestorStyle: ["_text"],
+    ancestorStyle: ['_text'],
   }
 );
 const StyledFallbackText = styled(
   StyledText,
   {
-    color: "$text0",
-    fontWeight: "$bold",
+    color: '$text0',
+    fontWeight: '$bold',
     props: {
-      size: "xl",
+      size: 'xl',
     },
-    overflow: "hidden",
-    textTransform: "uppercase",
+    overflow: 'hidden',
+    textTransform: 'uppercase',
     _web: {
-      cursor: "default",
+      cursor: 'default',
     },
   },
   {
-    ancestorStyle: ["_text"],
+    ancestorStyle: ['_text'],
   } as const
 );
 

@@ -58,7 +58,7 @@ class SchoolsService {
       };
     } catch (error) {
       console.error('SchoolsService.getSchools error:', error);
-      
+
       // Return mock data in case of error
       return MockWrapperService.convertMockResponse({
         success: true,

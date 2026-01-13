@@ -4,9 +4,9 @@ import {
   ProgressFilledTrack,
   Text,
   VStack,
-} from "@/components";
-import { FC } from "react";
-import { useTranslation } from "react-i18next";
+} from '@/components';
+import { FC } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface ProgressBarProps {
   maxValue?: number;
@@ -21,7 +21,7 @@ const ProgressBar: FC<ProgressBarProps> = ({
   currentValue = 0,
   name,
   showRemaining = true,
-  color = "$chBlue120",
+  color = '$chBlue120',
 }) => {
   const displayNumber = (numb: number) => Math.floor(numb);
   const { t } = useTranslation();
@@ -29,8 +29,8 @@ const ProgressBar: FC<ProgressBarProps> = ({
   const getRemaining = (): number =>
     Math.max(Math.floor(maxValue - Math.floor(currentValue)), 0);
   const getPercentage = (): number => {
-    if (maxValue === 0 && currentValue === 0) return 100; // Fill bar if no deductible
-    if (maxValue === 0) return 0; // Avoid divide-by-zero
+    if (maxValue === 0 && currentValue === 0) {return 100;} // Fill bar if no deductible
+    if (maxValue === 0) {return 0;} // Avoid divide-by-zero
     return displayNumber((Math.floor(currentValue) * 100) / maxValue);
   };
 
@@ -80,7 +80,7 @@ const ProgressBar: FC<ProgressBarProps> = ({
             accessibilityRole="text"
             fontSize={14}
           >
-            {"/"}
+            {'/'}
           </Text>
           <Text
             accessibilityLabel={`$${displayNumber(maxValue)}`}
@@ -105,11 +105,11 @@ const ProgressBar: FC<ProgressBarProps> = ({
 
               <Text
                 fontWeight={600}
-                accessibilityLabel={t("COMMON.PROGRESS_BAR.REMAINING")}
+                accessibilityLabel={t('COMMON.PROGRESS_BAR.REMAINING')}
                 accessibilityRole="text"
                 fontSize={14}
               >
-                {t("COMMON.PROGRESS_BAR.REMAINING")}
+                {t('COMMON.PROGRESS_BAR.REMAINING')}
               </Text>
             </>
           ) : (

@@ -36,21 +36,21 @@ class ApiLogger {
   }
 
   private sanitizeData(data: any): any {
-    if (!data) return data;
-    
+    if (!data) {return data;}
+
     // Create a deep copy to avoid modifying original data
     const sanitized = JSON.parse(JSON.stringify(data));
-    
+
     // Remove sensitive information
     const sensitiveKeys = ['password', 'token', 'authorization', 'secret', 'key', 'otp'];
-    
+
     const sanitizeObject = (obj: any): any => {
-      if (typeof obj !== 'object' || obj === null) return obj;
-      
+      if (typeof obj !== 'object' || obj === null) {return obj;}
+
       if (Array.isArray(obj)) {
         return obj.map(sanitizeObject);
       }
-      
+
       const result: any = {};
       for (const [key, value] of Object.entries(obj)) {
         const lowerKey = key.toLowerCase();
@@ -62,12 +62,12 @@ class ApiLogger {
       }
       return result;
     };
-    
+
     return sanitizeObject(sanitized);
   }
 
   private logRequest(config: AxiosRequestConfig, startTime: Date): void {
-    if (!this.isEnabled) return;
+    if (!this.isEnabled) {return;}
 
     const logData: Partial<ApiLogData> = {
       method: config.method?.toUpperCase() || 'UNKNOWN',
@@ -84,17 +84,17 @@ class ApiLogger {
     console.log('📅 Timestamp:', logData.timestamp);
     console.log('🌐 Full URL:', logData.fullUrl);
     console.log('📋 Headers:', logData.headers);
-    if (logData.params) console.log('🔍 Query Params:', logData.params);
-    if (logData.data) console.log('📦 Request Body:', logData.data);
+    if (logData.params) {console.log('🔍 Query Params:', logData.params);}
+    if (logData.data) {console.log('📦 Request Body:', logData.data);}
     console.groupEnd();
   }
 
   private logResponse(response: AxiosResponse, startTime: Date): void {
-    if (!this.isEnabled) return;
+    if (!this.isEnabled) {return;}
 
     const endTime = new Date();
     const duration = this.formatDuration(startTime, endTime);
-    
+
     const logData: Partial<ApiLogData> = {
       method: response.config.method?.toUpperCase() || 'UNKNOWN',
       url: response.config.url || '',
@@ -106,7 +106,7 @@ class ApiLogger {
     };
 
     const statusEmoji = logData.status && logData.status >= 200 && logData.status < 300 ? '✅' : '⚠️';
-    
+
     console.group(`${statusEmoji} API Response: ${logData.method} ${logData.url}`);
     console.log('📅 Timestamp:', logData.timestamp);
     console.log('⏱️ Duration:', `${logData.duration}ms`);
@@ -116,11 +116,11 @@ class ApiLogger {
   }
 
   private logError(error: AxiosError, startTime: Date): void {
-    if (!this.isEnabled) return;
+    if (!this.isEnabled) {return;}
 
     const endTime = new Date();
     const duration = this.formatDuration(startTime, endTime);
-    
+
     const logData: Partial<ApiLogData> = {
       method: error.config?.method?.toUpperCase() || 'UNKNOWN',
       url: error.config?.url || '',
@@ -158,10 +158,10 @@ class ApiLogger {
 
   // Method for logging service-level operations
   logServiceCall(serviceName: string, methodName: string, params?: any, result?: any, error?: any): void {
-    if (!this.isEnabled) return;
+    if (!this.isEnabled) {return;}
 
     const timestamp = this.formatTimestamp();
-    
+
     if (error) {
       console.group(`❌ Service Error: ${serviceName}.${methodName}`);
       console.log('📅 Timestamp:', timestamp);
@@ -179,10 +179,10 @@ class ApiLogger {
 
   // Method for logging mock API calls
   logMockCall(serviceName: string, methodName: string, params?: any, result?: any): void {
-    if (!this.isEnabled) return;
+    if (!this.isEnabled) {return;}
 
     const timestamp = this.formatTimestamp();
-    
+
     console.group(`🎭 Mock API Call: ${serviceName}.${methodName}`);
     console.log('📅 Timestamp:', timestamp);
     console.log('📋 Parameters:', this.sanitizeData(params));

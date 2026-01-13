@@ -13,7 +13,7 @@ if (!global.Intl.PluralRules) {
       this.locale = locale;
       this.options = options;
     }
-    
+
     select(count) {
       // Simple pluralization rule: return 'one' for count === 1, 'other' for everything else
       return count === 1 ? 'one' : 'other';

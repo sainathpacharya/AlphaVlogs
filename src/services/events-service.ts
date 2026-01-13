@@ -26,10 +26,10 @@ class EventsService {
         const mockParams = {
           category: params?.category,
           search: params?.search,
-          include: params?.category ? ['categories'] : undefined
+          include: params?.category ? ['categories'] : undefined,
         };
         const response = await mockService.getEvents(mockParams);
-        
+
         if (response.success && response.data) {
           const result = {
             success: true,
@@ -39,26 +39,26 @@ class EventsService {
                 page: 1,
                 limit: response.data.events.length,
                 total: response.data.total,
-                totalPages: 1
+                totalPages: 1,
               },
               success: true,
-              statusCode: 200
+              statusCode: 200,
             },
-            statusCode: 200
+            statusCode: 200,
           };
           apiLogger.logMockCall('EventsService', 'getEvents', params, result);
           return result;
         }
-        
+
         const errorResult = {
           success: false,
           error: 'Failed to fetch events',
-          statusCode: 400
+          statusCode: 400,
         };
         apiLogger.logMockCall('EventsService', 'getEvents', params, errorResult);
         return errorResult;
       }
-      
+
       const queryString = params ? `?${new URLSearchParams(params as any).toString()}` : '';
       const result = await apiService.get<PaginatedResponse<Event>>(`/events${queryString}`);
       apiLogger.logServiceCall('EventsService', 'getEvents', params, result);

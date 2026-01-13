@@ -19,7 +19,7 @@ class VideoService {
       if (MockWrapperService.isMockMode()) {
         // Use mock API for video upload
         const mockService = MockWrapperService.getMockService();
-        
+
         // Simulate upload progress
         if (data.onProgress) {
           const simulateProgress = () => {
@@ -37,7 +37,7 @@ class VideoService {
 
         // Get current user ID (you might need to adjust this based on your auth state)
         const userId = 'user_001'; // Default mock user
-        
+
         const response = await mockService.uploadVideo({
           userId,
           eventId: data.eventId,
@@ -61,8 +61,8 @@ class VideoService {
       const formData = new FormData();
       formData.append('videoFile', data.videoFile);
       formData.append('eventId', data.eventId);
-      if (data.title) formData.append('title', data.title);
-      if (data.description) formData.append('description', data.description);
+      if (data.title) {formData.append('title', data.title);}
+      if (data.description) {formData.append('description', data.description);}
 
       const response = await apiService.uploadFile<VideoSubmission>(
         API_ENDPOINTS.VIDEO.UPLOAD,

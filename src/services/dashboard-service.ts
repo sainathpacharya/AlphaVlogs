@@ -9,7 +9,7 @@ class DashboardService {
       const mockResponse = await MockWrapperService.getMockService().getDashboard();
       return mockResponse.data;
     }
-    
+
     const response = await apiService.get<DashboardData>(API_ENDPOINTS.DASHBOARD.GET);
     return response.data!;
   }

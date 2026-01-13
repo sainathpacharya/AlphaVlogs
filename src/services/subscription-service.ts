@@ -20,7 +20,7 @@ class SubscriptionService {
       }
 
       const response = await apiService.post<Subscription>(API_ENDPOINTS.SUBSCRIPTION.UPDATE, data);
-      
+
       if (!response.success) {
         throw new Error(response.error || 'Failed to update subscription');
       }

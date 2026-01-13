@@ -17,9 +17,9 @@ const MockTextInput = (props) => {
 
 const MockFlatList = (props) => {
   const { data, renderItem, keyExtractor, ...otherProps } = props;
-  return React.createElement('ScrollView', otherProps, 
-    data?.map((item, index) => 
-      React.createElement('View', { key: keyExtractor ? keyExtractor(item, index) : index }, 
+  return React.createElement('ScrollView', otherProps,
+    data?.map((item, index) =>
+      React.createElement('View', { key: keyExtractor ? keyExtractor(item, index) : index },
         renderItem ? renderItem({ item, index }) : null
       )
     )

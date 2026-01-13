@@ -1,18 +1,18 @@
-import { Box } from "@/components";
-import { FC, useEffect } from "react";
+import { Box } from '@/components';
+import { FC, useEffect } from 'react';
 import {
   AnimatableNumericValue,
   DimensionValue,
   StyleSheet,
-} from "react-native";
-import LinearGradient from "react-native-linear-gradient";
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
-} from "react-native-reanimated";
+} from 'react-native-reanimated';
 
 interface SkeletonProps {
   width?: DimensionValue | string;
@@ -21,7 +21,7 @@ interface SkeletonProps {
 }
 
 const Skeleton: FC<SkeletonProps> = ({
-  width = "100%",
+  width = '100%',
   height = 14,
   rounded,
 }) => {
@@ -57,7 +57,7 @@ const Skeleton: FC<SkeletonProps> = ({
     >
       <Animated.View style={[styles.gradientContainer, animatedStyle]}>
         <LinearGradient
-          colors={["#eee", "#ddd", "#eee"]}
+          colors={['#eee', '#ddd', '#eee']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.gradient}
@@ -69,16 +69,16 @@ const Skeleton: FC<SkeletonProps> = ({
 
 const styles = StyleSheet.create({
   placeholder: {
-    backgroundColor: "#eee",
-    overflow: "hidden",
+    backgroundColor: '#eee',
+    overflow: 'hidden',
   },
   gradientContainer: {
     ...StyleSheet.absoluteFillObject,
-    flexDirection: "row",
+    flexDirection: 'row',
   },
   gradient: {
     flex: 1,
-    width: "200%", // Adjust this to ensure the gradient covers the whole width
+    width: '200%', // Adjust this to ensure the gradient covers the whole width
   },
 });
 

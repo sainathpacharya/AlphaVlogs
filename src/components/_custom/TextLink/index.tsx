@@ -1,6 +1,6 @@
-import { HStack, Text } from "@/components/";
-import { FC, ReactNode } from "react";
-import { TouchableOpacity } from "react-native";
+import { HStack, Text } from '@/components/';
+import { FC, ReactNode } from 'react';
+import { TouchableOpacity } from 'react-native';
 
 interface TextLinkProps {
   icon?: ReactNode;
@@ -16,7 +16,7 @@ const TextLink: FC<TextLinkProps> = ({
   iconRight,
   text,
   onPress,
-  fontSize = "$md",
+  fontSize = '$md',
   fontWeight = 600,
 }) => {
   return (

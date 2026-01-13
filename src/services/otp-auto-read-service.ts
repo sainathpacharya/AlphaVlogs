@@ -93,7 +93,7 @@ class OTPAutoReadService {
       if (Platform.OS === 'android' && SmsRetriever) {
         this.smsListener = SmsRetriever.addSmsListener((message: string) => {
           console.log('SMS received:', message);
-          
+
           const match = message.match(this.defaultSmsPattern);
           if (match && match[1]) {
             const otp = match[1];

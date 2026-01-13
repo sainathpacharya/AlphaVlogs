@@ -1,6 +1,6 @@
-import { Box, Text } from "@/components";
-import { FC } from "react";
-import { TouchableOpacity } from "react-native";
+import { Box, Text } from '@/components';
+import { FC } from 'react';
+import { TouchableOpacity } from 'react-native';
 
 interface TabProps {
   action: (value: string | number) => void;
@@ -17,7 +17,7 @@ const Tab: FC<TabProps> = ({
   value,
   selected = false,
   showUnderline,
-  underLineBottom = "$1",
+  underLineBottom = '$1',
 }) => {
   if (!selected) {
     return (

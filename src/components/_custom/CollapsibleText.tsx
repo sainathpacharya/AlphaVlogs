@@ -7,8 +7,8 @@ import {
   AccordionTrigger,
   Text,
   View,
-} from "@/components";
-import React from "react";
+} from '@/components';
+import React from 'react';
 
 interface ICollapsibleText {
   title: string;

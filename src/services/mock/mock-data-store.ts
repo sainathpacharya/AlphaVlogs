@@ -38,7 +38,7 @@ export class MockDataStore {
       isVerified: true,
       createdAt: '2024-01-10T14:30:00Z',
       updatedAt: '2024-01-10T14:30:00Z',
-    }
+    },
   ];
 
   private events: Event[] = [
@@ -111,7 +111,7 @@ export class MockDataStore {
       uploadEndDate: '2024-02-20T23:59:59Z',
       allowedRoles: [4],
       createdAt: '2024-01-01T00:00:00Z',
-    }
+    },
   ];
 
   private influencerEvents: InfluencerEvent[] = [
@@ -130,7 +130,7 @@ export class MockDataStore {
       type: 'history',
       isActive: true,
       createdAt: '2024-01-01T00:00:00Z',
-    }
+    },
   ];
 
   private subscriptions: Subscription[] = [
@@ -147,7 +147,7 @@ export class MockDataStore {
       canUploadVideos: true,
       maxVideosPerMonth: 10,
       videosUploadedThisMonth: 3,
-    }
+    },
   ];
 
   private paymentMethods: PaymentMethod[] = [
@@ -168,7 +168,7 @@ export class MockDataStore {
       type: 'cheque',
       name: 'Cheque Payment',
       isEnabled: true,
-    }
+    },
   ];
 
   private videoSubmissions: VideoSubmission[] = [
@@ -181,7 +181,7 @@ export class MockDataStore {
       duration: 120,
       uploadedAt: '2024-01-20T00:00:00Z',
       status: 'pending',
-    }
+    },
   ];
 
   private quizQuestions: QuizQuestion[] = [
@@ -200,7 +200,7 @@ export class MockDataStore {
       correctAnswer: 1,
       explanation: 'Mars is called the Red Planet due to its reddish appearance',
       category: 'Science',
-    }
+    },
   ];
 
   private notifications: Notification[] = [
@@ -223,7 +223,7 @@ export class MockDataStore {
       data: { subscriptionId: 'sub_001' },
       isRead: false,
       createdAt: new Date('2024-01-24T15:30:00Z'),
-    }
+    },
   ];
 
   // Getter methods

@@ -3,14 +3,14 @@ import {
   CloseLargeSquare,
   Lightbulb,
   TriangleExclamation,
-} from "@/assets/icons/ui";
-import { Box, HStack, Text, VStack } from "@/components";
-import { useUserStore } from "@/stores/user-store";
-import { ComponentProps, FC, ReactNode, useState } from "react";
-import { TouchableOpacity } from "react-native";
+} from '@/assets/icons/ui';
+import { Box, HStack, Text, VStack } from '@/components';
+import { useUserStore } from '@/stores/user-store';
+import { ComponentProps, FC, ReactNode, useState } from 'react';
+import { TouchableOpacity } from 'react-native';
 
 interface ToastMessageProps extends ComponentProps<typeof HStack> {
-  type?: "info" | "warning" | "success";
+  type?: 'info' | 'warning' | 'success';
   message: string | ReactNode;
   tryAgain?: boolean;
   closeBtn?: boolean;
@@ -18,32 +18,32 @@ interface ToastMessageProps extends ComponentProps<typeof HStack> {
 }
 
 const ToastMessage: FC<ToastMessageProps> = ({
-  type = "info",
+  type = 'info',
   message,
   tryAgain = false,
-  mb = "$12",
-  h = "auto",
+  mb = '$12',
+  h = 'auto',
   closeBtn = true,
-  px = "$3",
+  px = '$3',
   onClose,
 }) => {
   const [visible, setVisible] = useState<boolean>(true);
   const { executeLastMutate, setLastFailedMutate } = useUserStore();
 
-  if (!visible) return null;
+  if (!visible) {return null;}
 
   const messageTypes = {
     info: {
       icon: <Lightbulb color="#3B4E85" />,
-      color: "$chBlue120",
+      color: '$chBlue120',
     },
     warning: {
       icon: <TriangleExclamation color="#C89211" />,
-      color: "$chYellow120",
+      color: '$chYellow120',
     },
     success: {
       icon: <CircleCheck color="#2D8560" />,
-      color: "$chGreen100",
+      color: '$chGreen100',
     },
   };
 

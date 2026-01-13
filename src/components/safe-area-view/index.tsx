@@ -1,6 +1,6 @@
-import { SafeAreaView as RNSafeAreaView } from "react-native";
+import { SafeAreaView as RNSafeAreaView } from 'react-native';
 
-import { styled } from "@gluestack-style/react";
+import { styled } from '@gluestack-style/react';
 
 const StyledRoot = styled(RNSafeAreaView);
 

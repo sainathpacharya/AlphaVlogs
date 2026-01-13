@@ -2,7 +2,7 @@
 export const API_CONFIG = {
   // Set to 'mock' to use mock data, 'real' to use actual backend
   MODE: 'real' as 'mock' | 'real',
-  
+
   // Mock API settings
   MOCK: {
     ENABLE_DELAY: true,
@@ -10,7 +10,7 @@ export const API_CONFIG = {
     UPLOAD_DELAY: 2000, // milliseconds
     PAYMENT_DELAY: 1500, // milliseconds
   },
-  
+
   // Real API settings
   REAL: {
     BASE_URL: 'https://api.jackmarvels.com',
@@ -18,7 +18,7 @@ export const API_CONFIG = {
     RETRY_ATTEMPTS: 3,
     RETRY_DELAY: 1000, // milliseconds
   },
-  
+
   // Feature flags
   FEATURES: {
     ENABLE_CACHING: true,
@@ -26,14 +26,14 @@ export const API_CONFIG = {
     ENABLE_PUSH_NOTIFICATIONS: true,
     ENABLE_BIOMETRIC_AUTH: true,
   },
-  
+
   // Development settings
   DEV: {
     LOG_API_CALLS: true,
     LOG_MOCK_DATA: true,
     ENABLE_MOCK_ERRORS: false, // Simulate network errors
     MOCK_ERROR_RATE: 0.1, // 10% chance of error
-  }
+  },
 };
 
 // Helper function to check if mock mode is enabled

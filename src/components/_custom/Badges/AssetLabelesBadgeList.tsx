@@ -1,22 +1,22 @@
-import { Box, HStack, Text, VStack } from "@/components";
-import { IProviderGroup } from "@/types/provider-groups-metadata";
-import IconDLS from "../Icon";
-import { TIconList } from "../Icon/type";
+import { Box, HStack, Text, VStack } from '@/components';
+import { IProviderGroup } from '@/types/provider-groups-metadata';
+import IconDLS from '../Icon';
+import { TIconList } from '../Icon/type';
 
 interface IAssetLabelsBadgeListProps {
-  asset?: IProviderGroup["asset"];
+  asset?: IProviderGroup['asset'];
   labelFilter?: string[];
   fontSize?: any;
   fontWeight?: any;
 }
 const AssetLabelsBadgeList = (props: IAssetLabelsBadgeListProps) => {
-  const { asset, labelFilter, fontSize = "$md", fontWeight = 500 } = props;
+  const { asset, labelFilter, fontSize = '$md', fontWeight = 500 } = props;
 
   return (
     <VStack gap="$3">
       {asset?.labels
         .filter((label) =>
-          !!labelFilter?.length
+          labelFilter?.length
             ? label.type.some((type) => labelFilter?.includes(type))
             : false
         )

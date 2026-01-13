@@ -1,7 +1,7 @@
-import { CheckTiny } from "@/assets/icons/misc";
-import { HStack, Text, VStack } from "@/components";
-import { FC } from "react";
-import { TouchableOpacity } from "react-native";
+import { CheckTiny } from '@/assets/icons/misc';
+import { HStack, Text, VStack } from '@/components';
+import { FC } from 'react';
+import { TouchableOpacity } from 'react-native';
 
 interface CheckItemMinimalProps {
   label: string;
@@ -33,7 +33,7 @@ const CheckItemMinimal: FC<CheckItemMinimalProps> = ({
         w="$full"
         alignItems="center"
         borderBottomColor="#E9E9E9"
-        borderBottomWidth={!border ? "$0" : "$1"}
+        borderBottomWidth={!border ? '$0' : '$1'}
       >
         <VStack gap="$2" flex={1}>
           <Text>{label}</Text>

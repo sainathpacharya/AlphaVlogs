@@ -98,7 +98,7 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
       try {
         setIsLoading(true);
         setOtp('');
-        if (errors.otp) setErrors(prev => ({...prev, otp: ''}));
+        if (errors.otp) {setErrors(prev => ({...prev, otp: ''}));}
         if (otpRef.current) {
           otpRef.current.clear();
         }
@@ -162,8 +162,8 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
   const handleLogin = async () => {
     if (!validate()) {
       const errorMessages = [] as string[];
-      if (errors.mobile) errorMessages.push(`Mobile: ${errors.mobile}`);
-      if (errors.otp) errorMessages.push(`OTP: ${errors.otp}`);
+      if (errors.mobile) {errorMessages.push(`Mobile: ${errors.mobile}`);}
+      if (errors.otp) {errorMessages.push(`OTP: ${errors.otp}`);}
       Alert.alert(
         '❌ Validation Failed',
         errorMessages.join('\n') || 'Please check your inputs.',
@@ -248,7 +248,7 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
   const handleOtpChange = (text: string) => {
     console.log('OTP changed to:', text, 'Length:', text.length);
     setOtp(text);
-    if (errors.otp) setErrors(prev => ({...prev, otp: ''}));
+    if (errors.otp) {setErrors(prev => ({...prev, otp: ''}));}
   };
 
   return (
@@ -328,8 +328,8 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
               // Remove all non-digit characters and limit to 10 digits
               const digits = val.replace(/\D/g, '').slice(0, 10);
               setMobile(digits);
-              if (otp.length > 0) setOtp('');
-              if (errors.mobile) setErrors(prev => ({...prev, mobile: ''}));
+              if (otp.length > 0) {setOtp('');}
+              if (errors.mobile) {setErrors(prev => ({...prev, mobile: ''}));}
             }}
             placeholderTextColor={colors.mutedText}
             color={colors.inputText}

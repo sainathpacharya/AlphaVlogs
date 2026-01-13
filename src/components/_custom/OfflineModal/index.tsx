@@ -1,7 +1,7 @@
-import { Button, ButtonText, HStack, Text, VStack } from "@/components";
-import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
-import Modal from "react-native-modal";
+import { Button, ButtonText, HStack, Text, VStack } from '@/components';
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import Modal from 'react-native-modal';
 
 interface Props {
   show: boolean;
@@ -22,21 +22,21 @@ const OfflineModal = ({ show, onRetry, onClose }: Props) => {
       isVisible={displayModal}
       style={{
         margin: 0,
-        justifyContent: "center",
-        alignItems: "center",
+        justifyContent: 'center',
+        alignItems: 'center',
       }}
     >
       <VStack w="90%" bg="$white" py="$8" px="$6" borderRadius="$md">
         <Text size="xl" fontWeight={500} mb="$4">
-          {t("COMMON.OFFLINE_MODAL.TITLE")}
+          {t('COMMON.OFFLINE_MODAL.TITLE')}
         </Text>
-        <Text mb="$4" size={"xl"}>
-          {t("COMMON.OFFLINE_MODAL.DESCRIPTION")}
+        <Text mb="$4" size={'xl'}>
+          {t('COMMON.OFFLINE_MODAL.DESCRIPTION')}
         </Text>
 
         <HStack justifyContent="space-between">
           <Button
-            width={"48%"}
+            width={'48%'}
             maxWidth={300}
             onPress={onClose}
             rounded="$full"
@@ -45,18 +45,18 @@ const OfflineModal = ({ show, onRetry, onClose }: Props) => {
             variant="outline"
           >
             <ButtonText color="$black">
-              {t("COMMON.OFFLINE_MODAL.CLOSE_BUTTON")}
+              {t('COMMON.OFFLINE_MODAL.CLOSE_BUTTON')}
             </ButtonText>
           </Button>
 
           <Button
-            width={"48%"}
+            width={'48%'}
             maxWidth={300}
             onPress={onRetry}
             rounded="$full"
             mb="$2"
           >
-            <ButtonText>{t("COMMON.OFFLINE_MODAL.RETRY_BUTTON")}</ButtonText>
+            <ButtonText>{t('COMMON.OFFLINE_MODAL.RETRY_BUTTON')}</ButtonText>
           </Button>
         </HStack>
       </VStack>

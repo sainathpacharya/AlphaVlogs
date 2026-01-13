@@ -16,18 +16,18 @@ export const useAuth = () => {
     onSuccess: async (response) => {
       if (response.success && response.data) {
         const { user, tokens } = response.data;
-        
+
         // Store tokens securely
         await setTokens(tokens);
-        
+
         // Update stores
         setUserData(user);
         setUser(user);
         setAuthenticated(true);
-        
+
         // Invalidate and refetch user data
         queryClient.invalidateQueries({ queryKey: ['user'] });
-        
+
         return { success: true, message: SUCCESS_MESSAGES.LOGIN_SUCCESS };
       } else {
         return { success: false, message: response.error || ERROR_MESSAGES.UNKNOWN_ERROR };
@@ -59,18 +59,18 @@ export const useAuth = () => {
     onSuccess: async (response) => {
       if (response.success && response.data) {
         const { user, tokens } = response.data;
-        
+
         // Store tokens securely
         await setTokens(tokens);
-        
+
         // Update stores
         setUserData(user);
         setUser(user);
         setAuthenticated(true);
-        
+
         // Invalidate and refetch user data
         queryClient.invalidateQueries({ queryKey: ['user'] });
-        
+
         return { success: true, message: 'OTP verified successfully!' };
       } else {
         return { success: false, message: response.error || ERROR_MESSAGES.UNKNOWN_ERROR };
@@ -87,14 +87,14 @@ export const useAuth = () => {
     onSuccess: async () => {
       // Clear all stored data
       await clearAll();
-      
+
       // Reset stores
       setUser(null);
       setAuthenticated(false);
-      
+
       // Clear all queries
       queryClient.clear();
-      
+
       return { success: true, message: SUCCESS_MESSAGES.LOGOUT_SUCCESS };
     },
     onError: async () => {
@@ -103,7 +103,7 @@ export const useAuth = () => {
       setUser(null);
       setAuthenticated(false);
       queryClient.clear();
-      
+
       return { success: true, message: SUCCESS_MESSAGES.LOGOUT_SUCCESS };
     },
   });
@@ -124,10 +124,10 @@ export const useAuth = () => {
         // Update stores
         setUserData(response.data);
         setUser(response.data);
-        
+
         // Invalidate user queries
         queryClient.invalidateQueries({ queryKey: ['user'] });
-        
+
         return { success: true, message: SUCCESS_MESSAGES.PROFILE_UPDATED };
       } else {
         return { success: false, message: response.error || ERROR_MESSAGES.UNKNOWN_ERROR };
@@ -215,16 +215,16 @@ export const useAuth = () => {
     logout,
     updateProfile,
     getProfile,
-    
+
     // Loading states
-    isLoading: loginMutation.isPending || registerMutation.isPending || 
-               verifyOTPMutation.isPending || logoutMutation.isPending || 
+    isLoading: loginMutation.isPending || registerMutation.isPending ||
+               verifyOTPMutation.isPending || logoutMutation.isPending ||
                updateProfileMutation.isPending,
-    
+
     // Data
     userProfile: userProfile?.data,
     isLoadingProfile,
-    
+
     // Error states
     loginError: loginMutation.error,
     registerError: registerMutation.error,

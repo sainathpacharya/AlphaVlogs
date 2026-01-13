@@ -1,7 +1,7 @@
-import Check from "@/assets/icons/Check";
-import { Box, HStack, Text, VStack } from "@/components";
-import { FC, ReactNode } from "react";
-import { TouchableOpacity } from "react-native";
+import Check from '@/assets/icons/Check';
+import { Box, HStack, Text, VStack } from '@/components';
+import { FC, ReactNode } from 'react';
+import { TouchableOpacity } from 'react-native';
 
 interface CheckItemProps {
   label: string;
@@ -37,7 +37,7 @@ const CheckItem: FC<CheckItemProps> = ({
         w="$full"
         alignItems="center"
         borderBottomColor="#E9E9E9"
-        borderBottomWidth={icon || !border ? "$0" : "$1"}
+        borderBottomWidth={icon || !border ? '$0' : '$1'}
       >
         {!icon ? (
           <Box
@@ -45,8 +45,8 @@ const CheckItem: FC<CheckItemProps> = ({
             h="$5"
             rounded="$xs"
             borderColor="#999"
-            borderWidth={checked ? "$0" : "$1"}
-            backgroundColor={checked ? "$chTeal120" : "$white"}
+            borderWidth={checked ? '$0' : '$1'}
+            backgroundColor={checked ? '$chTeal120' : '$white'}
             justifyContent="center"
             alignItems="center"
           >
@@ -67,8 +67,8 @@ const CheckItem: FC<CheckItemProps> = ({
             h="$5"
             rounded="$xs"
             borderColor="#999"
-            borderWidth={checked ? "$0" : "$1"}
-            backgroundColor={checked ? "$chTeal120" : "$white"}
+            borderWidth={checked ? '$0' : '$1'}
+            backgroundColor={checked ? '$chTeal120' : '$white'}
             justifyContent="center"
             alignItems="center"
           >

@@ -1,9 +1,9 @@
-import { Box, HStack, ImageBackground, Text } from "@/components";
-import { forwardRef, useImperativeHandle, useRef } from "react";
-import MapView, { Marker, Region } from "react-native-maps";
-import emptyMarkerImage from "./emptymarket.png";
-import markerImage from "./marker.png";
-import selectedMarkerImage from "./selected-marker.png";
+import { Box, HStack, ImageBackground, Text } from '@/components';
+import { forwardRef, useImperativeHandle, useRef } from 'react';
+import MapView, { Marker, Region } from 'react-native-maps';
+import emptyMarkerImage from './emptymarket.png';
+import markerImage from './marker.png';
+import selectedMarkerImage from './selected-marker.png';
 
 interface IMapProps {
   lat: number;
@@ -38,7 +38,7 @@ const MapViewer = forwardRef<MapView, IMapProps>((props, ref) => {
   useImperativeHandle(ref, () => {
     const map = mapRef.current;
     if (!map) {
-      throw new Error("MapView is not yet loaded");
+      throw new Error('MapView is not yet loaded');
     }
     // Aquí puedes añadir propiedades adicionales si es necesario
     return map; // Esto garantiza que siempre devuelvas un objeto MapView, nunca null
@@ -90,7 +90,7 @@ const MapViewer = forwardRef<MapView, IMapProps>((props, ref) => {
         let image =
           index !== selectedMarker ? markerImage : selectedMarkerImage;
 
-        if (isMultiple) image = emptyMarkerImage;
+        if (isMultiple) {image = emptyMarkerImage;}
 
         return (
           <Marker
@@ -102,16 +102,16 @@ const MapViewer = forwardRef<MapView, IMapProps>((props, ref) => {
               longitude: marker.lng || 0,
             }}
             style={{
-              alignItems: "center",
-              justifyContent: "center",
-              display: "flex",
+              alignItems: 'center',
+              justifyContent: 'center',
+              display: 'flex',
             }}
           >
             <Box h={50} w={35} position="relative">
               <ImageBackground
                 source={image}
-                style={{ flex: 1, justifyContent: "center" }}
-              ></ImageBackground>
+                style={{ flex: 1, justifyContent: 'center' }}
+               />
               {isMultiple && (
                 <HStack
                   w={35}

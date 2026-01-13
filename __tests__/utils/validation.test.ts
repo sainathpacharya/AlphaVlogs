@@ -41,7 +41,7 @@ describe('Validation Utils', () => {
 
     it('should validate custom rules', () => {
       const rules = {
-        custom: (value: string) => value.length < 3 ? 'Too short' : null
+        custom: (value: string) => value.length < 3 ? 'Too short' : null,
       };
       expect(validateField('ab', rules)).toBe('Too short');
       expect(validateField('abc', rules)).toBeNull();

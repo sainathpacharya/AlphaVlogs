@@ -12,33 +12,33 @@ const testCategories = {
   'Screens': {
     pattern: '__tests__/screens/**/*.test.{ts,tsx}',
     description: 'Screen component tests (Registration, Dashboard, etc.)',
-    priority: 'high'
+    priority: 'high',
   },
   'Services': {
     pattern: '__tests__/services/**/*.test.{ts,tsx}',
     description: 'Service layer tests (auth, API, mock services)',
-    priority: 'high'
+    priority: 'high',
   },
   'Hooks': {
     pattern: '__tests__/hooks/**/*.test.{ts,tsx}',
     description: 'Custom React hooks tests (useAuth, useTranslation, etc.)',
-    priority: 'high'
+    priority: 'high',
   },
   'Stores': {
     pattern: '__tests__/stores/**/*.test.{ts,tsx}',
     description: 'State management tests (Zustand stores)',
-    priority: 'medium'
+    priority: 'medium',
   },
   'Utils': {
     pattern: '__tests__/utils/**/*.test.{ts,tsx}',
     description: 'Utility function tests (colors, navigation, platform)',
-    priority: 'medium'
+    priority: 'medium',
   },
   'Integration': {
     pattern: '__tests__/integration/**/*.test.{ts,tsx}',
     description: 'Integration tests (end-to-end workflows)',
-    priority: 'low'
-  }
+    priority: 'low',
+  },
 };
 
 // Test execution modes
@@ -46,23 +46,23 @@ const testModes = {
   'all': {
     command: 'npm test',
     description: 'Run all tests with coverage',
-    flags: ['--coverage', '--verbose']
+    flags: ['--coverage', '--verbose'],
   },
   'watch': {
     command: 'npm run test:watch',
     description: 'Run tests in watch mode',
-    flags: []
+    flags: [],
   },
   'ci': {
     command: 'npm run test:ci',
     description: 'Run tests for CI/CD pipeline',
-    flags: ['--ci', '--coverage', '--watchAll=false']
+    flags: ['--ci', '--coverage', '--watchAll=false'],
   },
   'debug': {
     command: 'npm test',
     description: 'Run tests with debug output',
-    flags: ['--verbose', '--no-coverage', '--runInBand']
-  }
+    flags: ['--verbose', '--no-coverage', '--runInBand'],
+  },
 };
 
 // Color codes for console output
@@ -74,7 +74,7 @@ const colors = {
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
   magenta: '\x1b[35m',
-  cyan: '\x1b[36m'
+  cyan: '\x1b[36m',
 };
 
 function colorize(text, color) {
@@ -95,20 +95,20 @@ function printSection(title, content) {
 
 function runCommand(command, description, options = {}) {
   const { silent = false, timeout = 30000 } = options;
-  
+
   console.log(colorize(`\n💻 ${description}`, 'magenta'));
   console.log(colorize(`Command: ${command}`, 'gray'));
-  
+
   try {
     const startTime = Date.now();
-    const result = execSync(command, { 
+    const result = execSync(command, {
       stdio: silent ? 'pipe' : 'inherit',
       cwd: process.cwd(),
-      timeout
+      timeout,
     });
     const endTime = Date.now();
     const duration = ((endTime - startTime) / 1000).toFixed(2);
-    
+
     console.log(colorize(`✅ Completed in ${duration}s`, 'green'));
     return { success: true, duration: parseFloat(duration) };
   } catch (error) {
@@ -119,37 +119,37 @@ function runCommand(command, description, options = {}) {
 
 function checkTestFiles() {
   printHeader('Test File Analysis');
-  
+
   let totalTests = 0;
   let totalFiles = 0;
-  
+
   Object.entries(testCategories).forEach(([category, config]) => {
     const testFiles = findTestFiles(config.pattern);
     const fileCount = testFiles.length;
     const testCount = countTestsInFiles(testFiles);
-    
+
     totalFiles += fileCount;
     totalTests += testCount;
-    
+
     const status = fileCount > 0 ? colorize('✓', 'green') : colorize('✗', 'red');
-    const priority = config.priority === 'high' ? colorize('HIGH', 'red') : 
-                    config.priority === 'medium' ? colorize('MED', 'yellow') : 
+    const priority = config.priority === 'high' ? colorize('HIGH', 'red') :
+                    config.priority === 'medium' ? colorize('MED', 'yellow') :
                     colorize('LOW', 'blue');
-    
+
     console.log(`${status} ${category.padEnd(12)} | ${fileCount.toString().padStart(3)} files | ${testCount.toString().padStart(3)} tests | ${priority}`);
   });
-  
+
   console.log(colorize('\n' + '─'.repeat(50), 'blue'));
   console.log(colorize(`Total: ${totalFiles} files, ${totalTests} tests`, 'bright'));
-  
+
   return { totalFiles, totalTests };
 }
 
 function findTestFiles(pattern) {
   try {
-    const result = execSync(`find . -name "${pattern.replace('**', '*')}" -type f`, { 
+    const result = execSync(`find . -name "${pattern.replace('**', '*')}" -type f`, {
       stdio: 'pipe',
-      cwd: process.cwd()
+      cwd: process.cwd(),
     });
     return result.toString().trim().split('\n').filter(Boolean);
   } catch {
@@ -175,25 +175,25 @@ function countTestsInFiles(files) {
 
 function runCategoryTests(category, config) {
   printSection(`${category} Tests`, config.description);
-  
+
   const testFiles = findTestFiles(config.pattern);
   if (testFiles.length === 0) {
     console.log(colorize('No test files found', 'yellow'));
     return { success: true, tests: 0 };
   }
-  
+
   const command = `npm test -- ${testFiles.join(' ')}`;
   const result = runCommand(command, `Running ${category} tests`);
-  
+
   return { ...result, tests: testFiles.length };
 }
 
 function runAllTests() {
   printHeader('Running All Tests');
-  
+
   const mode = process.argv[2] || 'all';
   const modeConfig = testModes[mode];
-  
+
   if (!modeConfig) {
     console.error(colorize(`❌ Unknown test mode: ${mode}`, 'red'));
     console.log(colorize('\nAvailable modes:', 'yellow'));
@@ -202,13 +202,13 @@ function runAllTests() {
     });
     process.exit(1);
   }
-  
-  const command = modeConfig.flags.length > 0 ? 
-    `${modeConfig.command} ${modeConfig.flags.join(' ')}` : 
+
+  const command = modeConfig.flags.length > 0 ?
+    `${modeConfig.command} ${modeConfig.flags.join(' ')}` :
     modeConfig.command;
-  
+
   const result = runCommand(command, modeConfig.description);
-  
+
   if (result.success) {
     console.log(colorize('\n🎉 All tests completed successfully!', 'green'));
   } else {
@@ -227,10 +227,10 @@ function runSpecificCategory(category) {
     });
     process.exit(1);
   }
-  
+
   printHeader(`Running ${category} Tests`);
   const result = runCategoryTests(category, config);
-  
+
   if (result.success) {
     console.log(colorize(`\n✅ ${category} tests completed!`, 'green'));
   } else {
@@ -241,10 +241,10 @@ function runSpecificCategory(category) {
 
 function showHelp() {
   printHeader('Test Runner Help');
-  
+
   console.log(colorize('\nUsage:', 'bright'));
   console.log('  node __tests__/run-all-tests.js [command] [options]');
-  
+
   console.log(colorize('\nCommands:', 'bright'));
   console.log('  all                    Run all tests with coverage');
   console.log('  watch                  Run tests in watch mode');
@@ -253,14 +253,14 @@ function showHelp() {
   console.log('  check                  Check test files and show statistics');
   console.log('  [category]             Run tests for specific category');
   console.log('  help                   Show this help message');
-  
+
   console.log(colorize('\nCategories:', 'bright'));
   Object.entries(testCategories).forEach(([category, config]) => {
-    const priority = config.priority === 'high' ? '🔴' : 
+    const priority = config.priority === 'high' ? '🔴' :
                     config.priority === 'medium' ? '🟡' : '🟢';
     console.log(`  ${priority} ${category.padEnd(12)} - ${config.description}`);
   });
-  
+
   console.log(colorize('\nExamples:', 'bright'));
   console.log('  node __tests__/run-all-tests.js all');
   console.log('  node __tests__/run-all-tests.js watch');

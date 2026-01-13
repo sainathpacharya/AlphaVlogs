@@ -161,10 +161,10 @@ const PermissionsScreen: React.FC = () => {
   };
 
   const getPermissionStatus = (permissionType: string) => {
-    if (loading) return 'unavailable';
-    if (hasPermission(permissionType as any)) return 'granted';
-    if (isPermissionBlocked(permissionType as any)) return 'blocked';
-    if (isPermissionUnavailable(permissionType as any)) return 'unavailable';
+    if (loading) {return 'unavailable';}
+    if (hasPermission(permissionType as any)) {return 'granted';}
+    if (isPermissionBlocked(permissionType as any)) {return 'blocked';}
+    if (isPermissionUnavailable(permissionType as any)) {return 'unavailable';}
     return 'denied';
   };
 

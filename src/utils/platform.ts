@@ -1,4 +1,4 @@
-import DeviceInfo from "react-native-device-info";
+import DeviceInfo from 'react-native-device-info';
 
 export const getSystemName = () => DeviceInfo.getSystemName();
 export const getAppVersion = () => DeviceInfo.getVersion();

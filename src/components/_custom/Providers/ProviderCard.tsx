@@ -1,19 +1,19 @@
-import { CircleQuestion } from "@/assets/icons/ui";
-import SvgRibbon from "@/assets/icons/ui/Ribbon";
-import { Box, Divider, HStack, Text, VStack } from "@/components";
-import { useBottomModal } from "@/context/bottom-modal/bottom-modal.providers";
-import { navigate } from "@/navigation/lib";
-import { ISelectedLocation } from "@/types/places";
-import { ProviderLocation } from "@/types/provider-locations";
-import { trackGetCareEvents, trackPlanningForCare } from "@/utils/LogEvent";
-import { EventType } from "@/utils/LogEvent/types";
-import { PROVIDER_CARD_ATTRIBUTES } from "@/utils/colors";
-import { providerAddress } from "@/utils/strings";
-import { useRoute } from "@react-navigation/native";
-import { useTranslation } from "react-i18next";
-import { TouchableOpacity } from "react-native";
-import AcceptingNewPatientsBadge from "../Badges/AcceptingNewPatientsBadge";
-import ScoreTooltip from "./ScoreTooltip";
+import { CircleQuestion } from '@/assets/icons/ui';
+import SvgRibbon from '@/assets/icons/ui/Ribbon';
+import { Box, Divider, HStack, Text, VStack } from '@/components';
+import { useBottomModal } from '@/context/bottom-modal/bottom-modal.providers';
+import { navigate } from '@/navigation/lib';
+import { ISelectedLocation } from '@/types/places';
+import { ProviderLocation } from '@/types/provider-locations';
+import { trackGetCareEvents, trackPlanningForCare } from '@/utils/LogEvent';
+import { EventType } from '@/utils/LogEvent/types';
+import { PROVIDER_CARD_ATTRIBUTES } from '@/utils/colors';
+import { providerAddress } from '@/utils/strings';
+import { useRoute } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
+import { TouchableOpacity } from 'react-native';
+import AcceptingNewPatientsBadge from '../Badges/AcceptingNewPatientsBadge';
+import ScoreTooltip from './ScoreTooltip';
 
 interface IProviderCardProps {
   provider: ProviderLocation;
@@ -35,11 +35,11 @@ const ProviderCard = (props: IProviderCardProps) => {
   const handleScoreModal = () => {
     trackPlanningForCare(EventType.amplitude_event_explanation_viewed, {
       source: route.name,
-      explanation_topic_name: "Provider score",
+      explanation_topic_name: 'Provider score',
     });
 
     openModal({
-      size: "100%",
+      size: '100%',
       component: <ScoreTooltip />,
     });
   };
@@ -49,23 +49,23 @@ const ProviderCard = (props: IProviderCardProps) => {
       providerName: provider.providerDisplayName,
       npi: provider.npi,
       address: `${providerAddress(provider)}`,
-      page: "list",
-      source: "costEstimator",
+      page: 'list',
+      source: 'costEstimator',
       bdcProvider: provider.centerOfExcellence?.isCenterOfExcellence
-        ? "true"
-        : "false",
-      groupedPin: "true",
+        ? 'true'
+        : 'false',
+      groupedPin: 'true',
       preferredProvider:
-        provider.flags?.preferredMedicalProvider === true ? "true" : "false",
+        provider.flags?.preferredMedicalProvider === true ? 'true' : 'false',
     });
 
     trackPlanningForCare(
       EventType.amplitude_event_get_care_provider_result_clicked,
       {
         search_result_count: totalCount,
-        search_result_view_code: "list",
+        search_result_view_code: 'list',
         source: route.name,
-        search_result_type: "provider",
+        search_result_type: 'provider',
         provider_npi_number: provider.npi,
         provider_name: provider.providerDisplayName,
         provider_specialty_code: provider.displaySpecialties,
@@ -73,19 +73,19 @@ const ProviderCard = (props: IProviderCardProps) => {
         provider_bdc_indicator:
           provider.centerOfExcellence?.isCenterOfExcellence,
         provider_accepting_new_patients_indicator:
-          provider.location.acceptingNewPatients === "ACCEPTING",
+          provider.location.acceptingNewPatients === 'ACCEPTING',
       }
     );
 
     trackPlanningForCare(EventType.amplitude_event_get_care_provider_detail, {
-      search_result_type: "provider",
-      search_text: "",
+      search_result_type: 'provider',
+      search_text: '',
       search_result_count: totalCount,
       source: route.name,
       procedure_name: provider.providerDisplayName,
     });
 
-    navigate("ProviderPage", { provider, selectedLocation });
+    navigate('ProviderPage', { provider, selectedLocation });
   };
 
   return (
@@ -114,12 +114,12 @@ const ProviderCard = (props: IProviderCardProps) => {
               alignItems="center"
               testID="provider-badge"
             >
-              <Box w={"$1/2"}>{providerAttributes?.badge}</Box>
+              <Box w={'$1/2'}>{providerAttributes?.badge}</Box>
               <Text color="$chGray070">{location?.distance} mi</Text>
             </HStack>
           )}
 
-          <VStack gap={"$1"} mb={"$2"}>
+          <VStack gap={'$1'} mb={'$2'}>
             <HStack justifyContent="space-between" gap="$3">
               <Text fontWeight={500} w="$4/5">
                 {providerDisplayName}
@@ -137,7 +137,7 @@ const ProviderCard = (props: IProviderCardProps) => {
           {!!metrics?.overallScore && (
             <HStack alignItems="center" gap={3}>
               <Text fontWeight={500} fontSize="$sm">
-                {t("GET_CARE.PROVIDERS.DETAILS.SCORE")}
+                {t('GET_CARE.PROVIDERS.DETAILS.SCORE')}
               </Text>
               {metrics?.overallScore >= 87 && (
                 <SvgRibbon color="#C89211" size={18} />
@@ -156,25 +156,25 @@ const ProviderCard = (props: IProviderCardProps) => {
             <>
               <Text>
                 <Text fontWeight={500} fontSize="$sm">
-                  {t("GET_CARE.PROVIDERS.DETAILS.SPECIALTIES")}
+                  {t('GET_CARE.PROVIDERS.DETAILS.SPECIALTIES')}
                 </Text>
                 <Text fontSize="$sm">
-                  {metrics?.displaySpecialties?.join(", ")}
+                  {metrics?.displaySpecialties?.join(', ')}
                 </Text>
               </Text>
             </>
           )}
 
           {(!!metrics?.overallScore || !!metrics?.displaySpecialties?.length) &&
-            location?.acceptingNewPatients === "ACCEPTING" && (
+            location?.acceptingNewPatients === 'ACCEPTING' && (
               <Divider bg="$chGray040" my="$1" />
             )}
 
           <AcceptingNewPatientsBadge
             acceptingNewPatients={
-              location?.acceptingNewPatients === "ACCEPTING"
+              location?.acceptingNewPatients === 'ACCEPTING'
             }
-            fontSize={"$sm"}
+            fontSize={'$sm'}
           />
 
           <Text color="$coolGray500" fontSize="$sm">

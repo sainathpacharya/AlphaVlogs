@@ -1,18 +1,18 @@
-import { CircleQuestion } from "@/assets/icons/ui";
-import { Box, HStack, Text, VStack } from "@/components";
-import { AppStackParamList } from "@/navigation/AppStack/types";
-import { IProviderGroup } from "@/types/provider-groups-metadata";
-import { trackPlanningForCare } from "@/utils/LogEvent";
-import { EventType } from "@/utils/LogEvent/types";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/stack";
-import { TouchableOpacity } from "react-native";
-import IconDLS from "../Icon";
-import { TIconList } from "../Icon/type";
+import { CircleQuestion } from '@/assets/icons/ui';
+import { Box, HStack, Text, VStack } from '@/components';
+import { AppStackParamList } from '@/navigation/AppStack/types';
+import { IProviderGroup } from '@/types/provider-groups-metadata';
+import { trackPlanningForCare } from '@/utils/LogEvent';
+import { EventType } from '@/utils/LogEvent/types';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { TouchableOpacity } from 'react-native';
+import IconDLS from '../Icon';
+import { TIconList } from '../Icon/type';
 
 interface IHEBCustomBadgeProps {
   providerGroup: IProviderGroup;
-  asset?: IProviderGroup["asset"];
+  asset?: IProviderGroup['asset'];
   labelFilter?: string[];
 }
 const HEBCustomBadge = (props: IHEBCustomBadgeProps) => {
@@ -26,13 +26,13 @@ const HEBCustomBadge = (props: IHEBCustomBadgeProps) => {
       explanation_topic_name: providerGroup.display,
     });
 
-    navigate("BadgePage", {
+    navigate('BadgePage', {
       header: (
         <HStack w={250} py="$1" rounded="$md" alignItems="center" gap="$1">
           <Box accessible accessibilityRole="image">
             <IconDLS
               icon={providerGroup.asset.groupIcon as TIconList}
-              props={{ size: 24, color: "#2D8560" }}
+              props={{ size: 24, color: '#2D8560' }}
             />
           </Box>
           <Text
@@ -46,7 +46,7 @@ const HEBCustomBadge = (props: IHEBCustomBadgeProps) => {
           </Text>
         </HStack>
       ),
-      description: asset?.description || "",
+      description: asset?.description || '',
     });
   };
 
@@ -61,7 +61,7 @@ const HEBCustomBadge = (props: IHEBCustomBadgeProps) => {
         <HStack w={250} py="$1" rounded="$md" alignItems="center" gap="$1">
           <IconDLS
             icon={providerGroup.asset.groupIcon as TIconList}
-            props={{ size: 18, color: "#2D8560" }}
+            props={{ size: 18, color: '#2D8560' }}
           />
           <Text fontSize="$md" fontWeight={500} mr="$2">
             {providerGroup.display}

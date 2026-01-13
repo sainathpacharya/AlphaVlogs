@@ -154,8 +154,8 @@ class YouTubeService {
       formData.append('videoFile', data.videoFile);
       formData.append('title', data.title);
       formData.append('description', data.description);
-      if (data.tags) formData.append('tags', JSON.stringify(data.tags));
-      if (data.categoryId) formData.append('categoryId', data.categoryId);
+      if (data.tags) {formData.append('tags', JSON.stringify(data.tags));}
+      if (data.categoryId) {formData.append('categoryId', data.categoryId);}
       formData.append('privacyStatus', data.privacyStatus || 'private');
 
       const response = await apiService.uploadFile<YouTubeUploadResponse>(
@@ -324,7 +324,7 @@ class YouTubeService {
   private getMockSearchResults(query: string, limit: number = 10): YouTubeVideo[] {
     const allVideos = this.getMockVideos();
     return allVideos
-      .filter(video => 
+      .filter(video =>
         video.title.toLowerCase().includes(query.toLowerCase()) ||
         video.description.toLowerCase().includes(query.toLowerCase())
       )

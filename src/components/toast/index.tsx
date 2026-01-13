@@ -1,58 +1,58 @@
 import {
   AnimatePresence,
   AnimatedView,
-} from "@gluestack-style/animation-resolver";
-import { styled } from "@gluestack-style/react";
-import { createToast, createToastHook } from "@gluestack-ui/toast";
-import { Text, View } from "react-native";
+} from '@gluestack-style/animation-resolver';
+import { styled } from '@gluestack-style/react';
+import { createToast, createToastHook } from '@gluestack-ui/toast';
+import { Text, View } from 'react-native';
 
 const StyledRoot = styled(
   View,
   {
-    px: "$4",
-    py: "$3",
-    borderRadius: "$sm",
-    flexDirection: "row",
+    px: '$4',
+    py: '$3',
+    borderRadius: '$sm',
+    flexDirection: 'row',
     variants: {
       action: {
         error: {
-          bg: "$backgroundError",
-          borderColor: "$error300",
+          bg: '$backgroundError',
+          borderColor: '$error300',
 
           _icon: {
-            color: "$error500",
+            color: '$error500',
           },
         },
         warning: {
-          bg: "$backgroundWarning",
-          borderColor: "$warning300",
+          bg: '$backgroundWarning',
+          borderColor: '$warning300',
 
           _icon: {
-            color: "$warning500",
+            color: '$warning500',
           },
         },
         success: {
-          bg: "$backgroundSuccess",
-          borderColor: "$success300",
+          bg: '$backgroundSuccess',
+          borderColor: '$success300',
 
           _icon: {
-            color: "$success500",
+            color: '$success500',
           },
         },
         info: {
-          bg: "$backgroundInfo",
-          borderColor: "$info300",
+          bg: '$backgroundInfo',
+          borderColor: '$info300',
 
           _icon: {
-            color: "$info500",
+            color: '$info500',
           },
         },
         attention: {
-          bg: "$backgroundMuted",
-          borderColor: "$secondary300",
+          bg: '$backgroundMuted',
+          borderColor: '$secondary300',
 
           _icon: {
-            color: "$secondary600",
+            color: '$secondary600',
           },
         },
       },
@@ -60,35 +60,35 @@ const StyledRoot = styled(
       variant: {
         solid: {},
         outline: {
-          borderWidth: "$1",
-          bg: "$white",
+          borderWidth: '$1',
+          bg: '$white',
         },
         accent: {
-          borderLeftWidth: "$4",
+          borderLeftWidth: '$4',
         },
       },
     },
-    m: "$3",
+    m: '$3',
 
     _web: {
-      pointerEvents: "auto",
+      pointerEvents: 'auto',
     },
     defaultProps: {
-      hardShadow: "5",
-      variant: "solid",
-      action: "attention",
+      hardShadow: '5',
+      variant: 'solid',
+      action: 'attention',
     },
   },
-  { descendantStyle: ["_icon", "_title", "_description"] }
+  { descendantStyle: ['_icon', '_title', '_description'] }
 );
 const StyledTitle = styled(
   Text,
   {
-    color: "$text700",
+    color: '$text700',
     fontWeight: 500,
-    fontFamily: "$body",
-    fontStyle: "normal",
-    letterSpacing: "$md",
+    fontFamily: '$body',
+    fontStyle: 'normal',
+    letterSpacing: '$md',
 
     variants: {
       isTruncated: {
@@ -96,101 +96,101 @@ const StyledTitle = styled(
           props: {
             // @ts-ignore
             numberOfLines: 1,
-            ellipsizeMode: "tail",
+            ellipsizeMode: 'tail',
           },
         },
       },
       bold: {
         true: {
-          fontWeight: "$bold",
+          fontWeight: '$bold',
         },
       },
       underline: {
         true: {
-          textDecorationLine: "underline",
+          textDecorationLine: 'underline',
         },
       },
       strikeThrough: {
         true: {
-          textDecorationLine: "line-through",
+          textDecorationLine: 'line-through',
         },
       },
       size: {
-        "2xs": {
-          fontSize: "$2xs",
+        '2xs': {
+          fontSize: '$2xs',
         },
         xs: {
-          fontSize: "$xs",
+          fontSize: '$xs',
         },
 
         sm: {
-          fontSize: "$sm",
+          fontSize: '$sm',
         },
 
         md: {
-          fontSize: "$md",
+          fontSize: '$md',
         },
 
         lg: {
-          fontSize: "$lg",
+          fontSize: '$lg',
         },
 
         xl: {
-          fontSize: "$xl",
+          fontSize: '$xl',
         },
 
-        "2xl": {
-          fontSize: "$2xl",
+        '2xl': {
+          fontSize: '$2xl',
         },
 
-        "3xl": {
-          fontSize: "$3xl",
+        '3xl': {
+          fontSize: '$3xl',
         },
 
-        "4xl": {
-          fontSize: "$4xl",
+        '4xl': {
+          fontSize: '$4xl',
         },
 
-        "5xl": {
-          fontSize: "$5xl",
+        '5xl': {
+          fontSize: '$5xl',
         },
 
-        "6xl": {
-          fontSize: "$6xl",
+        '6xl': {
+          fontSize: '$6xl',
         },
       },
       sub: {
         true: {
-          fontSize: "$xs",
+          fontSize: '$xs',
         },
       },
       italic: {
         true: {
-          fontStyle: "italic",
+          fontStyle: 'italic',
         },
       },
       highlight: {
         true: {
-          bg: "$yellow500",
+          bg: '$yellow500',
         },
       },
     },
 
     props: {
-      size: "md",
+      size: 'md',
     },
   },
-  { ancestorStyle: ["_title"] }
+  { ancestorStyle: ['_title'] }
 );
 
 const StyledDescription = styled(
   Text,
   {
-    color: "$text700",
-    fontWeight: "$normal",
-    fontFamily: "$body",
-    fontStyle: "normal",
-    letterSpacing: "$md",
+    color: '$text700',
+    fontWeight: '$normal',
+    fontFamily: '$body',
+    fontStyle: 'normal',
+    letterSpacing: '$md',
 
     variants: {
       isTruncated: {
@@ -198,91 +198,91 @@ const StyledDescription = styled(
           props: {
             // @ts-ignore
             numberOfLines: 1,
-            ellipsizeMode: "tail",
+            ellipsizeMode: 'tail',
           },
         },
       },
       bold: {
         true: {
-          fontWeight: "$bold",
+          fontWeight: '$bold',
         },
       },
       underline: {
         true: {
-          textDecorationLine: "underline",
+          textDecorationLine: 'underline',
         },
       },
       strikeThrough: {
         true: {
-          textDecorationLine: "line-through",
+          textDecorationLine: 'line-through',
         },
       },
       size: {
-        "2xs": {
-          fontSize: "$2xs",
+        '2xs': {
+          fontSize: '$2xs',
         },
         xs: {
-          fontSize: "$xs",
+          fontSize: '$xs',
         },
 
         sm: {
-          fontSize: "$sm",
+          fontSize: '$sm',
         },
 
         md: {
-          fontSize: "$md",
+          fontSize: '$md',
         },
 
         lg: {
-          fontSize: "$lg",
+          fontSize: '$lg',
         },
 
         xl: {
-          fontSize: "$xl",
+          fontSize: '$xl',
         },
 
-        "2xl": {
-          fontSize: "$2xl",
+        '2xl': {
+          fontSize: '$2xl',
         },
 
-        "3xl": {
-          fontSize: "$3xl",
+        '3xl': {
+          fontSize: '$3xl',
         },
 
-        "4xl": {
-          fontSize: "$4xl",
+        '4xl': {
+          fontSize: '$4xl',
         },
 
-        "5xl": {
-          fontSize: "$5xl",
+        '5xl': {
+          fontSize: '$5xl',
         },
 
-        "6xl": {
-          fontSize: "$6xl",
+        '6xl': {
+          fontSize: '$6xl',
         },
       },
       sub: {
         true: {
-          fontSize: "$xs",
+          fontSize: '$xs',
         },
       },
       italic: {
         true: {
-          fontStyle: "italic",
+          fontStyle: 'italic',
         },
       },
       highlight: {
         true: {
-          bg: "$yellow500",
+          bg: '$yellow500',
         },
       },
     },
 
     props: {
-      size: "sm",
+      size: 'sm',
     },
   },
-  { ancestorStyle: ["_description"] }
+  { ancestorStyle: ['_description'] }
 );
 const AnimationWrapper = styled(AnimatedView, {});
 

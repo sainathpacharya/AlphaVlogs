@@ -205,7 +205,7 @@ class ApiService {
     if (error.response) {
       // Server responded with error status
       let errorMessage = error.response.statusText || 'An error occurred';
-      
+
       // Handle different response data formats
       if (error.response.data) {
         if (typeof error.response.data === 'string') {
@@ -222,7 +222,7 @@ class ApiService {
           errorMessage = JSON.stringify(error.response.data);
         }
       }
-      
+
       return {
         success: false,
         error: errorMessage,

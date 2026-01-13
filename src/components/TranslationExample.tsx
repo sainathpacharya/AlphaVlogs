@@ -17,35 +17,35 @@ export const TranslationExample: React.FC = () => {
       <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 20 }}>
         {t('common.loading')}
       </Text>
-      
+
       <Text style={{ marginBottom: 10 }}>
         {t('auth.login')}
       </Text>
-      
+
       <Text style={{ marginBottom: 10 }}>
         {t('dashboard.welcome')}
       </Text>
-      
+
       {/* Example with parameters */}
       <Text style={{ marginBottom: 10 }}>
         {t('events.eventReminderMessage', { eventTitle: 'School Event' })}
       </Text>
-      
+
       {/* Using the tn helper for nested keys */}
       <Text style={{ marginBottom: 10 }}>
         {tn('events.eventCategories.singing')}
       </Text>
-      
+
       {/* Check if a key exists */}
       <Text style={{ marginBottom: 10 }}>
         Key exists: {hasKey('common.loading') ? 'Yes' : 'No'}
       </Text>
-      
+
       {/* Current language */}
       <Text style={{ marginBottom: 20 }}>
         Current Language: {getCurrentLanguage()}
       </Text>
-      
+
       <Button title="Change Language" onPress={handleLanguageChange} />
     </View>
   );

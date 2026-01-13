@@ -1,15 +1,15 @@
-import { CircleQuestion, Star } from "@/assets/icons/ui";
-import { HStack, Text } from "@/components";
-import { AppStackParamList } from "@/navigation/AppStack/types";
-import { IProviderGroup } from "@/types/provider-groups-metadata";
-import { trackPlanningForCare } from "@/utils/LogEvent";
-import { EventType } from "@/utils/LogEvent/types";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/stack";
-import { TouchableOpacity } from "react-native";
+import { CircleQuestion, Star } from '@/assets/icons/ui';
+import { HStack, Text } from '@/components';
+import { AppStackParamList } from '@/navigation/AppStack/types';
+import { IProviderGroup } from '@/types/provider-groups-metadata';
+import { trackPlanningForCare } from '@/utils/LogEvent';
+import { EventType } from '@/utils/LogEvent/types';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { TouchableOpacity } from 'react-native';
 
 interface IHEBWellnessBadgeProps {
-  asset?: IProviderGroup["asset"];
+  asset?: IProviderGroup['asset'];
 }
 
 const HEBWellnessBadge = ({ asset }: IHEBWellnessBadgeProps) => {
@@ -19,25 +19,25 @@ const HEBWellnessBadge = ({ asset }: IHEBWellnessBadgeProps) => {
   const handleOpenModal = () => {
     trackPlanningForCare(EventType.amplitude_event_explanation_viewed, {
       source: route.name,
-      explanation_topic_name: "H-E-B Wellness Primary Care",
+      explanation_topic_name: 'H-E-B Wellness Primary Care',
     });
 
-    navigate("BadgePage", {
+    navigate('BadgePage', {
       header: (
-        <HStack alignItems="center" gap="$1" mb={"$1"}>
+        <HStack alignItems="center" gap="$1" mb={'$1'}>
           <Star color="#2D8560" />
           <Text fontSize="$md" fontWeight={500} mr="$2">
             H-E-B Wellness Primary Care
           </Text>
         </HStack>
       ),
-      description: asset?.description || "",
+      description: asset?.description || '',
     });
   };
 
   return (
     <TouchableOpacity
-      accessibilityLabel={"H-E-B Wellness Primary Care"}
+      accessibilityLabel={'H-E-B Wellness Primary Care'}
       accessibilityRole="button"
       onPress={handleOpenModal}
       testID="heb-wellness-badge"

@@ -43,10 +43,10 @@ class AuthService {
         apiLogger.logMockCall('AuthService', 'sendOTP', data, result);
         return result;
       }
-      
+
       const resp = await apiService.post<any>(API_ENDPOINTS.AUTH.SEND_OTP, data);
       const raw: any = resp as any;
-      
+
       // Handle different response formats from backend
       if (raw && typeof raw.success === 'undefined') {
         // Backend returns data directly without success wrapper
@@ -54,7 +54,7 @@ class AuthService {
         apiLogger.logServiceCall('AuthService', 'sendOTP', data, result);
         return result;
       }
-      
+
       // Backend returns standard ApiResponse format
       apiLogger.logServiceCall('AuthService', 'sendOTP', data, resp);
       return resp as ApiResponse<OTPResponse>;
@@ -65,12 +65,12 @@ class AuthService {
         const friendlyError = {
           success: false,
           error: 'This mobile number is not registered. Please register first or contact support.',
-          statusCode: 400
+          statusCode: 400,
         };
         apiLogger.logServiceCall('AuthService', 'sendOTP', data, null, friendlyError);
         return friendlyError;
       }
-      
+
       apiLogger.logServiceCall('AuthService', 'sendOTP', data, null, error);
       throw error;
     }
@@ -84,14 +84,14 @@ class AuthService {
         apiLogger.logMockCall('AuthService', 'verifyOTP', data, result);
         return result;
       }
-      
+
       const resp = await apiService.post<any>(API_ENDPOINTS.AUTH.VERIFY_OTP, data);
       const raw: any = resp as any;
-      
+
       // Check if the response indicates an error (apiService.post returns error responses, not throws)
       if (raw && raw.success === false) {
         let friendlyMessage = raw.error || 'Invalid or expired OTP. Please request a new OTP.';
-        
+
         // Check if error message contains backend error details
         if (typeof friendlyMessage === 'string') {
           // Backend returned error as string (e.g., the null pointer exception)
@@ -101,16 +101,16 @@ class AuthService {
             friendlyMessage = 'Invalid or expired OTP. Please request a new OTP.';
           }
         }
-        
+
         const friendlyError = {
           success: false,
           error: friendlyMessage,
-          statusCode: raw.statusCode || 400
+          statusCode: raw.statusCode || 400,
         };
         apiLogger.logServiceCall('AuthService', 'verifyOTP', data, null, friendlyError);
         return friendlyError;
       }
-      
+
       // Handle successful response
       if (raw && typeof raw.success === 'undefined') {
         // If backend returns user/tokens at top-level or under data, normalize
@@ -119,13 +119,13 @@ class AuthService {
         apiLogger.logServiceCall('AuthService', 'verifyOTP', data, result);
         return result;
       }
-      
+
       apiLogger.logServiceCall('AuthService', 'verifyOTP', data, resp);
       return resp as ApiResponse<LoginResponse>;
     } catch (error: any) {
       // This catch block handles unexpected errors (should rarely happen since apiService.post handles errors)
       let friendlyMessage = 'Unable to verify OTP. Please try again.';
-      
+
       if (error?.response?.data) {
         const errorData = error.response.data;
         if (typeof errorData === 'string') {
@@ -136,11 +136,11 @@ class AuthService {
           friendlyMessage = errorData.message;
         }
       }
-      
+
       const genericError = {
         success: false,
         error: friendlyMessage,
-        statusCode: error?.response?.status || 500
+        statusCode: error?.response?.status || 500,
       };
       apiLogger.logServiceCall('AuthService', 'verifyOTP', data, null, genericError);
       return genericError;
@@ -155,19 +155,19 @@ class AuthService {
         apiLogger.logMockCall('AuthService', 'register', data, result);
         return result;
       }
-      
+
       // Validate required fields before sending to API
       const validation = validateRegistrationData(data);
       if (!validation.isValid) {
         const errorResponse = {
           success: false,
           error: validation.errors.join(', '),
-          statusCode: 400
+          statusCode: 400,
         };
         apiLogger.logServiceCall('AuthService', 'register', data, null, errorResponse);
         return errorResponse;
       }
-      
+
       // Use the data as-is since it already matches the backend format
       const result = await apiService.post<User>(API_ENDPOINTS.AUTH.REGISTER, data);
       apiLogger.logServiceCall('AuthService', 'register', data, result);
@@ -177,7 +177,7 @@ class AuthService {
       if (error?.response?.data?.message) {
         const errorMessage = error.response.data.message;
         let friendlyMessage = errorMessage;
-        
+
         // Convert backend error messages to user-friendly messages
         if (errorMessage.includes('email') && errorMessage.includes('already exists')) {
           friendlyMessage = 'An account with this email already exists. Please use a different email or try logging in.';
@@ -188,38 +188,38 @@ class AuthService {
         } else if (errorMessage.includes('school')) {
           friendlyMessage = 'Please select a valid school or enter a school name.';
         }
-        
+
         const friendlyError = {
           success: false,
           error: friendlyMessage,
-          statusCode: error.response.status || 400
+          statusCode: error.response.status || 400,
         };
         apiLogger.logServiceCall('AuthService', 'register', data, null, friendlyError);
         return friendlyError;
       }
-      
+
       // Handle network errors
       if (error?.code === 'NETWORK_ERROR' || error?.message?.includes('Network Error')) {
         const networkError = {
           success: false,
           error: 'Network error. Please check your internet connection and try again.',
-          statusCode: 0
+          statusCode: 0,
         };
         apiLogger.logServiceCall('AuthService', 'register', data, null, networkError);
         return networkError;
       }
-      
+
       // Handle timeout errors
       if (error?.code === 'TIMEOUT' || error?.message?.includes('timeout')) {
         const timeoutError = {
           success: false,
           error: 'Request timed out. Please try again.',
-          statusCode: 408
+          statusCode: 408,
         };
         apiLogger.logServiceCall('AuthService', 'register', data, null, timeoutError);
         return timeoutError;
       }
-      
+
       apiLogger.logServiceCall('AuthService', 'register', data, null, error);
       throw error;
     }
@@ -234,7 +234,7 @@ class AuthService {
         apiLogger.logMockCall('AuthService', 'logout', null, result);
         return result;
       }
-      
+
       const result = await apiService.post<void>(API_ENDPOINTS.AUTH.LOGOUT);
       apiLogger.logServiceCall('AuthService', 'logout', null, result);
       return result;
@@ -253,7 +253,7 @@ class AuthService {
         apiLogger.logMockCall('AuthService', 'updateProfile', data, result);
         return result;
       }
-      
+
       const result = await apiService.put<User>(API_ENDPOINTS.USER.UPDATE_PROFILE, data);
       apiLogger.logServiceCall('AuthService', 'updateProfile', data, result);
       return result;

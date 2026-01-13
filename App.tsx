@@ -14,7 +14,7 @@ import Navigation from '@/navigation';
 import {useNetwork} from '@/hooks/useNetwork';
 import {initializeSecureStorage} from '@/stores/user-cached-store';
 import {useUserStore, useUserCachedStore} from '@/stores';
-import {LogBox, useColorScheme} from 'react-native';
+import {LogBox} from 'react-native';
 import {i18next} from '@/services/i18n-service';
 
 // Create a client

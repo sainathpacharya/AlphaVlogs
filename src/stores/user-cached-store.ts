@@ -13,10 +13,10 @@ interface CachedData {
 interface UserCachedStore {
   // Auth tokens (stored securely)
   tokens: AuthTokens | null;
-  
+
   // User data (stored in AsyncStorage)
   userData: User | null;
-  
+
   // App settings
   settings: {
     biometricEnabled: boolean;
@@ -24,10 +24,10 @@ interface UserCachedStore {
     autoLogin: boolean;
     lastLoginAt: number;
   };
-  
+
   // Cached data
   cachedData: CachedData;
-  
+
   // Actions
   setTokens: (tokens: AuthTokens | null) => Promise<void>;
   setUserData: (userData: User | null) => void;
@@ -79,7 +79,7 @@ export const useUserCachedStore = create<UserCachedStore>()(
 
       setSettings: (settings: Partial<UserCachedStore['settings']>) => {
         set(state => ({
-          settings: { ...state.settings, ...settings }
+          settings: { ...state.settings, ...settings },
         }));
       },
 
@@ -89,7 +89,7 @@ export const useUserCachedStore = create<UserCachedStore>()(
             ...state.cachedData,
             [key]: data,
             lastUpdated: Date.now(),
-          }
+          },
         }));
       },
 
@@ -100,7 +100,7 @@ export const useUserCachedStore = create<UserCachedStore>()(
       clearAll: async () => {
         // Clear secure storage
         await Keychain.resetInternetCredentials('auth_tokens');
-        
+
         // Clear regular storage
         set({
           tokens: null,

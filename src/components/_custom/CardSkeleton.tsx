@@ -1,5 +1,5 @@
-import { Box, HStack, VStack } from "@/components";
-import Skeleton from "./Skeleton";
+import { Box, HStack, VStack } from '@/components';
+import Skeleton from './Skeleton';
 
 interface Props {
   hasDescription?: boolean;

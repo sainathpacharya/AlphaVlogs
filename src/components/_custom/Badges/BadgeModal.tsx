@@ -1,11 +1,11 @@
-import { Close } from "@/assets/icons/ui";
-import { SafeAreaView } from "@/components/safe-area-view";
-import { ScrollView } from "@/components/scroll-view";
-import { VStack } from "@/components/vstack";
-import { useBottomModal } from "@/context/bottom-modal/bottom-modal.providers";
-import { ReactNode } from "react";
-import { useTranslation } from "react-i18next";
-import { TouchableOpacity } from "react-native";
+import { Close } from '@/assets/icons/ui';
+import { SafeAreaView } from '@/components/safe-area-view';
+import { ScrollView } from '@/components/scroll-view';
+import { VStack } from '@/components/vstack';
+import { useBottomModal } from '@/context/bottom-modal/bottom-modal.providers';
+import { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { TouchableOpacity } from 'react-native';
 
 interface IBadgeModalProps {
   header: ReactNode;
@@ -17,9 +17,9 @@ const BadgeModal = ({ body, header }: IBadgeModalProps) => {
   const { t } = useTranslation();
   return (
     <SafeAreaView>
-      <VStack px={"$5"} pt={"$2"} gap={"$1"}>
+      <VStack px={'$5'} pt={'$2'} gap={'$1'}>
         <TouchableOpacity
-          accessibilityLabel={t("COMMON.CLOSE")}
+          accessibilityLabel={t('COMMON.CLOSE')}
           accessibilityRole="button"
           onPress={closeModal}
           style={{

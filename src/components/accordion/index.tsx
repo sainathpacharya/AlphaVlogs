@@ -1,77 +1,77 @@
-import { AsForwarder, styled } from "@gluestack-style/react";
-import { createAccordion } from "@gluestack-ui/accordion";
-import { Platform, Pressable, Text, View } from "react-native";
+import { AsForwarder, styled } from '@gluestack-style/react';
+import { createAccordion } from '@gluestack-ui/accordion';
+import { Platform, Pressable, Text, View } from 'react-native';
 
-import { H3 } from "@expo/html-elements";
+import { H3 } from '@expo/html-elements';
 
 const StyleRoot = styled(
   View,
   {
-    width: "$full",
+    width: '$full',
     _icon: {
-      color: "$text900",
+      color: '$text900',
     },
     _titleText: {
-      color: "$text900",
+      color: '$text900',
     },
     _contentText: {
-      color: "$text700",
+      color: '$text700',
     },
 
     variants: {
       size: {
         sm: {
           _titleText: {
-            fontSize: "$sm",
-            fontFamily: "$body",
-            fontWeight: "$bold",
-            lineHeight: "$sm",
+            fontSize: '$sm',
+            fontFamily: '$body',
+            fontWeight: '$bold',
+            lineHeight: '$sm',
           },
           _contentText: {
-            fontSize: "$sm",
-            fontFamily: "$body",
-            fontWeight: "$normal",
-            lineHeight: "$sm",
+            fontSize: '$sm',
+            fontFamily: '$body',
+            fontWeight: '$normal',
+            lineHeight: '$sm',
           },
         },
         md: {
           _titleText: {
-            fontSize: "$md",
-            fontFamily: "$body",
-            fontWeight: "$bold",
-            lineHeight: "$md",
+            fontSize: '$md',
+            fontFamily: '$body',
+            fontWeight: '$bold',
+            lineHeight: '$md',
           },
           _contentText: {
-            fontSize: "$md",
-            fontFamily: "$body",
-            fontWeight: "$normal",
-            lineHeight: "$md",
+            fontSize: '$md',
+            fontFamily: '$body',
+            fontWeight: '$normal',
+            lineHeight: '$md',
           },
         },
         lg: {
           _titleText: {
-            fontSize: "$lg",
-            fontFamily: "$body",
-            fontWeight: "$bold",
-            lineHeight: "$lg",
+            fontSize: '$lg',
+            fontFamily: '$body',
+            fontWeight: '$bold',
+            lineHeight: '$lg',
           },
           _contentText: {
-            fontSize: "$lg",
-            fontFamily: "$body",
-            fontWeight: "$normal",
-            lineHeight: "$lg",
+            fontSize: '$lg',
+            fontFamily: '$body',
+            fontWeight: '$normal',
+            lineHeight: '$lg',
           },
         },
       },
       variant: {
         filled: {
-          backgroundColor: "$white",
+          backgroundColor: '$white',
 
           _item: {
-            backgroundColor: "$background0",
+            backgroundColor: '$background0',
           },
 
-          shadowColor: "$background900",
+          shadowColor: '$background900',
 
           shadowOffset: {
             width: 0,
@@ -83,7 +83,7 @@ const StyleRoot = styled(
           elevation: 10,
         },
         unfilled: {
-          shadowColor: "transparent",
+          shadowColor: 'transparent',
 
           shadowOffset: {
             width: 0,
@@ -91,69 +91,69 @@ const StyleRoot = styled(
           },
 
           _item: {
-            backgroundColor: "transparent",
+            backgroundColor: 'transparent',
           },
         },
       },
     },
     defaultProps: {
-      theme: "light",
-      size: "md",
-      variant: "filled",
+      theme: 'light',
+      size: 'md',
+      variant: 'filled',
     },
   },
   {
     descendantStyle: [
-      "_item",
-      "_titleText",
-      "_button",
-      "_icon",
-      "_contentText",
+      '_item',
+      '_titleText',
+      '_button',
+      '_icon',
+      '_contentText',
     ],
   }
 );
-const StyledItem = styled(View, {}, { ancestorStyle: ["_item"] });
+const StyledItem = styled(View, {}, { ancestorStyle: ['_item'] });
 // @ts-ignore
-const StyledHeader = styled(Platform.OS === "web" ? H3 : View, {
-  mx: "$0",
-  my: "$0",
+const StyledHeader = styled(Platform.OS === 'web' ? H3 : View, {
+  mx: '$0',
+  my: '$0',
 });
 const StyledTrigger = styled(
   Pressable,
   {
-    width: "$full",
-    py: "$5",
-    px: "$5",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    width: '$full',
+    py: '$5',
+    px: '$5',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     _web: {
       outlineWidth: 0,
     },
-    ":disabled": {
+    ':disabled': {
       opacity: 0.4,
       _web: {
-        cursor: "not-allowed",
+        cursor: 'not-allowed',
       },
     },
-    ":focusVisible": {
-      bg: "$background50",
+    ':focusVisible': {
+      bg: '$background50',
     },
   },
   {
-    descendantStyle: ["_icon", "_titleText", "_contentText"],
-    ancestorStyle: ["_button"],
+    descendantStyle: ['_icon', '_titleText', '_contentText'],
+    ancestorStyle: ['_button'],
   }
 );
 const StyledText = styled(
   Text,
   {
-    color: "$text700",
+    color: '$text700',
     flex: 1,
-    fontWeight: "$normal",
-    fontFamily: "$body",
-    fontStyle: "normal",
-    letterSpacing: "$md",
+    fontWeight: '$normal',
+    fontFamily: '$body',
+    fontStyle: 'normal',
+    letterSpacing: '$md',
 
     variants: {
       isTruncated: {
@@ -161,170 +161,170 @@ const StyledText = styled(
           props: {
             // @ts-ignore
             numberOfLines: 1,
-            ellipsizeMode: "tail",
+            ellipsizeMode: 'tail',
           },
         },
       },
       bold: {
         true: {
-          fontWeight: "$bold",
+          fontWeight: '$bold',
         },
       },
       underline: {
         true: {
-          textDecorationLine: "underline",
+          textDecorationLine: 'underline',
         },
       },
       strikeThrough: {
         true: {
-          textDecorationLine: "line-through",
+          textDecorationLine: 'line-through',
         },
       },
       size: {
-        "2xs": {
-          fontSize: "$2xs",
+        '2xs': {
+          fontSize: '$2xs',
         },
         xs: {
-          fontSize: "$xs",
+          fontSize: '$xs',
         },
 
         sm: {
-          fontSize: "$sm",
+          fontSize: '$sm',
         },
 
         md: {
-          fontSize: "$md",
+          fontSize: '$md',
         },
 
         lg: {
-          fontSize: "$lg",
+          fontSize: '$lg',
         },
 
         xl: {
-          fontSize: "$xl",
+          fontSize: '$xl',
         },
 
-        "2xl": {
-          fontSize: "$2xl",
+        '2xl': {
+          fontSize: '$2xl',
         },
 
-        "3xl": {
-          fontSize: "$3xl",
+        '3xl': {
+          fontSize: '$3xl',
         },
 
-        "4xl": {
-          fontSize: "$4xl",
+        '4xl': {
+          fontSize: '$4xl',
         },
 
-        "5xl": {
-          fontSize: "$5xl",
+        '5xl': {
+          fontSize: '$5xl',
         },
 
-        "6xl": {
-          fontSize: "$6xl",
+        '6xl': {
+          fontSize: '$6xl',
         },
       },
       sub: {
         true: {
-          fontSize: "$xs",
+          fontSize: '$xs',
         },
       },
       italic: {
         true: {
-          fontStyle: "italic",
+          fontStyle: 'italic',
         },
       },
       highlight: {
         true: {
-          bg: "$yellow500",
+          bg: '$yellow500',
         },
       },
     },
 
     defaultProps: {
-      size: "md",
+      size: 'md',
     },
   },
   {
-    ancestorStyle: ["_text"],
+    ancestorStyle: ['_text'],
   }
 );
 
 const StyledTitleText = styled(
   StyledText,
-  { flex: 1, textAlign: "left" },
-  { ancestorStyle: ["_titleText"] }
+  { flex: 1, textAlign: 'left' },
+  { ancestorStyle: ['_titleText'] }
 );
-const StyledContentText = styled(Text, {}, { ancestorStyle: ["_contentText"] });
+const StyledContentText = styled(Text, {}, { ancestorStyle: ['_contentText'] });
 const StyledIcon = styled(
   AsForwarder,
   {
-    color: "$background800",
+    color: '$background800',
 
     // defaultProps: {
     //   size: 'md',
     // },
     variants: {
       size: {
-        "2xs": {
-          h: "$3",
-          w: "$3",
+        '2xs': {
+          h: '$3',
+          w: '$3',
           props: {
             // @ts-ignore
             size: 12,
           },
         },
         xs: {
-          h: "$3.5",
-          w: "$3.5",
+          h: '$3.5',
+          w: '$3.5',
           props: {
             //@ts-ignore
             size: 14,
           },
         },
         sm: {
-          h: "$4",
-          w: "$4",
+          h: '$4',
+          w: '$4',
           props: {
             //@ts-ignore
             size: 16,
           },
         },
         md: {
-          h: "$4.5",
-          w: "$4.5",
+          h: '$4.5',
+          w: '$4.5',
           props: {
             //@ts-ignore
             size: 18,
           },
         },
         lg: {
-          h: "$5",
-          w: "$5",
+          h: '$5',
+          w: '$5',
           props: {
             //@ts-ignore
             size: 20,
           },
         },
         xl: {
-          h: "$6",
-          w: "$6",
+          h: '$6',
+          w: '$6',
           props: {
             //@ts-ignore
             size: 24,
           },
         },
-        "2xl": {
-          h: "$7",
-          w: "$7",
+        '2xl': {
+          h: '$7',
+          w: '$7',
           props: {
             //@ts-ignore
             size: 28,
           },
         },
-        "3xl": {
-          h: "$8",
-          w: "$8",
+        '3xl': {
+          h: '$8',
+          w: '$8',
           props: {
             //@ts-ignore
             size: 32,
@@ -334,21 +334,21 @@ const StyledIcon = styled(
     },
 
     props: {
-      size: "md",
+      size: 'md',
     },
   },
   {
-    resolveProps: ["stroke", "fill"],
-    ancestorStyle: ["_icon"],
+    resolveProps: ['stroke', 'fill'],
+    ancestorStyle: ['_icon'],
   },
   {
     propertyTokenMap: {
-      stroke: "colors",
-      fill: "colors",
+      stroke: 'colors',
+      fill: 'colors',
     },
   }
 );
-const StyledContent = styled(View, { px: "$5", mt: "$2", pb: "$5" });
+const StyledContent = styled(View, { px: '$5', mt: '$2', pb: '$5' });
 
 export const Accordion = createAccordion({
   Root: StyleRoot,

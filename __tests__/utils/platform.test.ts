@@ -15,29 +15,29 @@ describe('Platform Utils', () => {
     it('should get system name', () => {
       const mockDeviceInfo = require('react-native-device-info');
       mockDeviceInfo.getSystemName.mockReturnValue('iOS');
-      
+
       expect(getSystemName()).toBe('iOS');
     });
 
     it('should get app version', () => {
       const mockDeviceInfo = require('react-native-device-info');
       mockDeviceInfo.getVersion.mockReturnValue('1.0.0');
-      
+
       expect(getAppVersion()).toBe('1.0.0');
     });
 
     it('should generate correct platform string for iOS', () => {
       const mockDeviceInfo = require('react-native-device-info');
-      
+
       mockDeviceInfo.getSystemName.mockReturnValue('iOS');
       mockDeviceInfo.getVersion.mockReturnValue('1.0.0');
-      
+
       expect(getPlatformString()).toBe('iOS iOS ApplicationVersion: 1.0.0');
     });
 
     it('should generate correct platform string for Android', () => {
       const mockDeviceInfo = require('react-native-device-info');
-      
+
       mockDeviceInfo.getSystemName.mockReturnValue('Android');
       mockDeviceInfo.getVersion.mockReturnValue('2.0.0');
 
@@ -46,7 +46,7 @@ describe('Platform Utils', () => {
 
     it('should handle empty system name', () => {
       const mockDeviceInfo = require('react-native-device-info');
-      
+
       mockDeviceInfo.getSystemName.mockReturnValue('');
       mockDeviceInfo.getVersion.mockReturnValue('1.0.0');
 
@@ -55,7 +55,7 @@ describe('Platform Utils', () => {
 
     it('should handle undefined system name', () => {
       const mockDeviceInfo = require('react-native-device-info');
-      
+
       mockDeviceInfo.getSystemName.mockReturnValue(undefined as any);
       mockDeviceInfo.getVersion.mockReturnValue('1.0.0');
 
@@ -73,7 +73,7 @@ describe('Platform Utils', () => {
 
       testCases.forEach(({ version, expected }) => {
         const mockDeviceInfo = require('react-native-device-info');
-        
+
         mockDeviceInfo.getSystemName.mockReturnValue('iOS');
         mockDeviceInfo.getVersion.mockReturnValue(version);
 
@@ -94,7 +94,7 @@ describe('Platform Utils', () => {
 
       testCases.forEach(systemName => {
         const mockDeviceInfo = require('react-native-device-info');
-        
+
         mockDeviceInfo.getSystemName.mockReturnValue(systemName);
         mockDeviceInfo.getVersion.mockReturnValue('1.0.0');
 
@@ -104,7 +104,7 @@ describe('Platform Utils', () => {
 
     it('should be a string type', () => {
       const mockDeviceInfo = require('react-native-device-info');
-      
+
       mockDeviceInfo.getSystemName.mockReturnValue('iOS');
       mockDeviceInfo.getVersion.mockReturnValue('1.0.0');
 
@@ -113,7 +113,7 @@ describe('Platform Utils', () => {
 
     it('should contain all required components', () => {
       const mockDeviceInfo = require('react-native-device-info');
-      
+
       mockDeviceInfo.getSystemName.mockReturnValue('iOS');
       mockDeviceInfo.getVersion.mockReturnValue('1.0.0');
 
@@ -134,7 +134,7 @@ describe('Platform Utils', () => {
 
       specialVersions.forEach(version => {
         const mockDeviceInfo = require('react-native-device-info');
-        
+
         mockDeviceInfo.getSystemName.mockReturnValue('iOS');
         mockDeviceInfo.getVersion.mockReturnValue(version);
 
@@ -146,7 +146,7 @@ describe('Platform Utils', () => {
   describe('Module Integration', () => {
     it('should call DeviceInfo.getSystemName', () => {
       const mockDeviceInfo = require('react-native-device-info');
-      
+
       mockDeviceInfo.getSystemName.mockReturnValue('iOS');
       mockDeviceInfo.getVersion.mockReturnValue('1.0.0');
 
@@ -156,7 +156,7 @@ describe('Platform Utils', () => {
 
     it('should access VersionInfo.appVersion', () => {
       const mockDeviceInfo = require('react-native-device-info');
-      
+
       mockDeviceInfo.getSystemName.mockReturnValue('iOS');
       mockDeviceInfo.getVersion.mockReturnValue('1.0.0');
 
@@ -168,7 +168,7 @@ describe('Platform Utils', () => {
   describe('Error Handling', () => {
     it('should handle DeviceInfo.getSystemName throwing an error', () => {
       const mockDeviceInfo = require('react-native-device-info');
-      
+
       mockDeviceInfo.getSystemName.mockImplementation(() => {
         throw new Error('DeviceInfo error');
       });
@@ -179,7 +179,7 @@ describe('Platform Utils', () => {
 
     it('should handle VersionInfo.appVersion being undefined', () => {
       const mockDeviceInfo = require('react-native-device-info');
-      
+
       mockDeviceInfo.getSystemName.mockReturnValue('iOS');
       mockDeviceInfo.getVersion.mockReturnValue(undefined as any);
 
@@ -195,7 +195,7 @@ describe('Platform Utils', () => {
 
     it('should match the function output', () => {
       const mockDeviceInfo = require('react-native-device-info');
-      
+
       mockDeviceInfo.getSystemName.mockReturnValue('iOS');
       mockDeviceInfo.getVersion.mockReturnValue('1.0.0');
 

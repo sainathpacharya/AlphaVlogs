@@ -122,9 +122,9 @@ class GifService {
       const formData = new FormData();
       formData.append('gifFile', data.gifFile);
       formData.append('title', data.title);
-      if (data.description) formData.append('description', data.description);
-      if (data.tags) formData.append('tags', JSON.stringify(data.tags));
-      if (data.category) formData.append('category', data.category);
+      if (data.description) {formData.append('description', data.description);}
+      if (data.tags) {formData.append('tags', JSON.stringify(data.tags));}
+      if (data.category) {formData.append('category', data.category);}
 
       const response = await apiService.uploadFile<GifUploadResponse>(
         `${API_ENDPOINTS.GIF?.UPLOAD || '/api/gifs/upload'}`,
@@ -334,7 +334,7 @@ class GifService {
 
   private getMockSearchResults(query: string, limit: number = 20): GifSearchResult {
     const allGifs = this.getMockGifs();
-    const filteredGifs = allGifs.filter(gif => 
+    const filteredGifs = allGifs.filter(gif =>
       gif.title.toLowerCase().includes(query.toLowerCase()) ||
       gif.description.toLowerCase().includes(query.toLowerCase()) ||
       gif.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase()))

@@ -51,7 +51,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
       console.log('Auto-read OTP received:', receivedOTP);
       setOtp(receivedOTP);
       onChange?.(receivedOTP);
-      
+
       if (receivedOTP.length === length) {
         onComplete?.(receivedOTP);
       }
@@ -86,7 +86,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
   const handleOTPChange = (text: string) => {
     setOtp(text);
     onChange?.(text);
-    
+
     if (text.length === length) {
       onComplete?.(text);
     }
@@ -123,11 +123,11 @@ const OTPInput: React.FC<OTPInputProps> = ({
         placeholder={placeholder}
         disabled={disabled}
       />
-      
+
       {showInstructions && enableAutoRead && (
         <View style={styles.instructionsContainer}>
           <Text style={styles.instructionsText}>
-            {isSupported 
+            {isSupported
               ? platformInstructions
               : 'Please manually enter the OTP from the SMS.'
             }

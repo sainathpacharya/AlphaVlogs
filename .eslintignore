@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+ios/Pods/
+android/
+
+# Build outputs
+coverage/
+build/
+dist/
+
+# Generated files
+*.min.js
+*.bundle.js
+
+# Test coverage reports
+**/coverage/**
+**/lcov-report/**
+
+# iOS Pods
+ios/Pods/**

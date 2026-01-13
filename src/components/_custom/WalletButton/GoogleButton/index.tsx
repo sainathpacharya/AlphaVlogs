@@ -1,10 +1,10 @@
-import GoogleWalletIcon from "@/assets/icons/GoogleWallet";
-import { Box, Button, ButtonText, HStack, VStack } from "@/components";
-import logger from "@/utils/logger";
-import { FC } from "react";
-import { useTranslation } from "react-i18next";
-import { Linking } from "react-native";
-import { WalletButtonProps } from "../type";
+import GoogleWalletIcon from '@/assets/icons/GoogleWallet';
+import { Box, Button, ButtonText, HStack, VStack } from '@/components';
+import logger from '@/utils/logger';
+import { FC } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Linking } from 'react-native';
+import { WalletButtonProps } from '../type';
 
 const GoogleButton: FC<WalletButtonProps> = ({ cardData, onSave }) => {
   const { t } = useTranslation();
@@ -29,7 +29,7 @@ const GoogleButton: FC<WalletButtonProps> = ({ cardData, onSave }) => {
       rounded="$full"
       onPress={saveToWallet}
       accessibilityRole="imagebutton"
-      accessibilityLabel={`${t("CARDS.INFO.WALLET.ANDROID.BTN_FIRST")} ${t("CARDS.INFO.WALLET.ANDROID.BTN_SECOND")}`}
+      accessibilityLabel={`${t('CARDS.INFO.WALLET.ANDROID.BTN_FIRST')} ${t('CARDS.INFO.WALLET.ANDROID.BTN_SECOND')}`}
       testID="google-button"
     >
       <HStack alignItems="center" justifyContent="center" gap="$4">
@@ -39,10 +39,10 @@ const GoogleButton: FC<WalletButtonProps> = ({ cardData, onSave }) => {
 
         <VStack justifyContent="center" alignItems="flex-start">
           <ButtonText fontWeight="$light" fontSize="$sm" lineHeight="$2xl">
-            {t("CARDS.INFO.WALLET.ANDROID.BTN_FIRST")}
+            {t('CARDS.INFO.WALLET.ANDROID.BTN_FIRST')}
           </ButtonText>
           <ButtonText fontSize="$md" lineHeight="$xs">
-            {t("CARDS.INFO.WALLET.ANDROID.BTN_SECOND")}
+            {t('CARDS.INFO.WALLET.ANDROID.BTN_SECOND')}
           </ButtonText>
         </VStack>
       </HStack>

@@ -278,13 +278,13 @@ const RegistrationScreen = ({navigation}: any) => {
   // Real-time validation for individual fields
   const validateFieldRealtime = useCallback(
     (fieldName: keyof typeof form, value: string) => {
-      if (!touchedFields.has(fieldName)) return null;
+      if (!touchedFields.has(fieldName)) {return null;}
 
       const rules =
         REGISTRATION_VALIDATION_RULES[
           fieldName as keyof typeof REGISTRATION_VALIDATION_RULES
         ];
-      if (!rules) return null;
+      if (!rules) {return null;}
 
       return validateFieldRealtimeUtil(fieldName, value, rules);
     },

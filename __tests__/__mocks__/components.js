@@ -101,24 +101,24 @@ module.exports = {
   HStack: MockComponent,
   Box: MockComponent,
   View: MockComponent,
-  
+
   // Text components
   Text: MockText,
-  
+
   // Input components
   Input: MockInput,
   InputField: MockInputField,
   InputIcon: MockComponent,
   InputSlot: MockComponent,
   InputInput: MockInputField, // deprecated
-  
+
   // Button components
   Button: MockButton,
   ButtonText: MockButtonText,
   ButtonGroup: MockComponent,
   ButtonSpinner: MockComponent,
   ButtonIcon: MockComponent,
-  
+
   // Other components
   Image: MockImage,
   Icon: MockIcon,
@@ -131,7 +131,7 @@ module.exports = {
   Divider: MockComponent,
   Badge: MockComponent,
   Pressable: MockPressable,
-  
+
   // Translation components
   TranslationExample: MockComponent,
   TranslationTest: MockComponent,

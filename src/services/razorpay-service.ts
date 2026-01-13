@@ -27,7 +27,7 @@ export interface RazorpayResponse {
 }
 
 class RazorpayService {
-  private readonly keyId = __DEV__ 
+  private readonly keyId = __DEV__
     ? 'rzp_test_your_test_key' // Test key for development
     : 'rzp_live_your_live_key'; // Live key for production
 
@@ -46,7 +46,7 @@ class RazorpayService {
       return response;
     } catch (error: any) {
       console.error('Razorpay payment error:', error);
-      
+
       if (error.code === 'payment_cancelled') {
         throw new Error('Payment was cancelled by user');
       } else if (error.code === 'payment_failed') {

@@ -33,12 +33,12 @@ export class MockAuthService {
 
   async sendOTP(data: { mobile: string; type: string }) {
     await this.delay();
-    
+
     if (data.mobile === '9876543210' || data.mobile === '8765432109') {
       // Generate SMS hash for Android auto-read
       const smsHash = 'ABCD1234'; // Mock hash for demo
       const otpMessage = `Jack Marvels: Your OTP is 123456. Valid for 3 minutes. Do not share this code with anyone. ${smsHash}`;
-      
+
       return this.createResponse({
         message: 'OTP sent successfully',
         mobile: data.mobile,
@@ -47,13 +47,13 @@ export class MockAuthService {
         smsHash, // Include hash for backend to use in actual SMS
       });
     }
-    
+
     return this.createErrorResponse('Invalid mobile number', 400);
   }
 
   async verifyOTP(data: { mobile: string; otp: string }) {
     await this.delay();
-    
+
     if (data.mobile === '9876543210' && data.otp === '123456') {
       const user = this.store.findUserById('user_001');
       return this.createResponse({
@@ -62,10 +62,10 @@ export class MockAuthService {
           accessToken: 'mock_access_token_123',
           refreshToken: 'mock_refresh_token_456',
           expiresIn: 3600,
-        }
+        },
       });
     }
-    
+
     if (data.mobile === '8765432109' && data.otp === '123456') {
       const user = this.store.findUserById('user_002');
       return this.createResponse({
@@ -74,10 +74,10 @@ export class MockAuthService {
           accessToken: 'mock_access_token_456',
           refreshToken: 'mock_refresh_token_789',
           expiresIn: 3600,
-        }
+        },
       });
     }
-    
+
     return this.createErrorResponse('Invalid mobile number or OTP', 401);
   }
 
@@ -87,29 +87,29 @@ export class MockAuthService {
 
   async register(data: any) {
     await this.delay();
-    
+
     // Validate required fields
     const validation = validateRegistrationData(data);
     if (!validation.isValid) {
       return this.createErrorResponse(validation.errors.join(', '), 400);
     }
-    
+
     // Check if user already exists by email
-    const existingUserByEmail = this.store.getUsers().find(user => 
+    const existingUserByEmail = this.store.getUsers().find(user =>
       user.email.toLowerCase() === (data.email ?? data.emailId)?.toLowerCase()
     );
     if (existingUserByEmail) {
       return this.createErrorResponse('An account with this email already exists. Please use a different email or try logging in.', 400);
     }
-    
+
     // Check if user already exists by mobile number
-    const existingUserByMobile = this.store.getUsers().find(user => 
+    const existingUserByMobile = this.store.getUsers().find(user =>
       user.mobile === data.mobileNumber || user.mobile === data.mobile
     );
     if (existingUserByMobile) {
       return this.createErrorResponse('An account with this mobile number already exists. Please use a different number or try logging in.', 400);
     }
-    
+
     // Create new user
     const newUser: User = {
       id: `user_${Date.now()}`,
@@ -128,9 +128,9 @@ export class MockAuthService {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    
+
     this.store.getUsers().push(newUser);
-    
+
     // Add welcome notification
     this.store.addNotification({
       userId: newUser.id,
@@ -140,13 +140,13 @@ export class MockAuthService {
       data: { userId: newUser.id },
       isRead: false,
     });
-    
+
     return this.createResponse(newUser, true, 'Registration successful! Welcome to Jack Marvels!');
   }
 
   async refreshToken(refreshToken: string) {
     await this.delay();
-    
+
     if (refreshToken === 'mock_refresh_token_456') {
       return this.createResponse({
         accessToken: 'new_mock_access_token_789',
@@ -154,7 +154,7 @@ export class MockAuthService {
         expiresIn: 3600,
       });
     }
-    
+
     return this.createErrorResponse('Invalid refresh token', 401);
   }
 
@@ -165,37 +165,37 @@ export class MockAuthService {
 
   async updateProfile(userId: string, updates: Partial<User>) {
     await this.delay();
-    
+
     // Profile updates work for both Influencers and Students
     const updatedUser = this.store.updateUser(userId, updates);
     if (updatedUser) {
       return this.createResponse(updatedUser);
     }
-    
+
     return this.createErrorResponse('User not found', 404);
   }
 
   async getProfile(userId: string) {
     await this.delay();
-    
+
     const user = this.store.findUserById(userId);
     if (user) {
       return this.createResponse(user);
     }
-    
+
     return this.createErrorResponse('User not found', 404);
   }
 
   async uploadAvatar(userId: string, file: any) {
     await this.delay();
-    
+
     const avatarUrl = `https://example.com/avatars/${userId}_${Date.now()}.jpg`;
     const updatedUser = this.store.updateUser(userId, { profileImage: avatarUrl });
-    
+
     if (updatedUser) {
       return this.createResponse({ avatarUrl });
     }
-    
+
     return this.createErrorResponse('User not found', 404);
   }
 }

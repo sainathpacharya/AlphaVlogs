@@ -1,2 +1,2 @@
-export { default as AppleWalletButton } from "./AppleButton";
-export { default as GoogleWalletButton } from "./GoogleButton";
+export { default as AppleWalletButton } from './AppleButton';
+export { default as GoogleWalletButton } from './GoogleButton';

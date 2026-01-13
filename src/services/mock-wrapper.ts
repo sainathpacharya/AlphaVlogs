@@ -19,13 +19,13 @@ export class MockWrapperService {
       return {
         success: true,
         data: mockResponse.data,
-        statusCode: mockResponse.statusCode || 200
+        statusCode: mockResponse.statusCode || 200,
       };
     } else {
       return {
         success: false,
         error: mockResponse.error || 'Request failed',
-        statusCode: mockResponse.statusCode || 400
+        statusCode: mockResponse.statusCode || 400,
       };
     }
   }

@@ -1,11 +1,11 @@
-import TooltipIcon from "@/assets/icons/Tooltip";
+import TooltipIcon from '@/assets/icons/Tooltip';
 import {
   Box,
   Tooltip as GlueTooltip,
   TooltipContent,
   TooltipText,
-} from "@/components";
-import { FC } from "react";
+} from '@/components';
+import { FC } from 'react';
 
 interface TooltipProps {
   content: string;

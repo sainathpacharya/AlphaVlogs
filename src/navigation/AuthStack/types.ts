@@ -2,7 +2,7 @@
 
 type AuthStackParamList = {
   Welcome: undefined;
-  Login: undefined; 
+  Login: undefined;
   Signup: undefined;
   setIsLoggedIn?: (v: boolean) => void;
 };

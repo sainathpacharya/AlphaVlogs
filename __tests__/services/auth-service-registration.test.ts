@@ -30,7 +30,7 @@ describe('AuthService - Registration', () => {
     it('should register user successfully in mock mode', async () => {
       // Mock MockWrapperService to return mock mode
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(true);
-      
+
       const mockResponse = {
         success: true,
         data: {
@@ -67,7 +67,7 @@ describe('AuthService - Registration', () => {
 
     it('should handle validation errors in mock mode', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(true);
-      
+
       const invalidData = {
         firstName: '',
         lastName: 'Doe',
@@ -103,7 +103,7 @@ describe('AuthService - Registration', () => {
 
     it('should handle duplicate email error in mock mode', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(true);
-      
+
       const duplicateEmailData = {
         ...validRegistrationData,
         emailId: 'rahul.sharma@example.com', // This email already exists in mock data
@@ -129,7 +129,7 @@ describe('AuthService - Registration', () => {
 
     it('should handle duplicate mobile number error in mock mode', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(true);
-      
+
       const duplicateMobileData = {
         ...validRegistrationData,
         mobileNumber: '9876543210', // This mobile already exists in mock data
@@ -155,7 +155,7 @@ describe('AuthService - Registration', () => {
 
     it('should validate data before sending to API in non-mock mode', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-      
+
       const invalidData = {
         firstName: 'John123', // Invalid characters
         lastName: 'Doe',
@@ -182,7 +182,7 @@ describe('AuthService - Registration', () => {
 
     it('should handle network errors gracefully', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-      
+
       const networkError = {
         code: 'NETWORK_ERROR',
         message: 'Network Error',
@@ -201,7 +201,7 @@ describe('AuthService - Registration', () => {
 
     it('should handle timeout errors gracefully', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-      
+
       const timeoutError = {
         code: 'TIMEOUT',
         message: 'Request timeout',
@@ -219,7 +219,7 @@ describe('AuthService - Registration', () => {
 
     it('should handle backend validation errors with friendly messages', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-      
+
       const backendError = {
         response: {
           data: {
@@ -241,7 +241,7 @@ describe('AuthService - Registration', () => {
 
     it('should handle generic backend errors', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-      
+
       const backendError = {
         response: {
           data: {
@@ -263,7 +263,7 @@ describe('AuthService - Registration', () => {
 
     it('should handle school validation errors', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-      
+
       const backendError = {
         response: {
           data: {
@@ -288,7 +288,7 @@ describe('AuthService - Registration', () => {
     // Since validateRegistrationData is private, we test it through the register method
     it('should validate all required fields', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-      
+
       const incompleteData = {
         firstName: '',
         lastName: '',
@@ -319,7 +319,7 @@ describe('AuthService - Registration', () => {
 
     it('should validate email format', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-      
+
       const invalidEmailData = {
         ...validRegistrationData,
         emailId: 'invalid-email-format',
@@ -333,7 +333,7 @@ describe('AuthService - Registration', () => {
 
     it('should validate mobile number format', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-      
+
       const invalidMobileData = {
         ...validRegistrationData,
         mobileNumber: '1234567890', // Invalid starting digit
@@ -347,7 +347,7 @@ describe('AuthService - Registration', () => {
 
     it('should validate pincode format', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-      
+
       const invalidPincodeData = {
         ...validRegistrationData,
         pincode: '012345', // Invalid starting digit
@@ -361,7 +361,7 @@ describe('AuthService - Registration', () => {
 
     it('should validate name patterns', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-      
+
       const invalidNameData = {
         ...validRegistrationData,
         firstName: 'John123',
@@ -377,7 +377,7 @@ describe('AuthService - Registration', () => {
 
     it('should validate location patterns', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-      
+
       const invalidLocationData = {
         ...validRegistrationData,
         state: 'Maharashtra123',
@@ -395,7 +395,7 @@ describe('AuthService - Registration', () => {
 
     it('should validate school name pattern when provided', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-      
+
       const invalidSchoolData = {
         ...validRegistrationData,
         schoolId: '',
@@ -410,7 +410,7 @@ describe('AuthService - Registration', () => {
 
     it('should validate promo code pattern when provided', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-      
+
       const invalidPromoData = {
         ...validRegistrationData,
         promocode: 'PROMO@123#',

@@ -1,10 +1,10 @@
-import { Box, HStack, Text, VStack } from "@/components";
-import { handleUrl } from "@/navigation/lib";
-import { useHelpStore } from "@/stores/help-store";
-import { useLinkTo } from "@react-navigation/native";
-import { parseDocument } from "htmlparser2";
-import { useMemo } from "react";
-import { TouchableOpacity, useWindowDimensions } from "react-native";
+import { Box, HStack, Text, VStack } from '@/components';
+import { handleUrl } from '@/navigation/lib';
+import { useHelpStore } from '@/stores/help-store';
+import { useLinkTo } from '@react-navigation/native';
+import { parseDocument } from 'htmlparser2';
+import { useMemo } from 'react';
+import { TouchableOpacity, useWindowDimensions } from 'react-native';
 import {
   CustomBlockRenderer,
   CustomMixedRenderer,
@@ -13,9 +13,9 @@ import {
   domNodeToHTMLString,
   useInternalRenderer,
   useTNodeChildrenProps,
-} from "react-native-render-html";
-import { SvgUri } from "react-native-svg";
-import CHWebView from "../CHWebView";
+} from 'react-native-render-html';
+import { SvgUri } from 'react-native-svg';
+import CHWebView from '../CHWebView';
 
 export const OLRender: CustomBlockRenderer = (props) => {
   const { tnode, TDefaultRenderer } = props;
@@ -63,12 +63,12 @@ export const ARender: CustomTextualRenderer = ({
 }) => {
   try {
     const { tnode } = props;
-    const linkUrl = tnode.attributes?.["href"];
+    const linkUrl = tnode.attributes?.href;
     const { linking } = useHelpStore();
     const linkTo = useLinkTo();
     const validLinkTo = linking || linkTo;
 
-    if (tnode.hasClass("callToAction")) {
+    if (tnode.hasClass('callToAction')) {
       return (
         <HStack>
           <VStack
@@ -83,7 +83,7 @@ export const ARender: CustomTextualRenderer = ({
               <TDefaultRenderer {...props} />
             </TouchableOpacity>
           </VStack>
-          <Box w={6}></Box>
+          <Box w={6} />
         </HStack>
       );
     }
@@ -108,11 +108,11 @@ export const IframeRender: CustomBlockRenderer = ({
     const { src, width, height } = tnode.attributes;
 
     let url = src;
-    const w = width && typeof width === "string" ? parseInt(width) : 560;
-    const h = height && typeof height === "string" ? parseInt(height) : 315;
+    const w = width && typeof width === 'string' ? parseInt(width) : 560;
+    const h = height && typeof height === 'string' ? parseInt(height) : 315;
 
-    if (!url.includes("http")) {
-      url = "https:" + url;
+    if (!url.includes('http')) {
+      url = 'https:' + url;
     }
 
     return (
@@ -148,15 +148,15 @@ export const LiRender: CustomTextualRenderer = ({
             {customLI.map((child, index) => {
               const { data, type, name, attribs } = child;
 
-              if (type === "text") {
+              if (type === 'text') {
                 return (
                   <Text fontSize={14} key={index}>
                     {data}
                   </Text>
                 );
               } else if (
-                type === "tag" &&
-                name === "strong" &&
+                type === 'tag' &&
+                name === 'strong' &&
                 child.children &&
                 child.children?.length
               ) {
@@ -165,7 +165,7 @@ export const LiRender: CustomTextualRenderer = ({
                     {child.children[0].data}
                   </Text>
                 );
-              } else if (type === "tag" && name === "img") {
+              } else if (type === 'tag' && name === 'img') {
                 const { height, src, width } = attribs;
 
                 return (
@@ -174,14 +174,14 @@ export const LiRender: CustomTextualRenderer = ({
                       uri={src}
                       height={height}
                       width={width}
-                      style={{ maxWidth: "100%" }}
+                      style={{ maxWidth: '100%' }}
                     />
                   </HStack>
                 );
               }
 
               <Text fontSize={14} key={index}>
-                {data || ""}
+                {data || ''}
               </Text>;
             })}
           </Text>
@@ -264,14 +264,14 @@ export const THRender: CustomTextualRenderer = ({
 };
 
 export const ImageRender: CustomMixedRenderer = (props) => {
-  const { Renderer, rendererProps } = useInternalRenderer("img", props);
+  const { Renderer, rendererProps } = useInternalRenderer('img', props);
   const { width } = useWindowDimensions();
 
   try {
     const { tnode } = props;
     const { src, width, height } = tnode.attributes;
 
-    if (src.includes(".svg")) {
+    if (src.includes('.svg')) {
       const injectedJavaScript = `
           (function() {
             function getSVGHeight() {
@@ -294,7 +294,7 @@ export const ImageRender: CustomMixedRenderer = (props) => {
             py="$1"
           >
             <CHWebView
-              originWhitelist={["*"]}
+              originWhitelist={['*']}
               source={{
                 uri: src,
               }}
@@ -310,7 +310,7 @@ export const ImageRender: CustomMixedRenderer = (props) => {
             uri={src}
             height={height}
             width={width}
-            style={{ maxWidth: "100%" }}
+            style={{ maxWidth: '100%' }}
           />
         </HStack>
       );

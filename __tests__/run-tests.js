@@ -9,34 +9,34 @@ const testCommands = [
   {
     name: 'All Tests',
     command: 'npm test',
-    description: 'Run all tests with coverage'
+    description: 'Run all tests with coverage',
   },
   {
     name: 'Registration Screen Tests',
     command: 'npm test -- __tests__/screens/Registration',
-    description: 'Run Registration screen specific tests'
+    description: 'Run Registration screen specific tests',
   },
   {
     name: 'Watch Mode',
     command: 'npm run test:watch',
-    description: 'Run tests in watch mode'
+    description: 'Run tests in watch mode',
   },
   {
     name: 'Coverage Report',
     command: 'npm run test:coverage',
-    description: 'Generate detailed coverage report'
-  }
+    description: 'Generate detailed coverage report',
+  },
 ];
 
 function runCommand(command, description) {
   console.log(`\n📋 ${description}`);
   console.log(`💻 Command: ${command}`);
   console.log('─'.repeat(50));
-  
+
   try {
-    execSync(command, { 
+    execSync(command, {
       stdio: 'inherit',
-      cwd: process.cwd()
+      cwd: process.cwd(),
     });
     console.log(`✅ ${description} - Completed successfully\n`);
   } catch (error) {

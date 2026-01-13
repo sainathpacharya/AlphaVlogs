@@ -30,7 +30,7 @@ export const usePermissions = () => {
   const requestPermission = useCallback(async (permissionType: keyof PermissionResult) => {
     try {
       let granted = false;
-      
+
       switch (permissionType) {
         case 'camera':
           granted = await permissionsService.requestCameraPermission();
@@ -51,11 +51,11 @@ export const usePermissions = () => {
           granted = await permissionsService.requestNotificationPermission();
           break;
       }
-      
+
       if (granted) {
         await refreshPermissions();
       }
-      
+
       return granted;
     } catch (error) {
       console.error(`Error requesting ${permissionType} permission:`, error);
@@ -107,28 +107,28 @@ export const usePermissions = () => {
   }, []);
 
   const hasPermission = useCallback((permissionType: keyof PermissionResult) => {
-    if (!permissions) return false;
+    if (!permissions) {return false;}
     return permissions[permissionType]?.granted || false;
   }, [permissions]);
 
   const isPermissionBlocked = useCallback((permissionType: keyof PermissionResult) => {
-    if (!permissions) return false;
+    if (!permissions) {return false;}
     return permissions[permissionType]?.blocked || false;
   }, [permissions]);
 
   const isPermissionUnavailable = useCallback((permissionType: keyof PermissionResult) => {
-    if (!permissions) return false;
+    if (!permissions) {return false;}
     return permissions[permissionType]?.unavailable || false;
   }, [permissions]);
 
   const getPermissionStatus = useCallback((permissionType: keyof PermissionResult): PermissionStatus | null => {
-    if (!permissions) return null;
+    if (!permissions) {return null;}
     return permissions[permissionType] || null;
   }, [permissions]);
 
   // Check if all essential permissions are granted
   const hasEssentialPermissions = useCallback(() => {
-    if (!permissions) return false;
+    if (!permissions) {return false;}
     return (
       permissions.camera?.granted &&
       permissions.photoLibrary?.granted &&
@@ -138,7 +138,7 @@ export const usePermissions = () => {
 
   // Check if video recording permissions are granted
   const hasVideoRecordingPermissions = useCallback(() => {
-    if (!permissions) return false;
+    if (!permissions) {return false;}
     return (
       permissions.camera?.granted &&
       permissions.microphone?.granted &&
@@ -148,7 +148,7 @@ export const usePermissions = () => {
 
   // Check if video upload permissions are granted
   const hasVideoUploadPermissions = useCallback(() => {
-    if (!permissions) return false;
+    if (!permissions) {return false;}
     return (
       permissions.photoLibrary?.granted &&
       permissions.storage?.granted
@@ -159,7 +159,7 @@ export const usePermissions = () => {
     // State
     permissions,
     loading,
-    
+
     // Actions
     requestPermission,
     requestVideoRecordingPermissions,
@@ -167,7 +167,7 @@ export const usePermissions = () => {
     requestEssentialPermissions,
     refreshPermissions,
     openSettings,
-    
+
     // Getters
     hasPermission,
     isPermissionBlocked,
@@ -176,7 +176,7 @@ export const usePermissions = () => {
     hasEssentialPermissions,
     hasVideoRecordingPermissions,
     hasVideoUploadPermissions,
-    
+
     // Platform info
     isIOS: Platform.OS === 'ios',
     isAndroid: Platform.OS === 'android',

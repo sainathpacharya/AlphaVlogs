@@ -1,11 +1,11 @@
-import { Text } from "@/components";
-import { useUserCachedStore } from "@/stores/user-cached-store";
-import { checkHtmlTags } from "@/utils/textEnrichedResp";
-import { FC } from "react";
-import { Linking, useWindowDimensions } from "react-native";
-import { RenderHTML } from "react-native-render-html";
-import { classStyle, mixedStyle } from "./constants";
-import { customHTMLElementModels } from "./customModels";
+import { Text } from '@/components';
+import { useUserCachedStore } from '@/stores/user-cached-store';
+import { checkHtmlTags } from '@/utils/textEnrichedResp';
+import { FC } from 'react';
+import { Linking, useWindowDimensions } from 'react-native';
+import { RenderHTML } from 'react-native-render-html';
+import { classStyle, mixedStyle } from './constants';
+import { customHTMLElementModels } from './customModels';
 import {
   ARender,
   IframeRender,
@@ -15,7 +15,7 @@ import {
   TDRender,
   THRender,
   TableRender,
-} from "./renders";
+} from './renders';
 
 interface RenderHtml {
   sourceHtml: string;
@@ -33,7 +33,7 @@ const renderers = {
   th: THRender,
 };
 
-const RenderHtml: FC<RenderHtml> = ({ fontSize = "16px", sourceHtml }) => {
+const RenderHtml: FC<RenderHtml> = ({ fontSize = '16px', sourceHtml }) => {
   const { width } = useWindowDimensions();
 
   const parseTextWithLinks = (text: string) => {
@@ -63,14 +63,14 @@ const RenderHtml: FC<RenderHtml> = ({ fontSize = "16px", sourceHtml }) => {
   }
 
   const html = sourceHtml
-    ?.replaceAll("<li>\n<p>", "<li>")
-    ?.replaceAll("</p>\n</li>", "</li>")
+    ?.replaceAll('<li>\n<p>', '<li>')
+    ?.replaceAll('</p>\n</li>', '</li>')
     ?.replaceAll(
       'data-href="',
-      `href=\"${useUserCachedStore.getState().apiUrl?.replace("/api", "")}`
+      `href=\"${useUserCachedStore.getState().apiUrl?.replace('/api', '')}`
     )
-    ?.replaceAll(/(\s*height\s*:\s*[^;]*;?\s*)+?/g, "")
-    ?.replaceAll("<li>\n<div>", "<li class='custom-li'>");
+    ?.replaceAll(/(\s*height\s*:\s*[^;]*;?\s*)+?/g, '')
+    ?.replaceAll('<li>\n<div>', "<li class='custom-li'>");
 
   return (
     <RenderHTML

@@ -1,13 +1,13 @@
-import { linkingUrlSchemes } from "@/utils/constants";
-import { getBase64 } from "@/utils/handleFiles";
-import logger from "@/utils/logger";
-import { Alert, Linking } from "react-native";
-import Share from "react-native-share";
-import { WebView, WebViewProps } from "react-native-webview";
+import { linkingUrlSchemes } from '@/utils/constants';
+import { getBase64 } from '@/utils/handleFiles';
+import logger from '@/utils/logger';
+import { Alert, Linking } from 'react-native';
+import Share from 'react-native-share';
+import { WebView, WebViewProps } from 'react-native-webview';
 
 type CustomWebViewProps = Omit<
   WebViewProps,
-  "onShouldStartLoadWithRequest" | "originWhitelist"
+  'onShouldStartLoadWithRequest' | 'originWhitelist'
 >;
 
 const CHWebView = (props: CustomWebViewProps) => {
@@ -31,20 +31,20 @@ const CHWebView = (props: CustomWebViewProps) => {
     const url = event.nativeEvent.data;
 
     if (
-      url.includes("blob:") ||
-      url.includes("data:") ||
-      url.toLowerCase().includes("download.")
+      url.includes('blob:') ||
+      url.includes('data:') ||
+      url.toLowerCase().includes('download.')
     ) {
-      if (url.includes("data:")) {
+      if (url.includes('data:')) {
         Share.open({
           url,
         });
         return false;
       }
-      if (url.includes("download.") || url.startsWith("blob:")) {
+      if (url.includes('download.') || url.startsWith('blob:')) {
         const targetUrl = url
-          ?.replace("http://", "https://")
-          .replace("blob:", "");
+          ?.replace('http://', 'https://')
+          .replace('blob:', '');
         getBase64(targetUrl)
           .then((response) => {
             Share.open({
@@ -52,7 +52,7 @@ const CHWebView = (props: CustomWebViewProps) => {
             });
           })
           .catch((error) => {
-            logger.debug("Error", error);
+            logger.debug('Error', error);
           });
         return false;
       }
@@ -62,18 +62,18 @@ const CHWebView = (props: CustomWebViewProps) => {
   return (
     <WebView
       {...props}
-      originWhitelist={["*"]}
+      originWhitelist={['*']}
       setSupportMultipleWindows={false}
       injectedJavaScript={injectedJS}
       onMessage={handleNavigation}
       onShouldStartLoadWithRequest={(request) => {
         const { url } = request;
-        if (url.startsWith("data:") || url.toLowerCase().includes("download")) {
+        if (url.startsWith('data:') || url.toLowerCase().includes('download')) {
           return false;
         }
 
-        if (request.url.startsWith("http://")) {
-          Alert.alert("This link is not secure");
+        if (request.url.startsWith('http://')) {
+          Alert.alert('This link is not secure');
           return false;
         }
 

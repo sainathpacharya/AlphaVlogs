@@ -204,7 +204,7 @@ export const SUBSCRIPTION = {
     PREMIUM: 'premium',
   },
   PRICING: {
-    PREMIUM_ANNUAL: 100, 
+    PREMIUM_ANNUAL: 100,
   },
   FEATURES: {
     FREE: ['Basic quiz access', 'Event browsing'],

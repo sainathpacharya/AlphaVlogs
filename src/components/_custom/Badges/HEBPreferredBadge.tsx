@@ -1,15 +1,15 @@
-import { CircleQuestion, Star } from "@/assets/icons/ui";
-import { Box, HStack, Text } from "@/components";
-import { IProviderGroup } from "@/types/provider-groups-metadata";
-import { trackPlanningForCare } from "@/utils/LogEvent";
-import { EventType } from "@/utils/LogEvent/types";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/stack";
-import { TouchableOpacity } from "react-native";
-import { AppStackParamList } from "../../../navigation/AppStack/types";
+import { CircleQuestion, Star } from '@/assets/icons/ui';
+import { Box, HStack, Text } from '@/components';
+import { IProviderGroup } from '@/types/provider-groups-metadata';
+import { trackPlanningForCare } from '@/utils/LogEvent';
+import { EventType } from '@/utils/LogEvent/types';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { TouchableOpacity } from 'react-native';
+import { AppStackParamList } from '../../../navigation/AppStack/types';
 
 interface IHEBPreferredBadgeProps {
-  asset?: IProviderGroup["asset"];
+  asset?: IProviderGroup['asset'];
 }
 
 const HEBPreferredBadge = ({ asset }: IHEBPreferredBadgeProps) => {
@@ -19,12 +19,12 @@ const HEBPreferredBadge = ({ asset }: IHEBPreferredBadgeProps) => {
   const handleOpenModal = () => {
     trackPlanningForCare(EventType.amplitude_event_explanation_viewed, {
       source: route.name,
-      explanation_topic_name: "H-E-B Preferred Primary Care",
+      explanation_topic_name: 'H-E-B Preferred Primary Care',
     });
 
-    navigate("BadgePage", {
+    navigate('BadgePage', {
       header: (
-        <HStack alignItems="center" gap="$1" mb={"$1"}>
+        <HStack alignItems="center" gap="$1" mb={'$1'}>
           <Box accessible accessibilityRole="image">
             <Star color="#C89211" />
           </Box>
@@ -39,13 +39,13 @@ const HEBPreferredBadge = ({ asset }: IHEBPreferredBadgeProps) => {
           </Text>
         </HStack>
       ),
-      description: asset?.description || "",
+      description: asset?.description || '',
     });
   };
 
   return (
     <TouchableOpacity
-      accessibilityLabel={"H-E-B Preferred Primary Care"}
+      accessibilityLabel={'H-E-B Preferred Primary Care'}
       accessibilityRole="button"
       onPress={handleOpenModal}
       testID="heb-preferred-badge"

@@ -52,7 +52,7 @@ class PermissionsService {
   async checkPermission(permission: any): Promise<PermissionStatus> {
     try {
       const result = await check(permission);
-      
+
       return {
         granted: result === RESULTS.GRANTED,
         blocked: result === RESULTS.BLOCKED,
@@ -73,7 +73,7 @@ class PermissionsService {
   async requestPermission(permission: any): Promise<PermissionStatus> {
     try {
       const result = await request(permission);
-      
+
       return {
         granted: result === RESULTS.GRANTED,
         blocked: result === RESULTS.BLOCKED,
@@ -93,10 +93,10 @@ class PermissionsService {
   // Check multiple permissions at once
   async checkMultiplePermissions(): Promise<PermissionResult> {
     const permissions = this.getRequiredPermissions();
-    
+
     try {
       const results = await checkMultiple(permissions);
-      
+
       return {
         camera: this.mapPermissionResult(results[permissions[0]!] || RESULTS.UNAVAILABLE),
         photoLibrary: this.mapPermissionResult(results[permissions[1]!] || RESULTS.UNAVAILABLE),
@@ -114,10 +114,10 @@ class PermissionsService {
   // Request multiple permissions at once
   async requestMultiplePermissions(): Promise<PermissionResult> {
     const permissions = this.getRequiredPermissions();
-    
+
     try {
       const results = await requestMultiple(permissions);
-      
+
       return {
         camera: this.mapPermissionResult(results[permissions[0]!] || RESULTS.UNAVAILABLE),
         photoLibrary: this.mapPermissionResult(results[permissions[1]!] || RESULTS.UNAVAILABLE),
@@ -167,13 +167,13 @@ class PermissionsService {
     message: string,
     settingsMessage?: string
   ): Promise<boolean> {
-    if (!permission) return true; // Skip if permission not available
+    if (!permission) {return true;} // Skip if permission not available
     const status = await this.checkPermission(permission);
-    
+
     if (status.granted) {
       return true;
     }
-    
+
     if (status.blocked) {
       // Permission is blocked, show settings dialog
       Alert.alert(
@@ -186,10 +186,10 @@ class PermissionsService {
       );
       return false;
     }
-    
+
     // Request permission
     const requestResult = await this.requestPermission(permission);
-    
+
     if (!requestResult.granted && !requestResult.blocked) {
       // Show rationale if permission was denied
       Alert.alert(
@@ -201,7 +201,7 @@ class PermissionsService {
         ]
       );
     }
-    
+
     return requestResult.granted;
   }
 
@@ -242,7 +242,7 @@ class PermissionsService {
       // iOS doesn't have explicit storage permission
       return true;
     }
-    
+
     return this.requestPermissionWithRationale(
       PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
       'Storage Permission',
@@ -286,7 +286,7 @@ class PermissionsService {
     const cameraGranted = await this.requestCameraPermission();
     const microphoneGranted = await this.requestMicrophonePermission();
     const storageGranted = await this.requestStoragePermission();
-    
+
     return cameraGranted && microphoneGranted && storageGranted;
   }
 
@@ -294,20 +294,20 @@ class PermissionsService {
   async requestVideoUploadPermissions(): Promise<boolean> {
     const photoLibraryGranted = await this.requestPhotoLibraryPermission();
     const storageGranted = await this.requestStoragePermission();
-    
+
     return photoLibraryGranted && storageGranted;
   }
 
   // Request all essential permissions
   async requestEssentialPermissions(): Promise<boolean> {
     const results = await this.requestMultiplePermissions();
-    
+
     // Essential permissions are camera, photo library, and storage
-    const essentialGranted = 
-      results.camera.granted && 
-      results.photoLibrary.granted && 
+    const essentialGranted =
+      results.camera.granted &&
+      results.photoLibrary.granted &&
       results.storage.granted;
-    
+
     if (!essentialGranted) {
       Alert.alert(
         'Permissions Required',
@@ -318,7 +318,7 @@ class PermissionsService {
         ]
       );
     }
-    
+
     return essentialGranted;
   }
 }

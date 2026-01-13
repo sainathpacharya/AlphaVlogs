@@ -37,7 +37,7 @@ export const RippleEffect: React.FC<RippleEffectProps> = ({
   const rippleRef = useRef<View>(null);
 
   const handlePressIn = (event: GestureResponderEvent) => {
-    if (disabled) return;
+    if (disabled) {return;}
 
     // Get the center of the press
     const {locationX, locationY} = event.nativeEvent;
@@ -60,7 +60,7 @@ export const RippleEffect: React.FC<RippleEffectProps> = ({
   };
 
   const handlePressOut = (event: GestureResponderEvent) => {
-    if (disabled) return;
+    if (disabled) {return;}
 
     // Ensure ripple completes even if press is released early
     scale.value = withTiming(0, {duration: rippleDuration / 2});

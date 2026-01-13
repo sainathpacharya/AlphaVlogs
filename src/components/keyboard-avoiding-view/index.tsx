@@ -1,12 +1,12 @@
-import { styled, useStyled } from "@gluestack-style/react";
-import { KeyboardAvoidingView as RNKeyboardAvoidingView } from "react-native";
+import { styled, useStyled } from '@gluestack-style/react';
+import { KeyboardAvoidingView as RNKeyboardAvoidingView } from 'react-native';
 
 export const KeyboardAvoidingView = styled(
   RNKeyboardAvoidingView,
   {},
   {
-    componentName: "KeyboardAvoidingView",
-    resolveProps: ["contentContainerStyle"],
+    componentName: 'KeyboardAvoidingView',
+    resolveProps: ['contentContainerStyle'],
   } as const,
   {
     propertyResolver: {

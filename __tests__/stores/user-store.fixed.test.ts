@@ -97,17 +97,17 @@ describe('UserStore - Fixed Tests', () => {
   describe('setLoading', () => {
     it('should update loading state', () => {
       const { result } = renderHook(() => useUserStore());
-      
+
       act(() => {
         result.current.setLoading(true);
       });
-      
+
       expect(result.current.isLoading).toBe(true);
-      
+
       act(() => {
         result.current.setLoading(false);
       });
-      
+
       expect(result.current.isLoading).toBe(false);
     });
   });
@@ -115,17 +115,17 @@ describe('UserStore - Fixed Tests', () => {
   describe('setAuthenticated', () => {
     it('should update authentication state', () => {
       const { result } = renderHook(() => useUserStore());
-      
+
       act(() => {
         result.current.setAuthenticated(true);
       });
-      
+
       expect(result.current.isAuthenticated).toBe(true);
-      
+
       act(() => {
         result.current.setAuthenticated(false);
       });
-      
+
       expect(result.current.isAuthenticated).toBe(false);
     });
   });
@@ -144,17 +144,17 @@ describe('UserStore - Fixed Tests', () => {
         createdAt: '2023-01-01',
         updatedAt: '2023-01-01',
       };
-      
+
       act(() => {
         result.current.setUser(mockUser);
       });
-      
+
       expect(result.current.user).toEqual(mockUser);
-      
+
       act(() => {
         result.current.setUser(null);
       });
-      
+
       expect(result.current.user).toBe(null);
     });
   });
@@ -167,11 +167,11 @@ describe('UserStore - Fixed Tests', () => {
         isInternetReachable: false,
         type: 'wifi',
       };
-      
+
       act(() => {
         result.current.setNetworkStatus(mockNetworkStatus);
       });
-      
+
       expect(result.current.networkStatus).toEqual(mockNetworkStatus);
     });
   });
@@ -185,17 +185,17 @@ describe('UserStore - Fixed Tests', () => {
         accuracy: 10,
         timestamp: Date.now(),
       };
-      
+
       act(() => {
         result.current.setLocation(mockLocation);
       });
-      
+
       expect(result.current.location).toEqual(mockLocation);
-      
+
       act(() => {
         result.current.setLocation(null);
       });
-      
+
       expect(result.current.location).toBe(null);
     });
   });
@@ -203,17 +203,17 @@ describe('UserStore - Fixed Tests', () => {
   describe('setTheme', () => {
     it('should update theme', () => {
       const { result } = renderHook(() => useUserStore());
-      
+
       act(() => {
         result.current.setTheme('light');
       });
-      
+
       expect(result.current.theme).toBe('light');
-      
+
       act(() => {
         result.current.setTheme('dark');
       });
-      
+
       expect(result.current.theme).toBe('dark');
     });
   });
@@ -221,17 +221,17 @@ describe('UserStore - Fixed Tests', () => {
   describe('setLanguage', () => {
     it('should update language', () => {
       const { result } = renderHook(() => useUserStore());
-      
+
       act(() => {
         result.current.setLanguage('es');
       });
-      
+
       expect(result.current.language).toBe('es');
-      
+
       act(() => {
         result.current.setLanguage('fr');
       });
-      
+
       expect(result.current.language).toBe('fr');
     });
   });
@@ -239,7 +239,7 @@ describe('UserStore - Fixed Tests', () => {
   describe('reset', () => {
     it('should reset store to initial state', () => {
       const { result } = renderHook(() => useUserStore());
-      
+
       // Set some values first
       act(() => {
         result.current.setLoading(true);
@@ -258,19 +258,19 @@ describe('UserStore - Fixed Tests', () => {
         result.current.setTheme('light');
         result.current.setLanguage('es');
       });
-      
+
       // Verify values are set
       expect(result.current.isLoading).toBe(true);
       expect(result.current.isAuthenticated).toBe(true);
       expect(result.current.user).toBeTruthy();
       expect(result.current.theme).toBe('light');
       expect(result.current.language).toBe('es');
-      
+
       // Reset
       act(() => {
         result.current.reset();
       });
-      
+
       // Verify reset to initial state
       expect(result.current.isLoading).toBe(false);
       expect(result.current.isAuthenticated).toBe(false);
@@ -283,11 +283,11 @@ describe('UserStore - Fixed Tests', () => {
   describe('Selectors', () => {
     it('useIsAuthenticated should return authentication state', () => {
       const { result } = renderHook(() => useIsAuthenticated());
-      
+
       act(() => {
         mockActions.setAuthenticated(true);
       });
-      
+
       expect(result.current).toBe(true);
     });
 
@@ -304,21 +304,21 @@ describe('UserStore - Fixed Tests', () => {
         createdAt: '2023-01-01',
         updatedAt: '2023-01-01',
       };
-      
+
       act(() => {
         mockActions.setUser(mockUser);
       });
-      
+
       expect(result.current).toEqual(mockUser);
     });
 
     it('useIsLoading should return loading state', () => {
       const { result } = renderHook(() => useIsLoading());
-      
+
       act(() => {
         mockActions.setLoading(true);
       });
-      
+
       expect(result.current).toBe(true);
     });
 
@@ -329,11 +329,11 @@ describe('UserStore - Fixed Tests', () => {
         isInternetReachable: false,
         type: 'wifi',
       };
-      
+
       act(() => {
         mockActions.setNetworkStatus(mockNetworkStatus);
       });
-      
+
       expect(result.current).toEqual(mockNetworkStatus);
     });
 
@@ -345,31 +345,31 @@ describe('UserStore - Fixed Tests', () => {
         accuracy: 10,
         timestamp: Date.now(),
       };
-      
+
       act(() => {
         mockActions.setLocation(mockLocation);
       });
-      
+
       expect(result.current).toEqual(mockLocation);
     });
 
     it('useTheme should return theme', () => {
       const { result } = renderHook(() => useTheme());
-      
+
       act(() => {
         mockActions.setTheme('light');
       });
-      
+
       expect(result.current).toBe('light');
     });
 
     it('useLanguage should return language', () => {
       const { result } = renderHook(() => useLanguage());
-      
+
       act(() => {
         mockActions.setLanguage('es');
       });
-      
+
       expect(result.current).toBe('es');
     });
   });
@@ -377,7 +377,7 @@ describe('UserStore - Fixed Tests', () => {
   describe('Persistence', () => {
     it('should persist selected state properties', () => {
       const { result } = renderHook(() => useUserStore());
-      
+
       // Set values that should be persisted
       act(() => {
         result.current.setUser({
@@ -394,12 +394,12 @@ describe('UserStore - Fixed Tests', () => {
         result.current.setTheme('light');
         result.current.setLanguage('es');
       });
-      
+
       // These properties should be persisted
       expect(result.current.user).toBeTruthy();
       expect(result.current.theme).toBe('light');
       expect(result.current.language).toBe('es');
-      
+
       // These properties should not be persisted (reset on app restart)
       expect(result.current.isLoading).toBe(false);
       expect(result.current.networkStatus).toEqual({

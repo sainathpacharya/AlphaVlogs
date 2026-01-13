@@ -1,20 +1,20 @@
-import { styled } from "@gluestack-style/react";
-import { Text as RNText } from "react-native";
+import { styled } from '@gluestack-style/react';
+import { Text as RNText } from 'react-native';
 
 const StyledText = styled(
   RNText,
   {
-    color: "$chBlack120",
-    fontWeight: "$normal",
-    fontStyle: "normal",
-    letterSpacing: "$md",
+    color: '$chBlack120',
+    fontWeight: '$normal',
+    fontStyle: 'normal',
+    letterSpacing: '$md',
     variants: {
       isTruncated: {
         true: {
           props: {
             // @ts-ignore
             numberOfLines: 1,
-            ellipsizeMode: "tail",
+            ellipsizeMode: 'tail',
           },
         },
       },
@@ -25,77 +25,77 @@ const StyledText = styled(
       },
       underline: {
         true: {
-          textDecorationLine: "underline",
+          textDecorationLine: 'underline',
         },
       },
       strikeThrough: {
         true: {
-          textDecorationLine: "line-through",
+          textDecorationLine: 'line-through',
         },
       },
       size: {
-        "2xs": {
-          fontSize: "$2xs",
+        '2xs': {
+          fontSize: '$2xs',
         },
         xs: {
-          fontSize: "$xs",
+          fontSize: '$xs',
         },
 
         sm: {
-          fontSize: "$sm",
+          fontSize: '$sm',
         },
 
         md: {
-          fontSize: "$md",
+          fontSize: '$md',
         },
 
         lg: {
-          fontSize: "$lg",
+          fontSize: '$lg',
         },
 
         xl: {
-          fontSize: "$xl",
+          fontSize: '$xl',
         },
 
-        "2xl": {
-          fontSize: "$2xl",
+        '2xl': {
+          fontSize: '$2xl',
         },
 
-        "3xl": {
-          fontSize: "$3xl",
+        '3xl': {
+          fontSize: '$3xl',
         },
 
-        "4xl": {
-          fontSize: "$4xl",
+        '4xl': {
+          fontSize: '$4xl',
         },
 
-        "5xl": {
-          fontSize: "$5xl",
+        '5xl': {
+          fontSize: '$5xl',
         },
 
-        "6xl": {
-          fontSize: "$6xl",
+        '6xl': {
+          fontSize: '$6xl',
         },
       },
       sub: {
         true: {
-          fontSize: "$xs",
+          fontSize: '$xs',
         },
       },
       italic: {
         true: {
-          fontStyle: "italic",
+          fontStyle: 'italic',
         },
       },
       highlight: {
         true: {
-          bg: "$yellow500",
+          bg: '$yellow500',
         },
       },
     },
 
     defaultProps: {
-      size: "md",
+      size: 'md',
       allowFontScaling: false,
       maxFontSizeMultiplier: 1,
     },

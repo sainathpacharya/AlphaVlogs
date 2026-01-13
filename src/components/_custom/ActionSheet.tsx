@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActionSheetIOS,
   Platform,
@@ -7,11 +7,11 @@ import {
   Text,
   TouchableHighlight,
   View,
-} from "react-native";
-import Modal from "react-native-modal";
+} from 'react-native';
+import Modal from 'react-native-modal';
 
-const WHITE = "#e0e2e1";
-const BORDER_COLOR = "#cfd1d0";
+const WHITE = '#e0e2e1';
+const BORDER_COLOR = '#cfd1d0';
 
 export interface IActionItem {
   id: number | string;
@@ -33,13 +33,13 @@ const ActionSheet = (props: Props) => {
   const { display, showActions, actionItems, title, message, onClose } = props;
   const { t } = useTranslation();
   const [displayModal, setDisplayModal] = useState<boolean>(false);
-  const isIOS = Platform.OS === "ios";
+  const isIOS = Platform.OS === 'ios';
 
   const actionSheetItems = [
     ...actionItems,
     {
-      id: "#cancel",
-      label: t("COMMON.CANCEL"),
+      id: '#cancel',
+      label: t('COMMON.CANCEL'),
       onPress: props?.onClose,
     },
   ];
@@ -65,9 +65,9 @@ const ActionSheet = (props: Props) => {
       {
         title: title,
         message: message,
-        options: [t("COMMON.CANCEL"), ...actionItems.map((item) => item.label)],
+        options: [t('COMMON.CANCEL'), ...actionItems.map((item) => item.label)],
         cancelButtonIndex: 0,
-        userInterfaceStyle: "light",
+        userInterfaceStyle: 'light',
       },
       (buttonIndex) => {
         const selectedItem = actionItems.find(({ id }) => id === buttonIndex);
@@ -86,7 +86,7 @@ const ActionSheet = (props: Props) => {
       isVisible={displayModal}
       style={{
         margin: 0,
-        justifyContent: "flex-end",
+        justifyContent: 'flex-end',
       }}
       onBackdropPress={() => {
         setDisplayModal(false);
@@ -127,7 +127,7 @@ const ActionSheet = (props: Props) => {
                   borderBottomRightRadius: 12,
                 },
               ]}
-              underlayColor={"#f7f7f7"}
+              underlayColor={'#f7f7f7'}
               key={index}
               onPress={actionItem.onPress}
             >
@@ -136,7 +136,7 @@ const ActionSheet = (props: Props) => {
                 style={[
                   styles.actionSheetText,
                   index === actionSheetItems?.length - 1 && {
-                    fontWeight: "bold",
+                    fontWeight: 'bold',
                   },
                 ]}
               >
@@ -163,14 +163,14 @@ const styles = StyleSheet.create({
   },
   actionSheetText: {
     fontSize: 18,
-    color: "rgb(0,98,255)",
+    color: 'rgb(0,98,255)',
   },
   actionSheetHeader: {
     backgroundColor: WHITE,
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingTop: 16,
     paddingBottom: 26,
     borderBottomWidth: 1,
@@ -179,23 +179,23 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 12,
   },
   actionSheetTitle: {
-    color: "#808280",
-    fontWeight: "600",
+    color: '#808280',
+    fontWeight: '600',
     marginBottom: 4,
     fontSize: 16,
   },
   actionSheetMessage: {
-    color: "#808280",
-    fontWeight: "400",
+    color: '#808280',
+    fontWeight: '400',
     fontSize: 14,
-    textAlign: "center",
+    textAlign: 'center',
   },
   actionSheetView: {
     backgroundColor: WHITE,
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingTop: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,

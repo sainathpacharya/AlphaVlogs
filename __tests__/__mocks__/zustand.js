@@ -60,7 +60,7 @@ const create = jest.fn(() => {
     // Create a mock store that behaves like a Zustand store
     const mockStore = jest.fn((selector) => {
       const fullState = { ...state, ...actions };
-      
+
       if (selector) {
         return selector(fullState);
       }

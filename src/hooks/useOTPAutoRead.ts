@@ -49,14 +49,14 @@ export const useOTPAutoRead = (options: UseOTPAutoReadOptions = {}): UseOTPAutoR
 
     try {
       setIsListening(true);
-      
+
       const config: OTPAutoReadConfig = {
         enableAutoRead: true,
         timeout,
       };
 
       const result = await otpAutoReadService.startListening(config);
-      
+
       if (result.success && result.otp) {
         onOTPReceived?.(result.otp);
       } else if (result.error) {
