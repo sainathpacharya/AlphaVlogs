@@ -155,6 +155,7 @@ android {
     // To distribute a build, run: ./gradlew app:appDistributionUploadDevelopRelease
     // or: ./gradlew app:appDistributionUploadProductionRelease
     firebaseAppDistribution {
+        // Default app ID (for production builds with package: com.jackmarvelsapp)
         appId = "1:452248149004:android:183407f46643d288af2229"
         groups = ["testers"]
         releaseNotes = "Alpha Vlogs build"
