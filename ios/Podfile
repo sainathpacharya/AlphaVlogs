@@ -1,9 +1,15 @@
 # Resolve react_native_pods.rb with node to allow for hoisting
-require Pod::Executable.execute_command('node', ['-p',
-  'require.resolve(
-    "react-native/scripts/react_native_pods.rb",
-    {paths: [process.argv[1]]},
-  )', __dir__]).strip
+def node_require(script)
+  # Resolve script with node to allow for hoisting
+  require Pod::Executable.execute_command('node', ['-p',
+    "require.resolve(
+      '#{script}',
+      {paths: [process.argv[1]]},
+    )", __dir__]).strip
+end
+
+node_require('react-native/scripts/react_native_pods.rb')
+node_require('react-native-permissions/scripts/setup.rb')
 
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
@@ -12,6 +18,9 @@ linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
   Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
   use_frameworks! :linkage => linkage.to_sym
+else
+  # Use dynamic frameworks for Razorpay Swift interop
+  use_frameworks! :linkage => :static
 end
 
 target 'JackMarvelsApp' do
@@ -22,6 +31,16 @@ target 'JackMarvelsApp' do
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
+
+  # Permissions handler setup for react-native-permissions
+  # ⬇️ uncomment wanted permissions
+  setup_permissions([
+    'Camera',
+    'PhotoLibrary', 
+    'Microphone',
+    'LocationWhenInUse',
+    'Notifications'
+  ])
 
   target 'JackMarvelsAppTests' do
     inherit! :complete
@@ -36,5 +55,67 @@ target 'JackMarvelsApp' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+    
+    # Fix for Razorpay Swift protocol linking and other build issues
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        # Ensure Swift interoperability is enabled
+        config.build_settings['SWIFT_VERSION'] = '5.0' if config.build_settings['SWIFT_VERSION'].nil?
+        
+        # Fix for boost_privacy.bundle - ensure it's built as a dependency
+        if target.name == 'boost-boost_privacy'
+          config.build_settings['SKIP_INSTALL'] = 'NO'
+        end
+        
+        # Fix for react-native-razorpay - ensure Razorpay frameworks are linked
+        if target.name == 'react-native-razorpay'
+          config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= ['$(inherited)']
+          config.build_settings['FRAMEWORK_SEARCH_PATHS'] << '$(PODS_ROOT)/razorpay-core-pod/Pod/core'
+          config.build_settings['FRAMEWORK_SEARCH_PATHS'] << '$(PODS_ROOT)/razorpay-pod/Pod'
+        end
+      end
+    end
+    
+    # Ensure app target properly links Razorpay frameworks
+    installer.aggregate_targets.each do |aggregate_target|
+      aggregate_target.user_project.native_targets.each do |target|
+        if target.name == 'JackMarvelsApp'
+          target.build_configurations.each do |config|
+            # Add Razorpay framework search paths
+            config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= ['$(inherited)']
+            razorpay_frameworks = [
+              '$(PODS_ROOT)/razorpay-core-pod/Pod/core',
+              '$(PODS_ROOT)/razorpay-pod/Pod'
+            ]
+            razorpay_frameworks.each do |path|
+              config.build_settings['FRAMEWORK_SEARCH_PATHS'] << path unless config.build_settings['FRAMEWORK_SEARCH_PATHS'].include?(path)
+            end
+            
+            # Ensure Swift standard libraries are embedded
+            config.build_settings['ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES'] = '$(inherited)'
+            
+            # Clean up any malformed Razorpay framework entries in OTHER_LDFLAGS
+            # The issue is that RazorpayCore and RazorpayStandard might be added as standalone arguments
+            # instead of with the -framework prefix. We need to remove them since they're already
+            # properly linked through the CocoaPods dependency.
+            if config.build_settings['OTHER_LDFLAGS']
+              # Convert to string, remove malformed entries, convert back
+              flags = config.build_settings['OTHER_LDFLAGS']
+              if flags.is_a?(Array)
+                # Remove standalone framework names that aren't prefixed with -framework
+                config.build_settings['OTHER_LDFLAGS'] = flags.reject { |flag|
+                  flag == 'RazorpayCore' || flag == 'RazorpayStandard' || 
+                  (flag.is_a?(String) && flag.strip == 'RazorpayCore') ||
+                  (flag.is_a?(String) && flag.strip == 'RazorpayStandard')
+                }
+              elsif flags.is_a?(String)
+                # If it's a string, remove the malformed entries
+                config.build_settings['OTHER_LDFLAGS'] = flags.gsub(/\s+(RazorpayCore|RazorpayStandard)(\s|$)/, ' ').strip
+              end
+            end
+          end
+        end
+      end
+    end
   end
 end

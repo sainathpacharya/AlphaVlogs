@@ -1,0 +1,121 @@
+name: Android Build & Publish to Play Store
+
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Release track'
+        required: true
+        default: 'internal'
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+  push:
+    branches: [main]
+    tags:
+      - 'v*.*.*' # Trigger on version tags like v1.0.0
+
+env:
+  # ⚠️ IMPORTANT: This package name must match your app in Google Play Console
+  # The service account you configure will determine which Play Store account/app it publishes to
+  PACKAGE_NAME: com.jackmarvelsapp
+
+jobs:
+  build-and-publish:
+    name: Build & Publish to Play Store
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'yarn'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            android/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build AAB (App Bundle)
+        run: |
+          cd android
+          ./gradlew bundleRelease --no-daemon
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aab-release
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+      - name: Validate Google Play credentials
+        id: validate_play_credentials
+        run: |
+          if [ -z "${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}" ]; then
+            echo "⚠️ Google Play Store credentials not configured"
+            echo "publish_enabled=false" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Google Play Store credentials found"
+            echo "publish_enabled=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to Google Play Store
+        if: steps.validate_play_credentials.outputs.publish_enabled == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ env.PACKAGE_NAME }}
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: ${{ github.event.inputs.track || 'internal' }}
+          status: completed
+          changesNotSentForReview: false
+
+      - name: Build Summary
+        run: |
+          echo "## Android Build & Publish Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Package:** ${{ env.PACKAGE_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release Track:** ${{ github.event.inputs.track || 'internal' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.validate_play_credentials.outputs.publish_enabled }}" == "true" ]; then
+            echo "### ✅ Published to Google Play Store" >> $GITHUB_STEP_SUMMARY
+            echo "- Track: ${{ github.event.inputs.track || 'internal' }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Check [Google Play Console](https://play.google.com/console) for status" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### 📦 Manual Upload Required" >> $GITHUB_STEP_SUMMARY
+            echo "1. Download the AAB from artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "2. Go to [Google Play Console](https://play.google.com/console)" >> $GITHUB_STEP_SUMMARY
+            echo "3. Upload the AAB to your app's release track" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**To enable automatic publishing:** Configure \`GOOGLE_PLAY_SERVICE_ACCOUNT_JSON\` secret. See \`STORE_PUBLISHING_SETUP.md\` for instructions." >> $GITHUB_STEP_SUMMARY
+          fi

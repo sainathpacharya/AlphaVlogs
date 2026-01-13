@@ -180,7 +180,7 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
           setIsOtpSent(true);
           startOtpTimer();
           Alert.alert('✅ OTP Sent', `OTP has been sent to +91 ${mobile}.`);
-          setTimeout(() => otpRef.current?.focus(), 300);
+          // OTP input will auto-focus when isOtpSent becomes true
         } else {
           Alert.alert(
             '❌ Failed to Send OTP',
@@ -223,16 +223,19 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
           );
         } else {
           Alert.alert(
-            '❌ Invalid or Expired OTP',
+            '❌ Verification Failed',
             response.error || 'Please request a new OTP.',
           );
         }
       }
-    } catch (error) {
-      Alert.alert(
-        '❌ Network Error',
-        'Please check your connection and try again.',
-      );
+    } catch (error: any) {
+      // This catch block should rarely be hit now since verifyOTP returns error responses
+      // But keep it as a safety net for unexpected errors
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Please check your connection and try again.';
+      Alert.alert('❌ Error', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -254,7 +257,6 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{flex: 1, backgroundColor: colors.primaryBackground}}>
       <StatusBar
-        testID="login-status-bar"
         backgroundColor={colors.primaryBackground}
         barStyle={
           colors.primaryBackground === '#FFFFFF'
@@ -321,9 +323,11 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
             keyboardType="number-pad"
             maxLength={10}
             value={mobile}
-            editable={!isMobileValid}
+            editable={true}
             onChangeText={val => {
-              setMobile(val.trim());
+              // Remove all non-digit characters and limit to 10 digits
+              const digits = val.replace(/\D/g, '').slice(0, 10);
+              setMobile(digits);
               if (otp.length > 0) setOtp('');
               if (errors.mobile) setErrors(prev => ({...prev, mobile: ''}));
             }}
@@ -332,23 +336,30 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
             onFocus={() => setIsMobileFocused(true)}
             onBlur={() => setIsMobileFocused(false)}
             returnKeyType="next"
-            onSubmitEditing={() => otpRef.current?.focus()}
+            onSubmitEditing={() => {
+              // Focus will be handled by autoFocus on OTP input
+            }}
           />
-          {mobile?.length > 0 &&
-            isMobileFocused &&
-            (!isMobileValid || otp.length === 0) && (
-              <TouchableOpacity
-                testID="login-mobile-clear"
-                onPress={() => setMobile('')}
-                style={{
-                  position: 'absolute',
-                  right: 15,
-                  top: '50%',
-                  transform: [{translateY: -10}],
-                }}>
-                <XCircle size={20} color={colors.accentAction} />
-              </TouchableOpacity>
-            )}
+          {mobile?.length > 0 && isMobileFocused && (
+            <TouchableOpacity
+              testID="login-mobile-clear"
+              onPress={() => {
+                setMobile('');
+                setIsOtpSent(false);
+                setOtp('');
+                if (otpRef.current) {
+                  otpRef.current.clear();
+                }
+              }}
+              style={{
+                position: 'absolute',
+                right: 15,
+                top: '50%',
+                transform: [{translateY: -10}],
+              }}>
+              <XCircle size={20} color={colors.accentAction} />
+            </TouchableOpacity>
+          )}
         </Input>
         {errors.mobile && (
           <Text testID="login-mobile-error" color={colors.danger} mt="$2">
@@ -378,7 +389,7 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
                 tintColor={colors.accentAction}
                 offTintColor={colors.mutedText}
                 defaultValue=""
-                autoFocus={false}
+                autoFocus={true}
                 textInputStyle={otpTextStyle}
                 containerStyle={{
                   backgroundColor: colors.transparent,

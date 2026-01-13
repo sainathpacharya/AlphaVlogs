@@ -471,6 +471,7 @@ const RegistrationScreen = ({navigation}: any) => {
 
   const onChange = (field: keyof typeof form, value: string) => {
     // Sanitize input based on field type
+    // Don't trim during typing to allow spaces
     let sanitizedValue = value;
     switch (field) {
       case 'firstName':
@@ -478,22 +479,22 @@ const RegistrationScreen = ({navigation}: any) => {
       case 'state':
       case 'district':
       case 'city':
-        sanitizedValue = sanitizeInput(value, 'name');
+        sanitizedValue = sanitizeInput(value, 'name', false); // Don't trim during typing
         break;
       case 'emailId':
-        sanitizedValue = sanitizeInput(value, 'email');
+        sanitizedValue = sanitizeInput(value, 'email', false);
         break;
       case 'mobileNumber':
-        sanitizedValue = sanitizeInput(value, 'phone');
+        sanitizedValue = sanitizeInput(value, 'phone', false);
         break;
       case 'pincode':
-        sanitizedValue = sanitizeInput(value, 'pincode');
+        sanitizedValue = sanitizeInput(value, 'pincode', false);
         break;
       case 'schoolName':
-        sanitizedValue = sanitizeInput(value, 'general');
+        sanitizedValue = sanitizeInput(value, 'general', false);
         break;
       default:
-        sanitizedValue = sanitizeInput(value, 'general');
+        sanitizedValue = sanitizeInput(value, 'general', false);
     }
 
     // Update form state
@@ -502,13 +503,32 @@ const RegistrationScreen = ({navigation}: any) => {
     // Mark field as touched
     setTouchedFields(prev => new Set([...prev, field]));
 
-    // Clear all errors when user starts typing (progressive validation)
-    setErrors({});
+    // Clear errors for this field when user starts typing
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = {...prev};
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
 
     // Real-time validation for current field only
-    const realtimeError = validateFieldRealtime(field, sanitizedValue);
-    if (realtimeError) {
-      setErrors({[field]: realtimeError});
+    // For phone numbers, only validate when complete (10 digits)
+    if (field === 'mobileNumber') {
+      const digits = sanitizedValue.replace(/\D/g, '');
+      // Only validate if we have exactly 10 digits
+      if (digits.length === 10) {
+        const realtimeError = validateFieldRealtime(field, sanitizedValue);
+        if (realtimeError) {
+          setErrors({[field]: realtimeError});
+        }
+      }
+    } else {
+      // For other fields, validate immediately
+      const realtimeError = validateFieldRealtime(field, sanitizedValue);
+      if (realtimeError) {
+        setErrors({[field]: realtimeError});
+      }
     }
   };
 
@@ -516,7 +536,11 @@ const RegistrationScreen = ({navigation}: any) => {
     if (schoolId === '9999') {
       // "Other (Enter manually)" selected
       setShowCustomSchool(true);
-      setForm({...form, schoolId: '', schoolName: ''});
+      setForm({
+        ...form,
+        schoolId: '9999', // Keep the selected value so dropdown shows "Other (Enter manually)"
+        schoolName: '', // Clear school name so user can enter manually
+      });
     } else {
       // Regular school selected
       setShowCustomSchool(false);
@@ -673,143 +697,165 @@ const RegistrationScreen = ({navigation}: any) => {
               icon: Hash,
             },
           ].map(({key, label, placeholder, icon: IconComponent, isSelect}) => (
-            <Box key={key} mb={'$2'} testID={`registration-${key}-container`}>
-              {isSelect ? (
-                // School Selection Dropdown
-                <Select
-                  options={schools.map(school => ({
-                    value: school.id.toString(),
-                    label: school.name,
-                  }))}
-                  value={form.schoolId}
-                  placeholder={placeholder}
-                  onValueChange={value => handleSchoolSelect(value)}
-                  error={errors.schoolId}
-                  disabled={schoolsLoading}
-                  icon={IconComponent}
-                />
-              ) : (
-                // Regular Input Field
-                <View style={{position: 'relative'}}>
-                  {/* Icon container absolutely positioned */}
-                  <Box
-                    testID={`registration-${key}-icon`}
-                    position="absolute"
-                    left={12}
-                    top="50%"
-                    style={{transform: [{translateY: -12}]}}>
-                    <Icon
-                      as={IconComponent}
-                      size="md"
-                      color={colors.accentAction}
-                    />
-                  </Box>
-                  <Input
-                    testID={`registration-${key}-input`}
-                    pl="$12"
-                    variant="outline"
-                    borderColor={colors.accentAction}
-                    isInvalid={!!errors[key as keyof typeof form]}>
-                    <InputField
-                      ref={ref => {
-                        inputRefs.current[key] = ref;
-                      }}
-                      testID={`registration-${key}-field`}
-                      placeholder={placeholder}
-                      placeholderTextColor={colors.mutedText}
-                      color={colors.inputText}
-                      value={getFormattedValue(
-                        key as keyof typeof form,
-                        form[key as keyof typeof form],
-                      )}
-                      keyboardType={
-                        key === 'mobileNumber' || key === 'pincode'
-                          ? 'number-pad'
-                          : key === 'emailId'
-                            ? 'email-address'
-                            : 'default'
-                      }
-                      maxLength={
-                        key === 'mobileNumber'
-                          ? 10
-                          : key === 'pincode'
-                            ? 6
-                            : key === 'firstName' || key === 'lastName'
-                              ? 50
-                              : key === 'emailId'
-                                ? 100
-                                : undefined
-                      }
-                      autoCapitalize={
-                        key === 'firstName' ||
-                        key === 'lastName' ||
-                        key === 'state' ||
-                        key === 'district' ||
-                        key === 'city'
-                          ? 'words'
-                          : key === 'emailId'
-                            ? 'none'
-                            : 'sentences'
-                      }
-                      autoCorrect={key === 'emailId' ? false : true}
-                      onChangeText={val =>
-                        onChange(key as keyof typeof form, val)
-                      }
-                    />
-                  </Input>
-                </View>
-              )}
-              {errors[key as keyof typeof form] && (
-                <Text
-                  testID={`registration-${key}-error`}
-                  color={colors.danger}
-                  mt="$1">
-                  {errors[key as keyof typeof form]}
-                </Text>
-              )}
-            </Box>
-          ))}
-
-          {/* Custom School Name Input */}
-          {showCustomSchool && (
-            <Box testID="registration-custom-school-container" mt="$4">
-              <View style={{position: 'relative'}}>
-                <Box
-                  testID="registration-custom-school-icon"
-                  position="absolute"
-                  left={12}
-                  top="50%"
-                  style={{transform: [{translateY: -12}]}}>
-                  <Icon as={Building2} size="md" color={colors.accentAction} />
-                </Box>
-                <Input
-                  testID="registration-custom-school-input"
-                  pl="$12"
-                  variant="outline"
-                  borderColor={colors.accentAction}
-                  isInvalid={!!errors.schoolName}>
-                  <InputField
-                    ref={ref => {
-                      inputRefs.current.schoolName = ref;
-                    }}
-                    testID="registration-custom-school-field"
-                    placeholder="Enter your school name"
-                    value={form.schoolName}
-                    onChangeText={value => onChange('schoolName', value)}
-                    autoCapitalize="words"
+            <React.Fragment key={key}>
+              <Box mb={'$2'} testID={`registration-${key}-container`}>
+                {isSelect ? (
+                  // School Selection Dropdown
+                  <Select
+                    options={schools.map(school => ({
+                      value: school.id.toString(),
+                      label: school.name,
+                    }))}
+                    value={form.schoolId}
+                    placeholder={placeholder}
+                    onValueChange={value => handleSchoolSelect(value)}
+                    error={errors.schoolId}
+                    disabled={schoolsLoading}
+                    icon={IconComponent}
                   />
-                </Input>
-              </View>
-              {errors.schoolName && (
-                <Text
-                  testID="registration-custom-school-error"
-                  color={colors.danger}
-                  mt="$1">
-                  {errors.schoolName}
-                </Text>
+                ) : (
+                  // Regular Input Field
+                  <View style={{position: 'relative'}}>
+                    {/* Icon container absolutely positioned */}
+                    <Box
+                      testID={`registration-${key}-icon`}
+                      position="absolute"
+                      left={12}
+                      top="50%"
+                      style={{transform: [{translateY: -12}]}}>
+                      <Icon
+                        as={IconComponent}
+                        size="md"
+                        color={colors.accentAction}
+                      />
+                    </Box>
+                    <Input
+                      testID={`registration-${key}-input`}
+                      pl="$12"
+                      variant="outline"
+                      borderColor={colors.accentAction}
+                      isInvalid={!!errors[key as keyof typeof form]}>
+                      <InputField
+                        ref={ref => {
+                          inputRefs.current[key] = ref;
+                        }}
+                        testID={`registration-${key}-field`}
+                        placeholder={placeholder}
+                        placeholderTextColor={colors.mutedText}
+                        color={colors.inputText}
+                        value={getFormattedValue(
+                          key as keyof typeof form,
+                          form[key as keyof typeof form],
+                        )}
+                        keyboardType={
+                          key === 'mobileNumber' || key === 'pincode'
+                            ? 'number-pad'
+                            : key === 'emailId'
+                              ? 'email-address'
+                              : 'default'
+                        }
+                        maxLength={
+                          key === 'mobileNumber'
+                            ? 13 // 10 digits + 2 spaces (XXX XXX XXXX format)
+                            : key === 'pincode'
+                              ? 6
+                              : key === 'firstName' || key === 'lastName'
+                                ? 50
+                                : key === 'emailId'
+                                  ? 100
+                                  : undefined
+                        }
+                        autoCapitalize={
+                          key === 'firstName' ||
+                          key === 'lastName' ||
+                          key === 'state' ||
+                          key === 'district' ||
+                          key === 'city'
+                            ? 'words'
+                            : key === 'emailId'
+                              ? 'none'
+                              : 'sentences'
+                        }
+                        autoCorrect={key === 'emailId' ? false : true}
+                        onChangeText={val =>
+                          onChange(key as keyof typeof form, val)
+                        }
+                        onBlur={() => {
+                          // Validate on blur to catch errors when user leaves the field
+                          const fieldValue = form[key as keyof typeof form];
+                          if (fieldValue) {
+                            const error = validateFieldRealtime(
+                              key as keyof typeof form,
+                              fieldValue,
+                            );
+                            if (error) {
+                              setErrors({[key]: error});
+                            }
+                          }
+                        }}
+                      />
+                    </Input>
+                  </View>
+                )}
+                {errors[key as keyof typeof form] && (
+                  <Text
+                    testID={`registration-${key}-error`}
+                    color={colors.danger}
+                    mt="$1">
+                    {errors[key as keyof typeof form]}
+                  </Text>
+                )}
+              </Box>
+
+              {/* Custom School Name Input - Show right after school dropdown */}
+              {key === 'schoolId' && showCustomSchool && (
+                <Box
+                  testID="registration-custom-school-container"
+                  mt="$2"
+                  mb="$2">
+                  <View style={{position: 'relative'}}>
+                    <Box
+                      testID="registration-custom-school-icon"
+                      position="absolute"
+                      left={12}
+                      top="50%"
+                      style={{transform: [{translateY: -12}]}}>
+                      <Icon
+                        as={Building2}
+                        size="md"
+                        color={colors.accentAction}
+                      />
+                    </Box>
+                    <Input
+                      testID="registration-custom-school-input"
+                      pl="$12"
+                      variant="outline"
+                      borderColor={colors.accentAction}
+                      isInvalid={!!errors.schoolName}>
+                      <InputField
+                        ref={ref => {
+                          inputRefs.current.schoolName = ref;
+                        }}
+                        testID="registration-custom-school-field"
+                        placeholder="Enter your school name"
+                        value={form.schoolName}
+                        onChangeText={value => onChange('schoolName', value)}
+                        autoCapitalize="words"
+                      />
+                    </Input>
+                  </View>
+                  {errors.schoolName && (
+                    <Text
+                      testID="registration-custom-school-error"
+                      color={colors.danger}
+                      mt="$1">
+                      {errors.schoolName}
+                    </Text>
+                  )}
+                </Box>
               )}
-            </Box>
-          )}
+            </React.Fragment>
+          ))}
 
           <Button
             testID="registration-submit-button"

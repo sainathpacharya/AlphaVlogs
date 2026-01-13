@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from '@/constants';
 import { ApiResponse, User, AuthTokens, OTPResponse } from '@/types';
 import { MockWrapperService } from './mock-wrapper';
 import { apiLogger } from '@/utils/api-logger';
+import { validateRegistrationData } from '@/utils/validation';
 
 export interface SendOTPRequest {
   mobile: string;
@@ -86,6 +87,31 @@ class AuthService {
       
       const resp = await apiService.post<any>(API_ENDPOINTS.AUTH.VERIFY_OTP, data);
       const raw: any = resp as any;
+      
+      // Check if the response indicates an error (apiService.post returns error responses, not throws)
+      if (raw && raw.success === false) {
+        let friendlyMessage = raw.error || 'Invalid or expired OTP. Please request a new OTP.';
+        
+        // Check if error message contains backend error details
+        if (typeof friendlyMessage === 'string') {
+          // Backend returned error as string (e.g., the null pointer exception)
+          if (friendlyMessage.includes('createdOn') || friendlyMessage.includes('null') || friendlyMessage.includes('Timestamp')) {
+            friendlyMessage = 'Account data error. Please contact support or try registering again.';
+          } else if (friendlyMessage.includes('OTP') || friendlyMessage.includes('otp')) {
+            friendlyMessage = 'Invalid or expired OTP. Please request a new OTP.';
+          }
+        }
+        
+        const friendlyError = {
+          success: false,
+          error: friendlyMessage,
+          statusCode: raw.statusCode || 400
+        };
+        apiLogger.logServiceCall('AuthService', 'verifyOTP', data, null, friendlyError);
+        return friendlyError;
+      }
+      
+      // Handle successful response
       if (raw && typeof raw.success === 'undefined') {
         // If backend returns user/tokens at top-level or under data, normalize
         const payload = (raw.data && (raw.data.user || raw.data.tokens)) ? raw.data : raw;
@@ -96,9 +122,28 @@ class AuthService {
       
       apiLogger.logServiceCall('AuthService', 'verifyOTP', data, resp);
       return resp as ApiResponse<LoginResponse>;
-    } catch (error) {
-      apiLogger.logServiceCall('AuthService', 'verifyOTP', data, null, error);
-      throw error;
+    } catch (error: any) {
+      // This catch block handles unexpected errors (should rarely happen since apiService.post handles errors)
+      let friendlyMessage = 'Unable to verify OTP. Please try again.';
+      
+      if (error?.response?.data) {
+        const errorData = error.response.data;
+        if (typeof errorData === 'string') {
+          if (errorData.includes('createdOn') || errorData.includes('null') || errorData.includes('Timestamp')) {
+            friendlyMessage = 'Account data error. Please contact support or try registering again.';
+          }
+        } else if (errorData?.message) {
+          friendlyMessage = errorData.message;
+        }
+      }
+      
+      const genericError = {
+        success: false,
+        error: friendlyMessage,
+        statusCode: error?.response?.status || 500
+      };
+      apiLogger.logServiceCall('AuthService', 'verifyOTP', data, null, genericError);
+      return genericError;
     }
   }
 
@@ -112,11 +157,11 @@ class AuthService {
       }
       
       // Validate required fields before sending to API
-      const validationErrors = this.validateRegistrationData(data);
-      if (validationErrors.length > 0) {
+      const validation = validateRegistrationData(data);
+      if (!validation.isValid) {
         const errorResponse = {
           success: false,
-          error: validationErrors.join(', '),
+          error: validation.errors.join(', '),
           statusCode: 400
         };
         apiLogger.logServiceCall('AuthService', 'register', data, null, errorResponse);
@@ -180,89 +225,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Validates registration data before sending to API
-   */
-  private validateRegistrationData(data: RegisterRequest): string[] {
-    const errors: string[] = [];
-    
-    // Required field validation
-    if (!data.firstName?.trim()) {
-      errors.push('First name is required');
-    }
-    if (!data.lastName?.trim()) {
-      errors.push('Last name is required');
-    }
-    if (!data.emailId?.trim()) {
-      errors.push('Email is required');
-    }
-    if (!data.mobileNumber?.trim()) {
-      errors.push('Mobile number is required');
-    }
-    if (!data.state?.trim()) {
-      errors.push('State is required');
-    }
-    if (!data.district?.trim()) {
-      errors.push('District is required');
-    }
-    if (!data.city?.trim()) {
-      errors.push('City is required');
-    }
-    if (!data.pincode?.trim()) {
-      errors.push('Pincode is required');
-    }
-    
-    // School validation
-    if (!data.schoolId && !data.schoolName?.trim()) {
-      errors.push('Please select a school or enter school name');
-    }
-    
-    // Email format validation
-    if (data.emailId && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.emailId.trim())) {
-      errors.push('Please enter a valid email address');
-    }
-    
-    // Mobile number validation
-    if (data.mobileNumber && !/^[6-9]\d{9}$/.test(data.mobileNumber.trim())) {
-      errors.push('Please enter a valid 10-digit mobile number');
-    }
-    
-    // Pincode validation
-    if (data.pincode && !/^[1-9][0-9]{5}$/.test(data.pincode.trim())) {
-      errors.push('Please enter a valid 6-digit pincode');
-    }
-    
-    // Name validation
-    if (data.firstName && !/^[a-zA-Z\s'-]+$/.test(data.firstName.trim())) {
-      errors.push('First name can only contain letters, spaces, hyphens, and apostrophes');
-    }
-    if (data.lastName && !/^[a-zA-Z\s'-]+$/.test(data.lastName.trim())) {
-      errors.push('Last name can only contain letters, spaces, hyphens, and apostrophes');
-    }
-    
-    // Location validation
-    if (data.state && !/^[a-zA-Z\s]+$/.test(data.state.trim())) {
-      errors.push('State name can only contain letters and spaces');
-    }
-    if (data.district && !/^[a-zA-Z\s]+$/.test(data.district.trim())) {
-      errors.push('District name can only contain letters and spaces');
-    }
-    if (data.city && !/^[a-zA-Z\s]+$/.test(data.city.trim())) {
-      errors.push('City name can only contain letters and spaces');
-    }
-    
-    // School name validation (if provided)
-    if (data.schoolName && !/^[a-zA-Z0-9\s.'-]+$/.test(data.schoolName.trim())) {
-      errors.push('School name can only contain letters, numbers, spaces, periods, hyphens, and apostrophes');
-    }
-    
-    // Promo code validation (if provided)
-    if (data.promocode && !/^[a-zA-Z0-9]+$/.test(data.promocode.trim())) {
-      errors.push('Promo code can only contain letters and numbers');
-    }
-    
-    return errors;
-  }
 
   async logout(): Promise<ApiResponse<void>> {
     try {

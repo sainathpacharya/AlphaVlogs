@@ -128,6 +128,9 @@ module.exports = {
   StatusBar: MockStatusBar,
   FlatList: MockFlatList,
   LoadingSpinner: MockLoadingSpinner,
+  Divider: MockComponent,
+  Badge: MockComponent,
+  Pressable: MockPressable,
   
   // Translation components
   TranslationExample: MockComponent,

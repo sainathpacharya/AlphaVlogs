@@ -1,280 +1,15 @@
 import { User, Event, InfluencerEvent, Subscription, PaymentMethod, VideoSubmission, QuizQuestion, QuizResult, Notification, DashboardData } from '@/types';
+import { validateRegistrationData } from '@/utils/validation';
+import { MockDataStore } from './mock/mock-data-store';
+import { MockAuthService } from './mock/mock-auth';
 
-// Mock data storage
-class MockDataStore {
-  private users: User[] = [
-    {
-      id: 'user_001',
-      firstName: 'Rahul',
-      lastName: 'Sharma',
-      email: 'rahul.sharma@example.com',
-      mobile: '9876543210',
-      state: 'Maharashtra',
-      district: 'Mumbai',
-      city: 'Mumbai',
-      pincode: '400001',
-      profileImage: undefined,
-      roleId: 4,
-      role: 'student',
-      isVerified: true,
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z',
-    },
-    {
-      id: 'user_002',
-      firstName: 'Priya',
-      lastName: 'Patel',
-      email: 'priya.patel@example.com',
-      mobile: '8765432109',
-      state: 'Gujarat',
-      district: 'Ahmedabad',
-      city: 'Ahmedabad',
-      pincode: '380001',
-      profileImage: undefined,
-      roleId: 3,
-      role: 'influencer',
-      isVerified: true,
-      createdAt: '2024-01-10T14:30:00Z',
-      updatedAt: '2024-01-10T14:30:00Z',
-    }
-  ];
-
-  private events: Event[] = [
-    {
-      id: 'event_001',
-      title: 'National Anthem',
-      description: 'Sing the national anthem with pride and patriotism',
-      category: 'Singing',
-      isActive: true,
-      startDate: '2024-01-15T00:00:00Z',
-      endDate: '2024-02-15T23:59:59Z',
-      canUpload: true,
-      uploadStartDate: '2024-01-15T00:00:00Z',
-      uploadEndDate: '2024-02-10T23:59:59Z',
-      allowedRoles: [4],
-      createdAt: '2024-01-01T00:00:00Z',
-    },
-    {
-      id: 'event_002',
-      title: 'Tongue Twister',
-      description: 'Master challenging tongue twisters with speed and clarity',
-      category: 'Speaking',
-      isActive: true,
-      startDate: '2024-02-01T00:00:00Z',
-      endDate: '2024-03-01T23:59:59Z',
-      canUpload: false,
-      uploadStartDate: '2024-02-01T00:00:00Z',
-      uploadEndDate: '2024-02-25T23:59:59Z',
-      allowedRoles: [4],
-      createdAt: '2024-01-01T00:00:00Z',
-    },
-    {
-      id: 'event_003',
-      title: 'Singing',
-      description: 'Showcase your vocal talent with any song of your choice',
-      category: 'Singing',
-      isActive: true,
-      startDate: '2024-01-20T00:00:00Z',
-      endDate: '2024-02-20T23:59:59Z',
-      canUpload: true,
-      uploadStartDate: '2024-01-20T00:00:00Z',
-      uploadEndDate: '2024-02-15T23:59:59Z',
-      allowedRoles: [4],
-      createdAt: '2024-01-01T00:00:00Z',
-    },
-    {
-      id: 'event_004',
-      title: 'Dancing',
-      description: 'Express yourself through dance in any style',
-      category: 'Dance',
-      isActive: true,
-      startDate: '2024-02-05T00:00:00Z',
-      endDate: '2024-03-05T23:59:59Z',
-      canUpload: true,
-      uploadStartDate: '2024-02-05T00:00:00Z',
-      uploadEndDate: '2024-02-28T23:59:59Z',
-      allowedRoles: [4],
-      createdAt: '2024-01-01T00:00:00Z',
-    },
-    {
-      id: 'event_005',
-      title: 'Movie Dialogues',
-      description: 'Recreate famous movie dialogues with acting skills',
-      category: 'Acting',
-      isActive: true,
-      startDate: '2024-01-25T00:00:00Z',
-      endDate: '2024-02-25T23:59:59Z',
-      canUpload: true,
-      uploadStartDate: '2024-01-25T00:00:00Z',
-      uploadEndDate: '2024-02-20T23:59:59Z',
-      allowedRoles: [4],
-      createdAt: '2024-01-01T00:00:00Z',
-    }
-  ];
-
-  private influencerEvents: InfluencerEvent[] = [
-    {
-      id: 'inf_event_001',
-      title: 'Register School',
-      description: 'Register your school to participate in Jack Marvels competitions',
-      type: 'school_registration',
-      isActive: true,
-      createdAt: '2024-01-01T00:00:00Z',
-    },
-    {
-      id: 'inf_event_002',
-      title: 'View History',
-      description: 'View your school\'s participation history and achievements',
-      type: 'history',
-      isActive: true,
-      createdAt: '2024-01-01T00:00:00Z',
-    }
-  ];
-
-  private subscriptions: Subscription[] = [
-    {
-      id: 'sub_001',
-      userId: 'user_001',
-      plan: 'premium',
-      amount: 100,
-      paymentMethod: 'razorpay',
-      status: 'active',
-      startDate: '2024-01-01T00:00:00Z',
-      endDate: '2024-12-31T23:59:59Z',
-      transactionId: 'txn_123456789',
-      canUploadVideos: true,
-      maxVideosPerMonth: 10,
-      videosUploadedThisMonth: 3,
-    }
-  ];
-
-  private paymentMethods: PaymentMethod[] = [
-    {
-      id: 'pm_001',
-      type: 'razorpay',
-      name: 'Razorpay (UPI, Cards, Net Banking)',
-      isEnabled: true,
-    },
-    {
-      id: 'pm_002',
-      type: 'cash',
-      name: 'Cash Payment',
-      isEnabled: true,
-    },
-    {
-      id: 'pm_003',
-      type: 'cheque',
-      name: 'Cheque Payment',
-      isEnabled: true,
-    }
-  ];
-
-  private videoSubmissions: VideoSubmission[] = [
-    {
-      id: 'vs_001',
-      userId: 'user_001',
-      eventId: 'event_001',
-      videoUrl: 'https://example.com/videos/national_anthem.mp4',
-      thumbnailUrl: 'https://example.com/thumbnails/national_anthem.jpg',
-      duration: 120,
-      uploadedAt: '2024-01-20T00:00:00Z',
-      status: 'pending',
-    }
-  ];
-
-  private quizQuestions: QuizQuestion[] = [
-    {
-      id: 'qq_001',
-      question: 'What is the capital of India?',
-      options: ['Mumbai', 'Delhi', 'Kolkata', 'Chennai'],
-      correctAnswer: 1,
-      explanation: 'Delhi is the capital of India',
-      category: 'General Knowledge',
-    },
-    {
-      id: 'qq_002',
-      question: 'Which planet is known as the Red Planet?',
-      options: ['Earth', 'Mars', 'Jupiter', 'Venus'],
-      correctAnswer: 1,
-      explanation: 'Mars is called the Red Planet due to its reddish appearance',
-      category: 'Science',
-    }
-  ];
-
-  private notifications: Notification[] = [
-    {
-      id: 'notif_001',
-      userId: 'user_001',
-      type: 'event',
-      title: 'New Event Available',
-      message: 'A new singing competition is now open for registration',
-      data: { eventId: 'event_003' },
-      isRead: false,
-      createdAt: new Date('2024-01-25T10:00:00Z'),
-    },
-    {
-      id: 'notif_002',
-      userId: 'user_001',
-      type: 'subscription',
-      title: 'Subscription Renewal',
-      message: 'Your premium subscription will expire in 30 days',
-      data: { subscriptionId: 'sub_001' },
-      isRead: false,
-      createdAt: new Date('2024-01-24T15:30:00Z'),
-    }
-  ];
-
-  // Getter methods
-  getUsers() { return this.users; }
-  getEvents() { return this.events; }
-  getInfluencerEvents() { return this.influencerEvents; }
-  getSubscriptions() { return this.subscriptions; }
-  getPaymentMethods() { return this.paymentMethods; }
-  getVideoSubmissions() { return this.videoSubmissions; }
-  getQuizQuestions() { return this.quizQuestions; }
-  getNotifications() { return this.notifications; }
-
-  // Find methods
-  findUserById(id: string) { return this.users.find(u => u.id === id); }
-  findEventById(id: string) { return this.events.find(e => e.id === id); }
-  findSubscriptionByUserId(userId: string) { return this.subscriptions.find(s => s.userId === userId); }
-  findVideoSubmissionsByUserId(userId: string) { return this.videoSubmissions.filter(vs => vs.userId === userId); }
-  findNotificationsByUserId(userId: string) { return this.notifications.filter(n => n.userId === userId); }
-
-  // Update methods
-  updateUser(id: string, updates: Partial<User>) {
-    const userIndex = this.users.findIndex(u => u.id === id);
-    if (userIndex !== -1) {
-      this.users[userIndex] = { ...this.users[userIndex], ...updates, updatedAt: new Date().toISOString() } as User;
-      return this.users[userIndex];
-    }
-    return null;
-  }
-
-  addVideoSubmission(submission: Omit<VideoSubmission, 'id' | 'uploadedAt'>) {
-    const newSubmission: VideoSubmission = {
-      ...submission,
-      id: `vs_${Date.now()}`,
-      uploadedAt: new Date().toISOString(),
-    };
-    this.videoSubmissions.push(newSubmission);
-    return newSubmission;
-  }
-
-  addNotification(notification: Omit<Notification, 'id' | 'createdAt'>) {
-    const newNotification: Notification = {
-      ...notification,
-      id: `notif_${Date.now()}`,
-      createdAt: new Date(),
-    };
-    this.notifications.push(newNotification);
-    return newNotification;
-  }
-}
+// Create singleton instances
+const mockDataStore = new MockDataStore();
+const mockAuthService = new MockAuthService(mockDataStore);
 
 // Mock API Service
 class MockApiService {
-  private store = new MockDataStore();
+  private store = mockDataStore;
 
   // Simulate network delay
   private async delay(ms: number = 500) {
@@ -302,230 +37,29 @@ class MockApiService {
     };
   }
 
-  // AUTH APIs
+  // AUTH APIs - delegate to MockAuthService
   async sendOTP(data: { mobile: string; type: string }) {
-    await this.delay();
-    
-    if (data.mobile === '9876543210' || data.mobile === '8765432109') {
-      // Generate SMS hash for Android auto-read
-      const smsHash = 'ABCD1234'; // Mock hash for demo
-      const otpMessage = `Jack Marvels: Your OTP is 123456. Valid for 3 minutes. Do not share this code with anyone. ${smsHash}`;
-      
-      return this.createResponse({
-        message: 'OTP sent successfully',
-        mobile: data.mobile,
-        expiresIn: 300,
-        otpMessage,
-        smsHash, // Include hash for backend to use in actual SMS
-      });
-    }
-    
-    return this.createErrorResponse('Invalid mobile number', 400);
+    return mockAuthService.sendOTP(data);
   }
 
   async verifyOTP(data: { mobile: string; otp: string }) {
-    await this.delay();
-    
-    if (data.mobile === '9876543210' && data.otp === '123456') {
-      const user = this.store.findUserById('user_001');
-      return this.createResponse({
-        user,
-        tokens: {
-          accessToken: 'mock_access_token_123',
-          refreshToken: 'mock_refresh_token_456',
-          expiresIn: 3600,
-        }
-      });
-    }
-    
-    if (data.mobile === '8765432109' && data.otp === '123456') {
-      const user = this.store.findUserById('user_002');
-      return this.createResponse({
-        user,
-        tokens: {
-          accessToken: 'mock_access_token_456',
-          refreshToken: 'mock_refresh_token_789',
-          expiresIn: 3600,
-        }
-      });
-    }
-    
-    return this.createErrorResponse('Invalid mobile number or OTP', 401);
+    return mockAuthService.verifyOTP(data);
   }
 
   async login(data: { mobile: string; otp: string }) {
-    await this.delay();
-    
-    if (data.mobile === '9876543210' && data.otp === '123456') {
-      const user = this.store.findUserById('user_001');
-      return this.createResponse({
-        user,
-        tokens: {
-          accessToken: 'mock_access_token_123',
-          refreshToken: 'mock_refresh_token_456',
-          expiresIn: 3600,
-        }
-      });
-    }
-    
-    return this.createErrorResponse('Invalid mobile number or OTP', 401);
+    return mockAuthService.login(data);
   }
 
   async register(data: any) {
-    await this.delay();
-    
-    // Validate required fields
-    const validationErrors = this.validateRegistrationData(data);
-    if (validationErrors.length > 0) {
-      return this.createErrorResponse(validationErrors.join(', '), 400);
-    }
-    
-    // Check if user already exists by email
-    const existingUserByEmail = this.store.getUsers().find(user => 
-      user.email.toLowerCase() === (data.email ?? data.emailId)?.toLowerCase()
-    );
-    if (existingUserByEmail) {
-      return this.createErrorResponse('An account with this email already exists. Please use a different email or try logging in.', 400);
-    }
-    
-    // Check if user already exists by mobile number
-    const existingUserByMobile = this.store.getUsers().find(user => 
-      user.mobile === data.mobileNumber || user.mobile === data.mobile
-    );
-    if (existingUserByMobile) {
-      return this.createErrorResponse('An account with this mobile number already exists. Please use a different number or try logging in.', 400);
-    }
-    
-    // Create new user
-    const newUser: User = {
-      id: `user_${Date.now()}`,
-      firstName: data.firstName?.trim(),
-      lastName: data.lastName?.trim(),
-      email: (data.email ?? data.emailId)?.toLowerCase().trim(),
-      mobile: data.mobileNumber || data.mobile,
-      state: data.state?.trim(),
-      district: data.district?.trim(),
-      city: data.city?.trim(),
-      pincode: data.pincode?.trim(),
-      profileImage: undefined,
-      roleId: 4, // Mobile app registration is only for students
-      role: 'student',
-      isVerified: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    
-    this.store.getUsers().push(newUser);
-    
-    // Add welcome notification
-    this.store.addNotification({
-      userId: newUser.id,
-      type: 'general',
-      title: 'Welcome to Jack Marvels!',
-      message: 'Your account has been created successfully. Start exploring events and competitions!',
-      data: { userId: newUser.id },
-      isRead: false,
-    });
-    
-    return this.createResponse(newUser, true, 'Registration successful! Welcome to Jack Marvels!');
-  }
-
-  /**
-   * Validates registration data
-   */
-  private validateRegistrationData(data: any): string[] {
-    const errors: string[] = [];
-    
-    // Required field validation
-    if (!data.firstName?.trim()) {
-      errors.push('First name is required');
-    } else if (data.firstName.trim().length < 2) {
-      errors.push('First name must be at least 2 characters long');
-    } else if (!/^[a-zA-Z\s'-]+$/.test(data.firstName.trim())) {
-      errors.push('First name can only contain letters, spaces, hyphens, and apostrophes');
-    }
-    
-    if (!data.lastName?.trim()) {
-      errors.push('Last name is required');
-    } else if (data.lastName.trim().length < 2) {
-      errors.push('Last name must be at least 2 characters long');
-    } else if (!/^[a-zA-Z\s'-]+$/.test(data.lastName.trim())) {
-      errors.push('Last name can only contain letters, spaces, hyphens, and apostrophes');
-    }
-    
-    const email = data.email ?? data.emailId;
-    if (!email?.trim()) {
-      errors.push('Email is required');
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errors.push('Please enter a valid email address');
-    }
-    
-    const mobile = data.mobileNumber || data.mobile;
-    if (!mobile?.trim()) {
-      errors.push('Mobile number is required');
-    } else if (!/^[6-9]\d{9}$/.test(mobile.trim())) {
-      errors.push('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9');
-    }
-    
-    if (!data.state?.trim()) {
-      errors.push('State is required');
-    } else if (!/^[a-zA-Z\s]+$/.test(data.state.trim())) {
-      errors.push('State name can only contain letters and spaces');
-    }
-    
-    if (!data.district?.trim()) {
-      errors.push('District is required');
-    } else if (!/^[a-zA-Z\s]+$/.test(data.district.trim())) {
-      errors.push('District name can only contain letters and spaces');
-    }
-    
-    if (!data.city?.trim()) {
-      errors.push('City is required');
-    } else if (!/^[a-zA-Z\s]+$/.test(data.city.trim())) {
-      errors.push('City name can only contain letters and spaces');
-    }
-    
-    if (!data.pincode?.trim()) {
-      errors.push('Pincode is required');
-    } else if (!/^[1-9][0-9]{5}$/.test(data.pincode.trim())) {
-      errors.push('Please enter a valid 6-digit pincode');
-    }
-    
-    // School validation
-    if (!data.schoolId && !data.schoolName?.trim()) {
-      errors.push('Please select a school or enter school name');
-    }
-    
-    // School name validation (if provided)
-    if (data.schoolName && !/^[a-zA-Z0-9\s.'-]+$/.test(data.schoolName.trim())) {
-      errors.push('School name can only contain letters, numbers, spaces, periods, hyphens, and apostrophes');
-    }
-    
-    // Promo code validation (if provided)
-    if (data.promocode && !/^[a-zA-Z0-9]+$/.test(data.promocode.trim())) {
-      errors.push('Promo code can only contain letters and numbers');
-    }
-    
-    return errors;
+    return mockAuthService.register(data);
   }
 
   async refreshToken(refreshToken: string) {
-    await this.delay();
-    
-    if (refreshToken === 'mock_refresh_token_456') {
-      return this.createResponse({
-        accessToken: 'new_mock_access_token_789',
-        refreshToken: 'new_mock_refresh_token_012',
-        expiresIn: 3600,
-      });
-    }
-    
-    return this.createErrorResponse('Invalid refresh token', 401);
+    return mockAuthService.refreshToken(refreshToken);
   }
 
   async logout() {
-    await this.delay();
-    return this.createResponse({ message: 'Logged out successfully' });
+    return mockAuthService.logout();
   }
 
   // DASHBOARD API
@@ -599,41 +133,17 @@ class MockApiService {
     return { data: newSubscription };
   }
 
-  // USER APIs
+  // USER APIs - delegate to MockAuthService
   async getProfile(userId: string) {
-    await this.delay();
-    
-    const user = this.store.findUserById(userId);
-    if (user) {
-      return this.createResponse(user);
-    }
-    
-    return this.createErrorResponse('User not found', 404);
+    return mockAuthService.getProfile(userId);
   }
 
   async updateProfile(userId: string, updates: Partial<User>) {
-    await this.delay();
-    
-    // Profile updates work for both Influencers and Students
-    const updatedUser = this.store.updateUser(userId, updates);
-    if (updatedUser) {
-      return this.createResponse(updatedUser);
-    }
-    
-    return this.createErrorResponse('User not found', 404);
+    return mockAuthService.updateProfile(userId, updates);
   }
 
   async uploadAvatar(userId: string, file: any) {
-    await this.delay();
-    
-    const avatarUrl = `https://example.com/avatars/${userId}_${Date.now()}.jpg`;
-    const updatedUser = this.store.updateUser(userId, { profileImage: avatarUrl });
-    
-    if (updatedUser) {
-      return this.createResponse({ avatarUrl });
-    }
-    
-    return this.createErrorResponse('User not found', 404);
+    return mockAuthService.uploadAvatar(userId, file);
   }
 
   // EVENTS APIs
@@ -864,7 +374,7 @@ class MockApiService {
     await this.delay();
     
     const quiz = await this.getQuiz(quizId);
-    if (!quiz.success) {
+    if (!quiz.success || !('data' in quiz)) {
       return this.createErrorResponse('Quiz not found', 404);
     }
     const questions = quiz.data.questions;
@@ -891,7 +401,7 @@ class MockApiService {
     });
     
     const score = Math.round((correctAnswers / questions.length) * 100);
-    const passed = score >= quiz.data.passingScore;
+    const passed = score >= (quiz as any).data.passingScore;
     
     const quizResult = {
       id: `result_${Date.now()}`,
@@ -937,7 +447,8 @@ class MockApiService {
     if (data.action === 'register') {
       // Simulate registration with invitation
       const user = await this.register(data.userData);
-      return this.createResponse({ user: user.data, message: 'Registered with invitation successfully' });
+      const userData = 'data' in user ? user.data : null;
+      return this.createResponse({ user: userData, message: 'Registered with invitation successfully' });
     }
     
     return this.createErrorResponse('Invalid action', 400);
@@ -1141,3 +652,6 @@ class MockApiService {
 
 export const mockApiService = new MockApiService();
 export default mockApiService;
+
+// Re-export for modular structure
+export { mockDataStore as MockDataStore, MockAuthService };

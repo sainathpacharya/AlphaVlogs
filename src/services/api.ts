@@ -204,9 +204,28 @@ class ApiService {
   private handleError(error: any): ApiResponse {
     if (error.response) {
       // Server responded with error status
+      let errorMessage = error.response.statusText || 'An error occurred';
+      
+      // Handle different response data formats
+      if (error.response.data) {
+        if (typeof error.response.data === 'string') {
+          // Backend returned error as string
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          // Backend returned error object with message property
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.error) {
+          // Backend returned error object with error property
+          errorMessage = error.response.data.error;
+        } else if (typeof error.response.data === 'object') {
+          // Try to stringify if it's an object
+          errorMessage = JSON.stringify(error.response.data);
+        }
+      }
+      
       return {
         success: false,
-        error: error.response.data?.message || error.response.statusText,
+        error: errorMessage,
         statusCode: error.response.status,
       };
     } else if (error.request) {

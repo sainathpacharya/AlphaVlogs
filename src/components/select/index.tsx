@@ -1,5 +1,13 @@
-import React, {useState} from 'react';
-import {Pressable, Text, View, StyleSheet} from 'react-native';
+import React, {useState, useRef} from 'react';
+import {
+  Pressable,
+  Text,
+  View,
+  StyleSheet,
+  Modal,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 import {ChevronDown, Check} from 'lucide-react-native';
 import {Box} from '../box';
 import {Icon} from '../icon';
@@ -35,13 +43,24 @@ const Select = React.forwardRef<any, SelectProps>(
   ) => {
     const colors = useThemeColors();
     const [isOpen, setIsOpen] = useState(false);
+    const selectRef = useRef<View>(null);
+    const [selectLayout, setSelectLayout] = useState({
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+    });
 
     const selectedOption = options.find(option => option.value === value);
     const displayText = selectedOption ? selectedOption.label : placeholder;
 
     const handlePress = () => {
       if (!disabled) {
-        setIsOpen(!isOpen);
+        // Measure the select component position
+        selectRef.current?.measure((x, y, width, height, pageX, pageY) => {
+          setSelectLayout({x: pageX, y: pageY, width, height});
+          setIsOpen(true);
+        });
       }
     };
 
@@ -50,118 +69,133 @@ const Select = React.forwardRef<any, SelectProps>(
       setIsOpen(false);
     };
 
+    const handleClose = () => {
+      setIsOpen(false);
+    };
+
     return (
-      <Box position="relative" style={{marginBottom: 0}}>
-        <View style={{position: 'relative'}}>
-          {/* Left Icon */}
-          {IconComponent && (
-            <Box
-              position="absolute"
-              left={12}
-              top="50%"
-              style={{transform: [{translateY: -12}]}}
-              zIndex={1}>
-              <Icon as={IconComponent} size="md" color={colors.accentAction} />
-            </Box>
-          )}
-          <Pressable
-            ref={ref}
-            onPress={handlePress}
-            style={[
-              styles.root,
-              {
-                borderColor: error ? colors.danger : colors.accentAction,
-                backgroundColor: colors.primaryBackground,
-                borderBottomLeftRadius: isOpen ? 0 : 8,
-                borderBottomRightRadius: isOpen ? 0 : 8,
-                paddingLeft: IconComponent ? 48 : 12, // Add left padding when icon is present
-              },
-            ]}>
-            <Text
+      <>
+        <Box position="relative" style={{marginBottom: 0}}>
+          <View style={{position: 'relative'}} ref={selectRef}>
+            {/* Left Icon */}
+            {IconComponent && (
+              <Box
+                position="absolute"
+                left={12}
+                top="50%"
+                style={{transform: [{translateY: -12}]}}
+                zIndex={1}>
+                <Icon
+                  as={IconComponent}
+                  size="md"
+                  color={colors.accentAction}
+                />
+              </Box>
+            )}
+            <Pressable
+              ref={ref}
+              onPress={handlePress}
               style={[
-                styles.text,
+                styles.root,
                 {
-                  color: selectedOption ? colors.primaryText : colors.mutedText,
+                  borderColor: error ? colors.danger : colors.accentAction,
+                  backgroundColor: colors.primaryBackground,
+                  paddingLeft: IconComponent ? 48 : 12, // Add left padding when icon is present
                 },
               ]}>
-              {displayText}
-            </Text>
-            <Icon
-              as={ChevronDown}
-              size="sm"
-              color={colors.accentAction}
-              style={{
-                transform: [{rotate: isOpen ? '180deg' : '0deg'}],
-              }}
-            />
-          </Pressable>
-        </View>
+              <Text
+                style={[
+                  styles.text,
+                  {
+                    color: selectedOption
+                      ? colors.primaryText
+                      : colors.mutedText,
+                  },
+                ]}>
+                {displayText}
+              </Text>
+              <Icon
+                as={ChevronDown}
+                size="sm"
+                color={colors.accentAction}
+                style={{
+                  transform: [{rotate: isOpen ? '180deg' : '0deg'}],
+                }}
+              />
+            </Pressable>
+          </View>
 
-        {isOpen && (
-          <>
-            {/* Backdrop to prevent interaction with elements behind */}
-            <View
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: -1000,
-                right: -1000,
-                bottom: -1000,
-                zIndex: 9998,
-              }}
-              onTouchEnd={() => setIsOpen(false)}
-            />
+          {error && (
+            <Text
+              style={[
+                styles.errorText,
+                {
+                  color: colors.danger,
+                },
+              ]}>
+              {error}
+            </Text>
+          )}
+        </Box>
+
+        {/* Modal for dropdown menu */}
+        <Modal
+          visible={isOpen}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={handleClose}>
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={handleClose}>
             <View
               style={[
-                styles.menu,
+                styles.modalMenu,
                 {
                   backgroundColor: colors.primaryBackground,
                   borderColor: colors.accentAction,
+                  top: selectLayout.y + selectLayout.height,
+                  left: selectLayout.x,
+                  width: selectLayout.width,
                 },
-              ]}>
-              {options.map((option, index) => (
-                <Pressable
-                  key={option.value}
-                  onPress={() => handleOptionSelect(option.value)}
-                  style={[
-                    styles.menuItem,
-                    {
-                      borderBottomColor:
-                        index === options.length - 1
-                          ? 'transparent'
-                          : colors.border,
-                    },
-                  ]}>
-                  <Text
+              ]}
+              onStartShouldSetResponder={() => true}>
+              <ScrollView
+                style={styles.menuScrollView}
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={true}>
+                {options.map((option, index) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    onPress={() => handleOptionSelect(option.value)}
                     style={[
-                      styles.menuItemText,
+                      styles.menuItem,
                       {
-                        color: colors.primaryText,
+                        borderBottomColor:
+                          index === options.length - 1
+                            ? 'transparent'
+                            : colors.border,
                       },
                     ]}>
-                    {option.label}
-                  </Text>
-                  {value === option.value && (
-                    <Icon as={Check} size="sm" color={colors.accentAction} />
-                  )}
-                </Pressable>
-              ))}
+                    <Text
+                      style={[
+                        styles.menuItemText,
+                        {
+                          color: colors.primaryText,
+                        },
+                      ]}>
+                      {option.label}
+                    </Text>
+                    {value === option.value && (
+                      <Icon as={Check} size="sm" color={colors.accentAction} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
-          </>
-        )}
-
-        {error && (
-          <Text
-            style={[
-              styles.errorText,
-              {
-                color: colors.danger,
-              },
-            ]}>
-            {error}
-          </Text>
-        )}
-      </Box>
+          </TouchableOpacity>
+        </Modal>
+      </>
     );
   },
 );
@@ -182,17 +216,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     flex: 1,
   },
-  menu: {
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalMenu: {
     position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
     borderWidth: 1,
-    borderTopWidth: 0,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-    zIndex: 9999,
-    maxHeight: 200,
+    borderRadius: 8,
+    maxHeight: 300,
     elevation: 10, // For Android
     shadowColor: '#000', // For iOS
     shadowOffset: {
@@ -201,7 +233,9 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
-    backgroundColor: 'white', // Ensure solid background
+  },
+  menuScrollView: {
+    maxHeight: 300,
   },
   menuItem: {
     padding: 12,
@@ -209,7 +243,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    backgroundColor: 'white', // Ensure solid background
     minHeight: 44, // Consistent touch target
   },
   menuItemText: {

@@ -31,17 +31,10 @@ const queryClient = new QueryClient({
   },
 });
 
-function AppContent() {
-  const {
-    setAuthenticated,
-    setUser,
-    setTheme,
-    isAuthenticated,
-    user,
-    isLoading,
-  } = useUserStore();
+const AppContent = React.memo(() => {
+  const {setAuthenticated, setUser, setTheme, isAuthenticated, user} =
+    useUserStore();
   const {tokens, userData} = useUserCachedStore();
-  const systemColorScheme = useColorScheme();
 
   // Initialize network monitoring
   useNetwork();
@@ -73,15 +66,17 @@ function AppContent() {
     };
 
     initializeApp();
-  }, [tokens, userData, setAuthenticated, setUser, isAuthenticated, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   // Set light theme as default
   useEffect(() => {
     setTheme('light');
-  }, [setTheme]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   return <Navigation />;
-}
+});
 
 function App(): React.JSX.Element {
   return (

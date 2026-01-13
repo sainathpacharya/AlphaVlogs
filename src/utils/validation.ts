@@ -1,39 +1,204 @@
 /**
- * Comprehensive validation utilities for form validation
+ * Shared validation utilities for the application
+ * Centralizes validation logic to avoid duplication
  */
 
-export interface ValidationRule {
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
+export interface FormValidationResult {
+  isValid: boolean;
+  errors: Record<string, string>;
+}
+
+export interface FieldValidationRules {
   required?: boolean;
   minLength?: number;
   maxLength?: number;
   pattern?: RegExp;
   custom?: (value: string) => string | null;
-  message?: string;
-}
-
-export interface ValidationResult {
-  isValid: boolean;
-  errors: Record<string, string>;
 }
 
 export interface FormField {
   value: string;
-  rules: ValidationRule;
+  rules: FieldValidationRules;
 }
 
-// Common validation patterns
+export interface RegistrationData {
+  firstName?: string;
+  lastName?: string;
+  emailId?: string;
+  email?: string;
+  mobileNumber?: string;
+  mobile?: string;
+  state?: string;
+  district?: string;
+  city?: string;
+  pincode?: string;
+  schoolId?: string;
+  schoolName?: string;
+  promocode?: string;
+}
+
+/**
+ * Validates registration data with comprehensive checks
+ */
+export function validateRegistrationData(data: RegistrationData): ValidationResult {
+  const errors: string[] = [];
+
+  // Required field validation
+  if (!data.firstName?.trim()) {
+    errors.push('First name is required');
+  } else if (data.firstName.trim().length < 2) {
+    errors.push('First name must be at least 2 characters long');
+  } else if (!/^[a-zA-Z\s'-]+$/.test(data.firstName.trim())) {
+    errors.push('First name can only contain letters, spaces, hyphens, and apostrophes');
+  }
+
+  if (!data.lastName?.trim()) {
+    errors.push('Last name is required');
+  } else if (data.lastName.trim().length < 2) {
+    errors.push('Last name must be at least 2 characters long');
+  } else if (!/^[a-zA-Z\s'-]+$/.test(data.lastName.trim())) {
+    errors.push('Last name can only contain letters, spaces, hyphens, and apostrophes');
+  }
+
+  const email = data.email ?? data.emailId;
+  if (!email?.trim()) {
+    errors.push('Email is required');
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    errors.push('Please enter a valid email address');
+  }
+
+  const mobile = data.mobileNumber || data.mobile;
+  if (!mobile?.trim()) {
+    errors.push('Mobile number is required');
+  } else if (!/^[6-9]\d{9}$/.test(mobile.trim())) {
+    errors.push('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9');
+  }
+
+  if (!data.state?.trim()) {
+    errors.push('State is required');
+  } else if (!/^[a-zA-Z\s]+$/.test(data.state.trim())) {
+    errors.push('State name can only contain letters and spaces');
+  }
+
+  if (!data.district?.trim()) {
+    errors.push('District is required');
+  } else if (!/^[a-zA-Z\s]+$/.test(data.district.trim())) {
+    errors.push('District name can only contain letters and spaces');
+  }
+
+  if (!data.city?.trim()) {
+    errors.push('City is required');
+  } else if (!/^[a-zA-Z\s]+$/.test(data.city.trim())) {
+    errors.push('City name can only contain letters and spaces');
+  }
+
+  if (!data.pincode?.trim()) {
+    errors.push('Pincode is required');
+  } else if (!/^[1-9][0-9]{5}$/.test(data.pincode.trim())) {
+    errors.push('Please enter a valid 6-digit pincode');
+  }
+
+  // School validation
+  if (!data.schoolId && !data.schoolName?.trim()) {
+    errors.push('Please select a school or enter school name');
+  }
+
+  // School name validation (if provided)
+  if (data.schoolName && !/^[a-zA-Z0-9\s.'-]+$/.test(data.schoolName.trim())) {
+    errors.push('School name can only contain letters, numbers, spaces, periods, hyphens, and apostrophes');
+  }
+
+  // Promo code validation (if provided)
+  if (data.promocode && !/^[a-zA-Z0-9]+$/.test(data.promocode.trim())) {
+    errors.push('Promo code can only contain letters and numbers');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Validates email format
+ */
+export function validateEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+/**
+ * Validates mobile number format
+ */
+export function validateMobileNumber(mobile: string): boolean {
+  return /^[6-9]\d{9}$/.test(mobile.trim());
+}
+
+/**
+ * Validates pincode format
+ */
+export function validatePincode(pincode: string): boolean {
+  return /^[1-9][0-9]{5}$/.test(pincode.trim());
+}
+
+/**
+ * Validates name format
+ */
+export function validateName(name: string): boolean {
+  return /^[a-zA-Z\s'-]+$/.test(name.trim());
+}
+
+/**
+ * Validates location name (state, district, city)
+ */
+export function validateLocationName(location: string): boolean {
+  return /^[a-zA-Z\s]+$/.test(location.trim());
+}
+
+/**
+ * Sanitizes string input
+ */
+export function sanitizeString(str: string): string {
+  return str.trim();
+}
+
+/**
+ * Validates and sanitizes registration data
+ */
+export function sanitizeRegistrationData(data: RegistrationData): RegistrationData {
+  return {
+    firstName: data.firstName?.trim(),
+    lastName: data.lastName?.trim(),
+    emailId: data.emailId?.trim() || data.email?.trim(),
+    email: data.email?.trim() || data.emailId?.trim(),
+    mobileNumber: data.mobileNumber?.trim() || data.mobile?.trim(),
+    mobile: data.mobile?.trim() || data.mobileNumber?.trim(),
+    state: data.state?.trim(),
+    district: data.district?.trim(),
+    city: data.city?.trim(),
+    pincode: data.pincode?.trim(),
+    schoolId: data.schoolId,
+    schoolName: data.schoolName?.trim(),
+    promocode: data.promocode?.trim(),
+  };
+}
+
+// Validation Patterns
 export const VALIDATION_PATTERNS = {
-  email: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+  email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   phone: /^[6-9]\d{9}$/,
   pincode: /^[1-9][0-9]{5}$/,
   name: /^[a-zA-Z\s'-]+$/,
   schoolName: /^[a-zA-Z0-9\s.'-]+$/,
-  alphanumeric: /^[a-zA-Z0-9\s]+$/,
-  onlyLetters: /^[a-zA-Z\s]+$/,
-  onlyNumbers: /^\d+$/,
-};
+  promocode: /^[a-zA-Z0-9]+$/,
+  location: /^[a-zA-Z\s]+$/,
+} as const;
 
-// Common validation messages
+// Validation Messages
 export const VALIDATION_MESSAGES = {
   required: 'This field is required',
   invalidEmail: 'Please enter a valid email address',
@@ -41,281 +206,319 @@ export const VALIDATION_MESSAGES = {
   invalidPincode: 'Please enter a valid 6-digit pincode',
   invalidName: 'Name can only contain letters, spaces, hyphens, and apostrophes',
   invalidSchoolName: 'School name can only contain letters, numbers, spaces, periods, hyphens, and apostrophes',
-  minLength: (min: number) => `Must be at least ${min} characters long`,
-  maxLength: (max: number) => `Must be no more than ${max} characters long`,
-  phoneStartDigit: 'Mobile number must start with 6, 7, 8, or 9',
-  pincodeRange: 'Pincode must be between 100000 and 999999',
-};
+  minLength: (min: number) => `Must be at least ${min} characters`,
+  maxLength: (max: number) => `Must be no more than ${max} characters`,
+} as const;
 
-/**
- * Validates a single field value against its rules
- */
-export const validateField = (value: string, rules: ValidationRule): string | null => {
-  const trimmedValue = value.trim();
-
-  // Required validation
-  if (rules.required && !trimmedValue) {
-    return rules.message || VALIDATION_MESSAGES.required;
-  }
-
-  // Skip other validations if value is empty and not required
-  if (!trimmedValue && !rules.required) {
-    return null;
-  }
-
-  // Min length validation
-  if (rules.minLength && trimmedValue.length < rules.minLength) {
-    return rules.message || VALIDATION_MESSAGES.minLength(rules.minLength);
-  }
-
-  // Max length validation
-  if (rules.maxLength && trimmedValue.length > rules.maxLength) {
-    return rules.message || VALIDATION_MESSAGES.maxLength(rules.maxLength);
-  }
-
-  // Pattern validation
-  if (rules.pattern && !rules.pattern.test(trimmedValue)) {
-    return rules.message || 'Invalid format';
-  }
-
-  // Custom validation
-  if (rules.custom) {
-    return rules.custom(trimmedValue);
-  }
-
-  return null;
-};
-
-/**
- * Validates multiple form fields
- */
-export const validateForm = (fields: Record<string, FormField>): ValidationResult => {
-  const errors: Record<string, string> = {};
-  let isValid = true;
-
-  Object.entries(fields).forEach(([fieldName, field]) => {
-    const error = validateField(field.value, field.rules);
-    if (error) {
-      errors[fieldName] = error;
-      isValid = false;
-    }
-  });
-
-  return { isValid, errors };
-};
-
-/**
- * Registration form specific validation rules
- */
-export const REGISTRATION_VALIDATION_RULES = {
+// Registration Validation Rules
+export const REGISTRATION_VALIDATION_RULES: Record<string, FieldValidationRules> = {
   firstName: {
     required: true,
     minLength: 2,
-    maxLength: 50,
     pattern: VALIDATION_PATTERNS.name,
-    message: VALIDATION_MESSAGES.invalidName,
   },
   lastName: {
     required: true,
     minLength: 2,
-    maxLength: 50,
     pattern: VALIDATION_PATTERNS.name,
-    message: VALIDATION_MESSAGES.invalidName,
   },
   emailId: {
     required: true,
-    maxLength: 100,
     pattern: VALIDATION_PATTERNS.email,
-    message: VALIDATION_MESSAGES.invalidEmail,
   },
   mobileNumber: {
     required: true,
     pattern: VALIDATION_PATTERNS.phone,
-    message: VALIDATION_MESSAGES.invalidPhone,
-    custom: (value: string) => {
-      if (!VALIDATION_PATTERNS.phone.test(value)) {
-        return VALIDATION_MESSAGES.invalidPhone;
-      }
-      if (!['6', '7', '8', '9'].includes(value[0])) {
-        return VALIDATION_MESSAGES.phoneStartDigit;
-      }
-      return null;
-    },
   },
   state: {
     required: true,
-    minLength: 2,
-    maxLength: 50,
-    pattern: VALIDATION_PATTERNS.onlyLetters,
-    message: 'State name can only contain letters and spaces',
+    pattern: VALIDATION_PATTERNS.location,
   },
   district: {
     required: true,
-    minLength: 2,
-    maxLength: 50,
-    pattern: VALIDATION_PATTERNS.onlyLetters,
-    message: 'District name can only contain letters and spaces',
+    pattern: VALIDATION_PATTERNS.location,
   },
   city: {
     required: true,
-    minLength: 2,
-    maxLength: 50,
-    pattern: VALIDATION_PATTERNS.onlyLetters,
-    message: 'City name can only contain letters and spaces',
+    pattern: VALIDATION_PATTERNS.location,
   },
   pincode: {
     required: true,
     pattern: VALIDATION_PATTERNS.pincode,
-    message: VALIDATION_MESSAGES.invalidPincode,
-    custom: (value: string) => {
-      if (!VALIDATION_PATTERNS.pincode.test(value)) {
-        return VALIDATION_MESSAGES.invalidPincode;
-      }
-      const pincodeNum = parseInt(value, 10);
-      if (pincodeNum < 100000 || pincodeNum > 999999) {
-        return VALIDATION_MESSAGES.pincodeRange;
-      }
-      return null;
-    },
-  },
-  promocode: {
-    required: false,
-    maxLength: 20,
-    pattern: VALIDATION_PATTERNS.alphanumeric,
-    message: 'Promo code can only contain letters and numbers',
   },
   schoolName: {
-    required: false,
-    minLength: 2,
-    maxLength: 100,
     pattern: VALIDATION_PATTERNS.schoolName,
-    message: VALIDATION_MESSAGES.invalidSchoolName,
   },
-};
+  promocode: {
+    pattern: VALIDATION_PATTERNS.promocode,
+  },
+} as const;
+
+/**
+ * Validates a single field with given rules
+ */
+export function validateField(value: string, rules: FieldValidationRules): string | null {
+  const trimmedValue = value?.trim() || '';
+
+  // Skip validation for empty non-required fields
+  if (!trimmedValue && !rules.required) {
+    return null;
+  }
+
+  // Required validation
+  if (rules.required && !trimmedValue) {
+    return VALIDATION_MESSAGES.required;
+  }
+
+  // Min length validation
+  if (rules.minLength && trimmedValue.length < rules.minLength) {
+    return VALIDATION_MESSAGES.minLength(rules.minLength);
+  }
+
+  // Max length validation
+  if (rules.maxLength && trimmedValue.length > rules.maxLength) {
+    return VALIDATION_MESSAGES.maxLength(rules.maxLength);
+  }
+
+  // Pattern validation
+  if (rules.pattern && trimmedValue && !rules.pattern.test(trimmedValue)) {
+    return 'Invalid format';
+  }
+
+  // Custom validation
+  if (rules.custom && trimmedValue) {
+    const customError = rules.custom(trimmedValue);
+    if (customError) {
+      return customError;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Validates multiple form fields
+ */
+export function validateForm(fields: Record<string, FormField>): FormValidationResult {
+  const errors: Record<string, string> = {};
+
+  for (const [fieldName, field] of Object.entries(fields)) {
+    const error = validateField(field.value, field.rules);
+    if (error) {
+      errors[fieldName] = error;
+    }
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
+}
 
 /**
  * Validates registration form data
  */
-export const validateRegistrationForm = (formData: Record<string, string>): ValidationResult => {
-  const fields: Record<string, FormField> = {};
-
-  // Convert form data to validation fields
-  Object.entries(REGISTRATION_VALIDATION_RULES).forEach(([fieldName, rules]) => {
-    fields[fieldName] = {
-      value: formData[fieldName] || '',
-      rules,
-    };
-  });
-
-  // Special validation for school selection
-  const schoolValidation = validateSchoolSelection(formData.schoolId, formData.schoolName);
-  if (!schoolValidation.isValid) {
-    return {
-      isValid: false,
-      errors: { ...validateForm(fields).errors, ...schoolValidation.errors },
-    };
-  }
-
-  return validateForm(fields);
-};
-
-/**
- * Validates school selection (either schoolId or schoolName must be provided)
- */
-export const validateSchoolSelection = (schoolId: string, schoolName: string): ValidationResult => {
+export function validateRegistrationForm(data: RegistrationData): FormValidationResult {
   const errors: Record<string, string> = {};
 
-  if (!schoolId && !schoolName.trim()) {
+  // Validate firstName
+  if (!data.firstName?.trim()) {
+    errors.firstName = VALIDATION_MESSAGES.invalidName;
+  } else if (!VALIDATION_PATTERNS.name.test(data.firstName.trim())) {
+    errors.firstName = VALIDATION_MESSAGES.invalidName;
+  }
+
+  // Validate lastName
+  if (!data.lastName?.trim()) {
+    errors.lastName = VALIDATION_MESSAGES.invalidName;
+  } else if (!VALIDATION_PATTERNS.name.test(data.lastName.trim())) {
+    errors.lastName = VALIDATION_MESSAGES.invalidName;
+  }
+
+  // Validate email
+  const email = data.emailId || data.email;
+  if (!email?.trim()) {
+    errors.emailId = VALIDATION_MESSAGES.invalidEmail;
+  } else if (!VALIDATION_PATTERNS.email.test(email.trim())) {
+    errors.emailId = VALIDATION_MESSAGES.invalidEmail;
+  }
+
+  // Validate mobile
+  const mobile = data.mobileNumber || data.mobile;
+  if (!mobile?.trim()) {
+    errors.mobileNumber = VALIDATION_MESSAGES.invalidPhone;
+  } else if (!VALIDATION_PATTERNS.phone.test(mobile.trim())) {
+    errors.mobileNumber = VALIDATION_MESSAGES.invalidPhone;
+  }
+
+  // Validate state
+  if (!data.state?.trim()) {
+    errors.state = VALIDATION_MESSAGES.required;
+  } else if (!VALIDATION_PATTERNS.location.test(data.state.trim())) {
+    errors.state = VALIDATION_MESSAGES.required;
+  }
+
+  // Validate district
+  if (!data.district?.trim()) {
+    errors.district = VALIDATION_MESSAGES.required;
+  } else if (!VALIDATION_PATTERNS.location.test(data.district.trim())) {
+    errors.district = VALIDATION_MESSAGES.required;
+  }
+
+  // Validate city
+  if (!data.city?.trim()) {
+    errors.city = VALIDATION_MESSAGES.required;
+  } else if (!VALIDATION_PATTERNS.location.test(data.city.trim())) {
+    errors.city = VALIDATION_MESSAGES.required;
+  }
+
+  // Validate pincode
+  if (!data.pincode?.trim()) {
+    errors.pincode = VALIDATION_MESSAGES.invalidPincode;
+  } else if (!VALIDATION_PATTERNS.pincode.test(data.pincode.trim())) {
+    errors.pincode = VALIDATION_MESSAGES.invalidPincode;
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
+}
+
+/**
+ * Validates school selection
+ */
+export function validateSchoolSelection(schoolId: string, schoolName: string): FormValidationResult {
+  const errors: Record<string, string> = {};
+
+  if (!schoolId && !schoolName?.trim()) {
     errors.schoolId = 'Please select a school or enter school name';
-    return { isValid: false, errors };
+  } else if (schoolName && !VALIDATION_PATTERNS.schoolName.test(schoolName.trim())) {
+    errors.schoolName = VALIDATION_MESSAGES.invalidSchoolName;
   }
 
-  // If custom school name is provided, validate it
-  if (!schoolId && schoolName.trim()) {
-    const schoolNameError = validateField(schoolName, REGISTRATION_VALIDATION_RULES.schoolName);
-    if (schoolNameError) {
-      errors.schoolName = schoolNameError;
-      return { isValid: false, errors };
-    }
-  }
-
-  return { isValid: true, errors: {} };
-};
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
+}
 
 /**
- * Real-time validation for individual fields
+ * Sanitizes input based on type
+ * Note: Does not trim during input to allow spaces while typing
  */
-export const validateFieldRealtime = (
-  fieldName: string,
-  value: string,
-  rules: ValidationRule
-): string | null => {
-  // For real-time validation, we might want to be less strict
-  // For example, don't show "required" error until user has interacted with the field
-  if (rules.required && !value.trim()) {
-    return null; // Don't show required error in real-time
-  }
-
-  return validateField(value, rules);
-};
-
-/**
- * Sanitizes input values
- */
-export const sanitizeInput = (value: string, type: 'name' | 'email' | 'phone' | 'pincode' | 'general'): string => {
-  let sanitized = value.trim();
+export function sanitizeInput(value: string, type: 'name' | 'email' | 'phone' | 'pincode' | 'general', trim: boolean = false): string {
+  // Only trim if explicitly requested (for final validation, not during typing)
+  let sanitized = trim ? value.trim() : value;
 
   switch (type) {
     case 'name':
-      // Remove extra spaces and keep only letters, spaces, hyphens, apostrophes
-      sanitized = sanitized.replace(/[^a-zA-Z\s'-]/g, '').replace(/\s+/g, ' ');
+      // Remove special characters except hyphens, apostrophes, and spaces
+      // Preserve spaces in the middle of the text
+      sanitized = sanitized.replace(/[^a-zA-Z\s'-]/g, '');
       break;
     case 'email':
-      // Remove extra spaces and convert to lowercase
-      sanitized = sanitized.toLowerCase().replace(/\s+/g, '');
+      // Remove spaces and convert to lowercase
+      sanitized = sanitized.replace(/\s/g, '').toLowerCase();
       break;
     case 'phone':
+      // Remove all non-digit characters and limit to 10 digits
+      sanitized = sanitized.replace(/\D/g, '').slice(0, 10);
+      break;
     case 'pincode':
-      // Keep only digits
+      // Remove all non-digit characters
       sanitized = sanitized.replace(/\D/g, '');
       break;
     case 'general':
-      // Remove extra spaces
-      sanitized = sanitized.replace(/\s+/g, ' ');
+    default:
+      // Don't trim during typing, only on final validation
+      if (trim) {
+        sanitized = sanitized.trim();
+      }
       break;
   }
 
   return sanitized;
-};
+}
 
 /**
- * Formats phone number for display
+ * Formats phone number with spaces
  */
-export const formatPhoneNumber = (value: string): string => {
-  const cleaned = value.replace(/\D/g, '');
-  if (cleaned.length <= 3) return cleaned;
-  if (cleaned.length <= 6) return `${cleaned.slice(0, 3)} ${cleaned.slice(3)}`;
-  return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6, 10)}`;
-};
+export function formatPhoneNumber(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length <= 3) {
+    return digits;
+  } else if (digits.length <= 6) {
+    return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+  } else {
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 10)}`;
+  }
+}
 
 /**
- * Formats pincode for display
+ * Formats pincode (ensures 6 digits)
  */
-export const formatPincode = (value: string): string => {
-  return value.replace(/\D/g, '').slice(0, 6);
-};
+export function formatPincode(pincode: string): string {
+  const digits = pincode.replace(/\D/g, '');
+  return digits.slice(0, 6);
+}
 
 /**
  * Checks if form is ready for submission
  */
-export const isFormReadyForSubmission = (formData: Record<string, string>): boolean => {
-  const requiredFields = ['firstName', 'lastName', 'emailId', 'mobileNumber', 'state', 'district', 'city', 'pincode'];
-  
-  // Check if all required fields have values
-  const hasRequiredValues = requiredFields.every(field => formData[field]?.trim());
-  
-  // Check if school is selected or custom school name is provided
-  const hasSchool = !!(formData.schoolId || formData.schoolName?.trim());
-  
-  return hasRequiredValues && hasSchool;
-};
+export function isFormReadyForSubmission(form: RegistrationData): boolean {
+  const requiredFields = [
+    'firstName',
+    'lastName',
+    'emailId',
+    'mobileNumber',
+    'state',
+    'district',
+    'city',
+    'pincode',
+  ];
+
+  // Check all required fields are filled
+  for (const field of requiredFields) {
+    const value = form[field as keyof RegistrationData];
+    if (!value || !String(value).trim()) {
+      return false;
+    }
+  }
+
+  // Check school selection
+  if (!form.schoolId && !form.schoolName?.trim()) {
+    return false;
+  }
+
+  // Validate all fields
+  const validation = validateRegistrationForm(form);
+  return validation.isValid;
+}
+
+/**
+ * Real-time field validation
+ * For phone numbers, only validate when complete (10 digits) to avoid showing errors while typing
+ */
+export function validateFieldRealtime(
+  fieldName: string,
+  value: string,
+  rules?: FieldValidationRules
+): string | null {
+  const fieldRules = rules || REGISTRATION_VALIDATION_RULES[fieldName];
+  if (!fieldRules) {
+    return null;
+  }
+
+  // For phone numbers, only validate when we have exactly 10 digits
+  // This prevents showing "Invalid format" while user is still typing
+  if (fieldName === 'mobileNumber') {
+    const digits = value.replace(/\D/g, '');
+    // If user is still typing (less than 10 digits), don't show validation error yet
+    if (digits.length > 0 && digits.length < 10) {
+      return null;
+    }
+  }
+
+  return validateField(value, fieldRules);
+}

@@ -1,10 +1,35 @@
 import '@testing-library/jest-native/extend-expect';
 
-// Mock react-native-reanimated
-jest.mock('react-native-reanimated', () => {
-  const Reanimated = require('react-native-reanimated/mock');
-  Reanimated.default.call = () => {};
-  return Reanimated;
+// Mock react-native-reanimated - using the mock file via moduleNameMapper in jest.config.js
+// Additional mock for specs path
+jest.mock('react-native-reanimated/src/specs/NativeReanimatedModule', () => {
+  const mockModule = {
+    installCoreFunctions: jest.fn(),
+    makeShareableClone: jest.fn(),
+    scheduleOnUI: jest.fn(),
+    createWorkletRuntime: jest.fn(),
+    scheduleOnJS: jest.fn(),
+    registerEventHandler: jest.fn(),
+    unregisterEventHandler: jest.fn(),
+    getViewProp: jest.fn(),
+    enableScreens: jest.fn(),
+    disableScreens: jest.fn(),
+    makeScreens: jest.fn(),
+    makeShareable: jest.fn(),
+    makeMutable: jest.fn(),
+    makeRemote: jest.fn(),
+    startMapper: jest.fn(),
+    stopMapper: jest.fn(),
+    registerSensor: jest.fn(),
+    unregisterSensor: jest.fn(),
+    subscribeForKeyboardEvents: jest.fn(),
+    unsubscribeFromKeyboardEvents: jest.fn(),
+  };
+  return {
+    default: {
+      get: jest.fn(() => mockModule),
+    },
+  };
 });
 
 

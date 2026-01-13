@@ -2,7 +2,7 @@ import { AppConfig, AsyncStorageKeys, SecureStorageKeys } from '@/types';
 
 // App Configuration
 export const APP_CONFIG: AppConfig = {
-  apiUrl: __DEV__ ? 'http://34.244.102.127:8080/api' : 'https://api.jackmarvels.com',
+  apiUrl: __DEV__ ? 'http://98.93.175.154:8080/jackmarvels/api' : 'https://api.jackmarvels.com',
   environment: __DEV__ ? 'development' : 'production',
   version: '1.0.0',
   buildNumber: '1',

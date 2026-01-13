@@ -3,6 +3,39 @@ import {render, fireEvent, waitFor, act} from '@testing-library/react-native';
 import {NavigationContainer} from '@react-navigation/native';
 import SubscriptionScreen from '../../src/screens/Subscription/index';
 
+// Mock components before importing the screen
+jest.mock('../../src/components', () => {
+  const React = require('react');
+  const {View, Text, TouchableOpacity, ScrollView} = require('react-native');
+  return {
+    VStack: ({children, ...props}: any) =>
+      React.createElement(View, props, children),
+    HStack: ({children, ...props}: any) =>
+      React.createElement(View, props, children),
+    Text: ({children, ...props}: any) =>
+      React.createElement(Text, props, children),
+    Button: ({children, onPress, ...props}: any) =>
+      React.createElement(TouchableOpacity, {...props, onPress}, children),
+    Box: ({children, ...props}: any) =>
+      React.createElement(View, props, children),
+    Divider: ({...props}: any) => React.createElement(View, props),
+    Badge: ({children, ...props}: any) =>
+      React.createElement(View, props, children),
+    Pressable: ({children, onPress, ...props}: any) =>
+      React.createElement(TouchableOpacity, {...props, onPress}, children),
+  };
+});
+
+// Mock useNavigation
+jest.mock('@react-navigation/native', () => ({
+  ...jest.requireActual('@react-navigation/native'),
+  useNavigation: () => ({
+    goBack: jest.fn(),
+    navigate: jest.fn(),
+    replace: jest.fn(),
+  }),
+}));
+
 // Mock the navigation
 const mockNavigation = {
   goBack: jest.fn(),
@@ -43,9 +76,14 @@ jest.mock('../../src/utils/colors', () => ({
 }));
 
 // Mock LottieView
-jest.mock('lottie-react-native', () => ({
-  default: ({testID, ...props}: any) => <div testID={testID} {...props} />,
-}));
+jest.mock('lottie-react-native', () => {
+  const React = require('react');
+  const {View} = require('react-native');
+  return {
+    default: ({testID, ...props}: any) =>
+      React.createElement(View, {testID, ...props}),
+  };
+});
 
 // Mock Alert
 jest.mock('react-native', () => {
