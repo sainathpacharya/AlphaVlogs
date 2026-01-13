@@ -1,14 +1,20 @@
 #import "AppDelegate.h"
 
 #import <React/RCTBundleURLProvider.h>
+
+// Firebase import - only include if Firebase SDK is installed
+#if __has_include(<Firebase.h>)
 #import <Firebase.h>
+#endif
 
 @implementation AppDelegate
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-  // Initialize Firebase
+  // Initialize Firebase (only if Firebase SDK is available)
+  #if __has_include(<Firebase.h>)
   [FIRApp configure];
+  #endif
   
   self.moduleName = @"AlphaVlogs";
   // You can add your custom initial props in the dictionary below.
