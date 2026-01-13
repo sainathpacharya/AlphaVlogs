@@ -79,7 +79,7 @@ class SubscriptionService {
         description: 'Subscription Payment',
         amount,
         currency: 'INR',
-        name: 'JackMarvels Subscription',
+        name: 'Alpha Vlogs Subscription',
         prefill: {
           email: '',
           contact: '',

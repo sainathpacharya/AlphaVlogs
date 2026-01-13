@@ -125,9 +125,9 @@ const SubscriptionScreen: React.FC = () => {
         try {
           // Prepare user details for Razorpay
           const userDetails = {
-            email: user?.email || 'user@jackmarvels.com',
+            email: user?.email || 'user@alphavlogs.com',
             contact: user?.mobile || '9999999999',
-            name: `${user?.firstName || 'Jack'} ${user?.lastName || 'Marvels User'}`.trim(),
+            name: `${user?.firstName || 'Alpha'} ${user?.lastName || 'Vlogs User'}`.trim(),
           };
 
           // Initiate Razorpay payment

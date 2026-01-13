@@ -67,13 +67,34 @@ jobs:
       - name: Build AAB (App Bundle)
         run: |
           cd android
-          ./gradlew bundleRelease --no-daemon
+          ./gradlew bundleProductionRelease --no-daemon
+
+      - name: Setup Firebase Service Account
+        run: |
+          if [ -n "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" ]; then
+            echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" > ${{ runner.temp }}/firebase-service-account.json
+            echo "✅ Firebase service account configured"
+          else
+            echo "⚠️ FIREBASE_SERVICE_ACCOUNT_JSON secret not found. Skipping Firebase App Distribution upload."
+          fi
+        continue-on-error: true
+
+      - name: Upload AAB to Firebase App Distribution
+        if: secrets.FIREBASE_SERVICE_ACCOUNT_JSON
+        run: |
+          cd android
+          # Configure Gradle to use service account
+          export FIREBASE_SERVICE_ACCOUNT_FILE="${{ runner.temp }}/firebase-service-account.json"
+          ./gradlew appDistributionUploadProductionReleaseBundle \
+            -PfirebaseServiceAccountFile="$FIREBASE_SERVICE_ACCOUNT_FILE" \
+            --no-daemon
+        continue-on-error: true
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-aab-release
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          path: android/app/build/outputs/bundle/production/release/app-production-release.aab
           retention-days: 30
 
       - name: Validate Google Play credentials
@@ -93,7 +114,7 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: ${{ env.PACKAGE_NAME }}
-          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          releaseFiles: android/app/build/outputs/bundle/production/release/app-production-release.aab
           track: ${{ github.event.inputs.track || 'internal' }}
           status: completed
           changesNotSentForReview: false
@@ -117,4 +138,13 @@ jobs:
             echo "3. Upload the AAB to your app's release track" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**To enable automatic publishing:** Configure \`GOOGLE_PLAY_SERVICE_ACCOUNT_JSON\` secret. See \`STORE_PUBLISHING_SETUP.md\` for instructions." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" ]; then
+            echo "### ✅ Uploaded to Firebase App Distribution" >> $GITHUB_STEP_SUMMARY
+            echo "Build has been automatically uploaded to Firebase App Distribution." >> $GITHUB_STEP_SUMMARY
+            echo "- View in [Firebase Console](https://console.firebase.google.com/project/alpha-vlogs-cf60a/appdistribution)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Firebase App Distribution" >> $GITHUB_STEP_SUMMARY
+            echo "To enable automatic uploads, configure the \`FIREBASE_SERVICE_ACCOUNT_JSON\` secret." >> $GITHUB_STEP_SUMMARY
           fi

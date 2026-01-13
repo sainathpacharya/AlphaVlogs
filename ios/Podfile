@@ -11,7 +11,7 @@ end
 node_require('react-native/scripts/react_native_pods.rb')
 node_require('react-native-permissions/scripts/setup.rb')
 
-platform :ios, min_ios_version_supported
+platform :ios, '13.4'
 prepare_react_native_project!
 
 linkage = ENV['USE_FRAMEWORKS']
@@ -59,8 +59,16 @@ target 'JackMarvelsApp' do
     # Fix for Razorpay Swift protocol linking and other build issues
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
+        # Set minimum iOS deployment target to 13.4 for all pods (required by React Native 0.75.3)
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.4'
+        
         # Ensure Swift interoperability is enabled
         config.build_settings['SWIFT_VERSION'] = '5.0' if config.build_settings['SWIFT_VERSION'].nil?
+        
+        # Always embed Swift standard libraries for Swift-based pods
+        if target.name.include?('Lottie') || target.name.include?('lottie') || target.name.include?('Swift')
+          config.build_settings['ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES'] = 'YES'
+        end
         
         # Fix for boost_privacy.bundle - ensure it's built as a dependency
         if target.name == 'boost-boost_privacy'
@@ -91,8 +99,11 @@ target 'JackMarvelsApp' do
               config.build_settings['FRAMEWORK_SEARCH_PATHS'] << path unless config.build_settings['FRAMEWORK_SEARCH_PATHS'].include?(path)
             end
             
-            # Ensure Swift standard libraries are embedded
-            config.build_settings['ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES'] = '$(inherited)'
+            # Ensure Swift standard libraries are embedded (set to YES explicitly)
+            config.build_settings['ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES'] = 'YES'
+            
+            # Ensure minimum iOS deployment target is 13.4 (required by React Native 0.75.3)
+            config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.4'
             
             # Clean up any malformed Razorpay framework entries in OTHER_LDFLAGS
             # The issue is that RazorpayCore and RazorpayStandard might be added as standalone arguments

@@ -5,7 +5,10 @@ buildscript {
         compileSdkVersion = 35
         targetSdkVersion = 35
         ndkVersion = "26.1.10909125"
-        kotlinVersion = "1.9.24"
+        kotlinVersion = "2.0.0"
+        // Set React Native node modules directory to avoid node lookup issues
+        // This prevents react-native-svg from trying to use node to find react-native
+        REACT_NATIVE_NODE_MODULES_DIR = file("../node_modules/react-native")
     }
     repositories {
         google()
@@ -14,7 +17,9 @@ buildscript {
     dependencies {
         classpath("com.android.tools.build:gradle:8.6.0")
         classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+        classpath("com.google.gms:google-services:4.4.4")
+        classpath("com.google.firebase:firebase-appdistribution-gradle:5.0.0")
     }
 }
 

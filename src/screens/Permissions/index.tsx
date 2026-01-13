@@ -274,7 +274,7 @@ const PermissionsScreen: React.FC = () => {
               fontSize: 14,
               lineHeight: 20,
             }}>
-            JackMarvelsApp needs these permissions to provide you with the best
+            Alpha Vlogs needs these permissions to provide you with the best
             experience. Camera and microphone are essential for recording talent
             show videos, while storage access allows you to upload existing
             videos and save new ones.
@@ -335,7 +335,7 @@ const PermissionsScreen: React.FC = () => {
               lineHeight: 18,
             }}>
             If you're having trouble with permissions, try opening your device's
-            Settings app and manually enabling permissions for JackMarvelsApp.
+            Settings app and manually enabling permissions for Alpha Vlogs.
           </Text>
         </Box>
       </ScrollView>

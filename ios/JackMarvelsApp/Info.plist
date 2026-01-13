@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>JackMarvelsApp</string>
+	<string>Alpha Vlogs</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -29,23 +29,23 @@
 	
 	<!-- Camera Permissions -->
 	<key>NSCameraUsageDescription</key>
-	<string>JackMarvelsApp needs camera access to record videos for talent show events.</string>
+	<string>Alpha Vlogs needs camera access to record videos for talent show events.</string>
 	
 	<!-- Microphone Permissions -->
 	<key>NSMicrophoneUsageDescription</key>
-	<string>JackMarvelsApp needs microphone access to record audio for videos.</string>
+	<string>Alpha Vlogs needs microphone access to record audio for videos.</string>
 	
 	<!-- Photo Library Permissions -->
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>JackMarvelsApp needs photo library access to select and upload videos for talent show events.</string>
+	<string>Alpha Vlogs needs photo library access to select and upload videos for talent show events.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>JackMarvelsApp needs permission to save videos to your photo library.</string>
+	<string>Alpha Vlogs needs permission to save videos to your photo library.</string>
 	
 	<!-- Location Permissions -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>JackMarvelsApp uses location to provide school-specific features and event recommendations.</string>
+	<string>Alpha Vlogs uses location to provide school-specific features and event recommendations.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>JackMarvelsApp uses location to provide school-specific features and event recommendations.</string>
+	<string>Alpha Vlogs uses location to provide school-specific features and event recommendations.</string>
 	
 	<!-- Network Security -->
 	<key>NSAppTransportSecurity</key>
@@ -89,7 +89,7 @@
 	
 	<!-- Notification Permissions -->
 	<key>NSUserNotificationUsageDescription</key>
-	<string>JackMarvelsApp sends notifications for new events, quiz reminders, and results updates.</string>
+	<string>Alpha Vlogs sends notifications for new events, quiz reminders, and results updates.</string>
 	
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

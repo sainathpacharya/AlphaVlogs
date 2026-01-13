@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "452248149004",
+    "project_id": "alpha-vlogs-cf60a",
+    "storage_bucket": "alpha-vlogs-cf60a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:452248149004:android:183407f46643d288af2229",
+        "android_client_info": {
+          "package_name": "com.jackmarvelsapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMqcVrJ24s91J1EjWyqAOJyadgYCWO9Cc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:452248149004:android:183407f46643d288af2229",
+        "android_client_info": {
+          "package_name": "com.jackmarvelsapp.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMqcVrJ24s91J1EjWyqAOJyadgYCWO9Cc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -105,6 +105,39 @@ jobs:
           path: android/app/build/outputs/bundle/production/release/app-production-release.aab
           retention-days: 30
 
+      - name: Setup Firebase Service Account
+        if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '' || github.event_name == 'push'
+        run: |
+          if [ -n "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" ]; then
+            echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" > ${{ runner.temp }}/firebase-service-account.json
+            echo "✅ Firebase service account configured"
+          else
+            echo "⚠️ FIREBASE_SERVICE_ACCOUNT_JSON secret not found. Skipping Firebase App Distribution upload."
+          fi
+        continue-on-error: true
+
+      - name: Upload APK to Firebase App Distribution
+        if: (github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '' || github.event_name == 'push') && secrets.FIREBASE_SERVICE_ACCOUNT_JSON
+        run: |
+          cd android
+          # Configure Gradle to use service account
+          export FIREBASE_SERVICE_ACCOUNT_FILE="${{ runner.temp }}/firebase-service-account.json"
+          ./gradlew appDistributionUploadProductionRelease \
+            -PfirebaseServiceAccountFile="$FIREBASE_SERVICE_ACCOUNT_FILE" \
+            --no-daemon
+        continue-on-error: true
+
+      - name: Upload AAB to Firebase App Distribution
+        if: github.event.inputs.build_type == 'aab' && secrets.FIREBASE_SERVICE_ACCOUNT_JSON
+        run: |
+          cd android
+          # Configure Gradle to use service account
+          export FIREBASE_SERVICE_ACCOUNT_FILE="${{ runner.temp }}/firebase-service-account.json"
+          ./gradlew appDistributionUploadProductionReleaseBundle \
+            -PfirebaseServiceAccountFile="$FIREBASE_SERVICE_ACCOUNT_FILE" \
+            --no-daemon
+        continue-on-error: true
+
   build-ios:
     name: Build iOS Production
     if: github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'both' || github.event.inputs.platform == ''
@@ -172,3 +205,14 @@ jobs:
           echo "### 📦 Artifacts" >> $GITHUB_STEP_SUMMARY
           echo "- Android: \`android-apk-production\` or \`android-aab-production\`" >> $GITHUB_STEP_SUMMARY
           echo "- iOS: \`ios-archive-production\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" ]; then
+            echo "### ✅ Firebase App Distribution" >> $GITHUB_STEP_SUMMARY
+            echo "Build has been automatically uploaded to Firebase App Distribution." >> $GITHUB_STEP_SUMMARY
+            echo "Testers in the \`testers\` group will be notified." >> $GITHUB_STEP_SUMMARY
+            echo "- View in [Firebase Console](https://console.firebase.google.com/project/alpha-vlogs-cf60a/appdistribution)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Firebase App Distribution" >> $GITHUB_STEP_SUMMARY
+            echo "To enable automatic uploads, configure the \`FIREBASE_SERVICE_ACCOUNT_JSON\` secret." >> $GITHUB_STEP_SUMMARY
+            echo "See \`FIREBASE_APP_DISTRIBUTION.md\` for setup instructions." >> $GITHUB_STEP_SUMMARY
+          fi

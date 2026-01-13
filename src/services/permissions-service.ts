@@ -221,7 +221,7 @@ class PermissionsService {
     return this.requestPermissionWithRationale(
       Platform.OS === 'ios' ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA,
       'Camera Permission',
-      'JackMarvelsApp needs camera access to record videos for talent show events.',
+      'Alpha Vlogs needs camera access to record videos for talent show events.',
       'Camera permission is required for video recording. Please enable it in Settings.'
     );
   }
@@ -231,7 +231,7 @@ class PermissionsService {
     return this.requestPermissionWithRationale(
       Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
       'Photo Library Permission',
-      'JackMarvelsApp needs photo library access to select and upload videos.',
+      'Alpha Vlogs needs photo library access to select and upload videos.',
       'Photo library access is required to select videos. Please enable it in Settings.'
     );
   }
@@ -246,7 +246,7 @@ class PermissionsService {
     return this.requestPermissionWithRationale(
       PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
       'Storage Permission',
-      'JackMarvelsApp needs storage access to save and upload videos.',
+      'Alpha Vlogs needs storage access to save and upload videos.',
       'Storage permission is required to access videos. Please enable it in Settings.'
     );
   }
@@ -256,7 +256,7 @@ class PermissionsService {
     return this.requestPermissionWithRationale(
       Platform.OS === 'ios' ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
       'Location Permission',
-      'JackMarvelsApp uses location to provide school-specific features and event recommendations.',
+      'Alpha Vlogs uses location to provide school-specific features and event recommendations.',
       'Location permission is required for school-based features. Please enable it in Settings.'
     );
   }
@@ -266,7 +266,7 @@ class PermissionsService {
     return this.requestPermissionWithRationale(
       Platform.OS === 'ios' ? PERMISSIONS.IOS.MICROPHONE : PERMISSIONS.ANDROID.RECORD_AUDIO,
       'Microphone Permission',
-      'JackMarvelsApp needs microphone access to record audio for videos.',
+      'Alpha Vlogs needs microphone access to record audio for videos.',
       'Microphone permission is required for video recording. Please enable it in Settings.'
     );
   }
@@ -276,7 +276,7 @@ class PermissionsService {
     return this.requestPermissionWithRationale(
       Platform.OS === 'ios' ? null : PERMISSIONS.ANDROID.POST_NOTIFICATIONS,
       'Notification Permission',
-      'JackMarvelsApp sends notifications for new events, quiz reminders, and results updates.',
+      'Alpha Vlogs sends notifications for new events, quiz reminders, and results updates.',
       'Notification permission is required for app updates. Please enable it in Settings.'
     );
   }
