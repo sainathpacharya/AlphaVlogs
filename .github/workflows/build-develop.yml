@@ -314,6 +314,11 @@ jobs:
       - name: Build iOS Archive
         run: |
           cd ios
+          set -e  # Exit on error
+
+          echo "🔨 Building iOS archive for develop..."
+          echo "Bundle ID: ${{ env.BUNDLE_ID_DEVELOP }}"
+
           xcodebuild clean archive \
             -workspace JackMarvelsApp.xcworkspace \
             -scheme JackMarvelsApp \
@@ -323,18 +328,56 @@ jobs:
             PRODUCT_BUNDLE_IDENTIFIER=${{ env.BUNDLE_ID_DEVELOP }} \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee build.log || {
+              echo ""
+              echo "❌ Build failed. Last 50 lines of error output:"
+              tail -n 50 build.log
+              echo ""
+              echo "Full error log saved to: ios/build.log"
+              exit 1
+            }
+
+          echo "✅ Archive built successfully!"
 
       - name: Export IPA from Archive
         run: |
           cd ios
+          # Check if archive exists
+          if [ ! -d "$PWD/build/JackMarvelsApp-develop.xcarchive" ]; then
+            echo "❌ Archive not found. Build may have failed."
+            exit 1
+          fi
+
+          echo "✅ Archive found. Attempting to export IPA..."
+
+          # Create minimal ExportOptions.plist if it doesn't exist
+          if [ ! -f "$PWD/ExportOptions.plist" ]; then
+            echo "⚠️ ExportOptions.plist not found. Creating minimal one..."
+            cat > "$PWD/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>development</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+          </dict>
+          </plist>
+          EOF
+          fi
+
+          # Try to export IPA (will fail without code signing, which is expected)
           xcodebuild -exportArchive \
             -archivePath $PWD/build/JackMarvelsApp-develop.xcarchive \
             -exportPath $PWD/build/export \
             -exportOptionsPlist $PWD/ExportOptions.plist \
-            -allowProvisioningUpdates || {
+            -allowProvisioningUpdates 2>&1 || {
+              echo ""
               echo "⚠️ IPA export failed. This is expected if code signing is not configured."
               echo "   Archive is still available for manual export."
+              echo "   Archive location: $PWD/build/JackMarvelsApp-develop.xcarchive"
               exit 0
             }
 
