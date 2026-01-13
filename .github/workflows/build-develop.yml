@@ -312,13 +312,16 @@ jobs:
           xcode-version: latest-stable
 
       - name: Build iOS Archive
+        id: build_ios
+        continue-on-error: true
         run: |
           cd ios
-          set -e  # Exit on error
 
           echo "🔨 Building iOS archive for develop..."
           echo "Bundle ID: ${{ env.BUNDLE_ID_DEVELOP }}"
+          echo "Starting build at: $(date)"
 
+          # Run build and capture all output
           xcodebuild clean archive \
             -workspace JackMarvelsApp.xcworkspace \
             -scheme JackMarvelsApp \
@@ -329,18 +332,50 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            2>&1 | tee build.log || {
-              echo ""
-              echo "❌ Build failed. Last 50 lines of error output:"
-              tail -n 50 build.log
-              echo ""
-              echo "Full error log saved to: ios/build.log"
-              exit 1
-            }
+            2>&1 | tee build.log
 
-          echo "✅ Archive built successfully!"
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+
+          if [ $BUILD_EXIT_CODE -eq 0 ]; then
+            echo "✅ Archive built successfully!"
+            echo "build_success=true" >> $GITHUB_OUTPUT
+          else
+            echo ""
+            echo "❌ Build failed with exit code: $BUILD_EXIT_CODE"
+            echo ""
+            echo "=== Last 100 lines of build log ==="
+            tail -n 100 build.log
+            echo ""
+            echo "=== Searching for error patterns ==="
+            grep -i "error:" build.log | tail -n 20 || echo "No explicit errors found in log"
+            echo ""
+            echo "=== Checking for archive ==="
+            if [ -d "$PWD/build/JackMarvelsApp-develop.xcarchive" ]; then
+              echo "⚠️ Archive exists despite build failure - may be partial"
+            else
+              echo "❌ Archive not created"
+            fi
+            echo "build_success=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-log-develop
+          path: ios/build.log
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Check Build Status
+        if: steps.build_ios.outputs.build_success != 'true'
+        run: |
+          echo "❌ iOS build failed. Check the uploaded build log artifact for details."
+          exit 1
 
       - name: Export IPA from Archive
+        if: steps.build_ios.outputs.build_success == 'true'
         run: |
           cd ios
           # Check if archive exists
