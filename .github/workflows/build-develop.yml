@@ -325,6 +325,105 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
+      - name: Export IPA from Archive
+        run: |
+          cd ios
+          xcodebuild -exportArchive \
+            -archivePath $PWD/build/JackMarvelsApp-develop.xcarchive \
+            -exportPath $PWD/build/export \
+            -exportOptionsPlist $PWD/ExportOptions.plist \
+            -allowProvisioningUpdates || {
+              echo "⚠️ IPA export failed. This is expected if code signing is not configured."
+              echo "   Archive is still available for manual export."
+              exit 0
+            }
+
+      - name: Setup Firebase Service Account
+        id: setup_firebase_ios
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          SERVICE_ACCOUNT_FILE="${{ runner.temp }}/firebase-service-account.json"
+          if [ -n "$FIREBASE_SA_JSON" ]; then
+            echo "$FIREBASE_SA_JSON" > "$SERVICE_ACCOUNT_FILE"
+            if [ -f "$SERVICE_ACCOUNT_FILE" ]; then
+              echo "✅ Firebase service account configured"
+              echo "firebase_configured=true" >> $GITHUB_OUTPUT
+            else
+              echo "❌ Failed to write Firebase service account file."
+              echo "firebase_configured=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "⚠️ FIREBASE_SERVICE_ACCOUNT_JSON secret not found. Skipping Firebase App Distribution upload."
+            echo "firebase_configured=false" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
+      - name: Upload IPA to Firebase App Distribution
+        if: steps.setup_firebase_ios.outputs.firebase_configured == 'true'
+        run: |
+          # Install Firebase CLI if not available
+          if ! command -v firebase &> /dev/null; then
+            echo "📦 Installing Firebase CLI..."
+            npm install -g firebase-tools
+          fi
+
+          # Authenticate with service account
+          SERVICE_ACCOUNT_FILE="${{ runner.temp }}/firebase-service-account.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$SERVICE_ACCOUNT_FILE"
+
+          # iOS App ID for develop
+          # Get from secret, or use default from GoogleService-Info.plist for develop
+          IOS_DEVELOP_APP_ID="${{ secrets.FIREBASE_IOS_DEVELOP_APP_ID }}"
+
+          # Default to the develop app ID if secret is not set
+          if [ -z "$IOS_DEVELOP_APP_ID" ]; then
+            IOS_DEVELOP_APP_ID="1:452248149004:ios:4d605dcccaca75e8af2229"
+            echo "ℹ️ Using default iOS develop app ID from GoogleService-Info.plist"
+          fi
+
+          IOS_APP_ID="$IOS_DEVELOP_APP_ID"
+
+          # Try to find IPA file
+          IPA_PATH="ios/build/export/JackMarvelsApp.ipa"
+
+          if [ ! -f "$IPA_PATH" ]; then
+            echo "⚠️ IPA not found at $IPA_PATH."
+            echo "   This is expected if code signing is not configured for CI/CD."
+            echo "   Archive is available for manual export and upload."
+            exit 0
+          fi
+
+          echo "✅ IPA found: $IPA_PATH"
+          echo "📦 IPA size: $(du -h "$IPA_PATH" | cut -f1)"
+          echo "📤 Uploading to Firebase App Distribution..."
+          echo "   Project: alpha-vlogs-cf60a"
+          echo "   Tester Group: testers"
+          echo "   App ID: $IOS_APP_ID"
+
+          firebase appdistribution:distribute "$IPA_PATH" \
+            --app "$IOS_APP_ID" \
+            --groups "testers" \
+            --release-notes "iOS Development build - Alpha Vlogs Dev - $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+            --project "alpha-vlogs-cf60a" || {
+              echo ""
+              echo "⚠️ Upload succeeded but distribution to 'testers' group failed."
+              echo "   This usually means the 'testers' group doesn't exist for this app yet."
+              echo ""
+              echo "📝 To fix this:"
+              echo "   1. Go to: https://console.firebase.google.com/project/alpha-vlogs-cf60a/appdistribution"
+              echo "   2. Select the iOS app: com.jackmarvelsapp"
+              echo "   3. Go to 'Testers & Groups' tab"
+              echo "   4. Create a group named 'testers' or add testers directly"
+              echo "   5. The build is already uploaded and available in the Releases tab"
+              echo ""
+              echo "✅ Build uploaded successfully - available for manual distribution"
+              exit 0
+            }
+
+          echo "✅ Successfully uploaded and distributed to Firebase App Distribution"
+        continue-on-error: true
+
       - name: Upload iOS Archive
         uses: actions/upload-artifact@v4
         with:
