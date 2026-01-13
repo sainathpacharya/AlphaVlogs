@@ -408,18 +408,21 @@ export function validateSchoolSelection(schoolId: string, schoolName: string): F
  * Note: Does not trim during input to allow spaces while typing
  */
 export function sanitizeInput(value: string, type: 'name' | 'email' | 'phone' | 'pincode' | 'general', trim: boolean = false): string {
-  // Only trim if explicitly requested (for final validation, not during typing)
-  let sanitized = trim ? value.trim() : value;
+  let sanitized = value;
 
   switch (type) {
     case 'name':
       // Remove special characters except hyphens, apostrophes, and spaces
       // Preserve spaces in the middle of the text
       sanitized = sanitized.replace(/[^a-zA-Z\s'-]/g, '');
+      // Always trim name inputs to remove leading/trailing spaces
+      sanitized = sanitized.trim();
       break;
     case 'email':
       // Remove spaces and convert to lowercase
       sanitized = sanitized.replace(/\s/g, '').toLowerCase();
+      // Always trim email inputs
+      sanitized = sanitized.trim();
       break;
     case 'phone':
       // Remove all non-digit characters and limit to 10 digits

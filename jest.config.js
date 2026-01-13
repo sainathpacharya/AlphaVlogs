@@ -18,10 +18,10 @@ module.exports = {
     '^@types/(.*)$': '<rootDir>/src/types/$1',
     '^@constants/(.*)$': '<rootDir>/src/constants/$1',
     '^@assets/(.*)$': '<rootDir>/src/assets/$1',
-    // Mock custom components
+    // Mock custom components - let jest.mock() in test files handle @/components
     '^../../components$': '<rootDir>/__tests__/__mocks__/components.js',
     '^../components$': '<rootDir>/__tests__/__mocks__/components.js',
-    '^@/components$': '<rootDir>/__tests__/__mocks__/components.js',
+    // Note: @/components is mocked via jest.mock() in test files, not via moduleNameMapper
     '^../../components/toast$': '<rootDir>/__tests__/__mocks__/components/toast.js',
     '^../components/toast$': '<rootDir>/__tests__/__mocks__/components/toast.js',
     '^@/components/toast$': '<rootDir>/__tests__/__mocks__/components/toast.js',

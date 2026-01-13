@@ -101,16 +101,20 @@ module.exports = {
   HStack: MockComponent,
   Box: MockComponent,
   View: MockComponent,
+  SafeAreaView: MockComponent,
+  Center: MockComponent,
+  Card: MockComponent,
 
   // Text components
   Text: MockText,
+  Heading: MockText,
 
   // Input components
   Input: MockInput,
   InputField: MockInputField,
+  InputInput: MockInputField,
   InputIcon: MockComponent,
   InputSlot: MockComponent,
-  InputInput: MockInputField, // deprecated
 
   // Button components
   Button: MockButton,
@@ -128,11 +132,45 @@ module.exports = {
   StatusBar: MockStatusBar,
   FlatList: MockFlatList,
   LoadingSpinner: MockLoadingSpinner,
+  Spinner: MockLoadingSpinner,
   Divider: MockComponent,
   Badge: MockComponent,
   Pressable: MockPressable,
+  Progress: MockComponent,
+  Textarea: MockComponent,
+  TextareaInput: MockTextInput,
+  Avatar: MockComponent,
+  Modal: MockComponent,
+  Alert: MockComponent,
+  AlertDialog: MockComponent,
+  ActionSheet: MockComponent,
+  Menu: MockComponent,
+  Popover: MockComponent,
+  Tooltip: MockComponent,
+  Link: MockPressable,
+  Switch: MockComponent,
+  Radio: MockComponent,
+  Checkbox: MockComponent,
+  Slider: MockComponent,
+  Tab: MockComponent,
+  TabList: MockComponent,
+  TabTitle: MockText,
+  TabPanels: MockComponent,
+  TabPanel: MockComponent,
+  Skeleton: MockComponent,
+  SkeletonText: MockText,
+  GluestackUIProvider: MockComponent,
 
   // Translation components
   TranslationExample: MockComponent,
   TranslationTest: MockComponent,
+  
+  // Media components
+  YouTubePlayer: MockComponent,
+  YouTubeUpload: MockComponent,
+  GifPlayer: MockComponent,
+  
+  // Additional components
+  RippleDemo: MockComponent,
+  RippleEffect: MockComponent,
 };

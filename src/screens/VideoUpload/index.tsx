@@ -42,7 +42,7 @@ interface VideoUploadNavProps {
 const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
   const navigation = useNavigation();
   const colors = useThemeColors();
-  const {eventId, eventTitle} = route.params;
+  const {eventId, eventTitle} = route?.params || {eventId: '', eventTitle: ''};
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<any>(null);

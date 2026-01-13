@@ -25,13 +25,21 @@ jest.mock('../../src/components', () => {
   };
 });
 
-jest.mock('../../src/components/status-bar', () => ({
-  StatusBar: () => React.createElement(require('react-native').View, {}),
-}));
+jest.mock('../../src/components/status-bar', () => {
+  const React = require('react');
+  const {View} = require('react-native');
+  return {
+    StatusBar: () => React.createElement(View, {}),
+  };
+});
 
-jest.mock('moti', () => ({
-  MotiImage: () => React.createElement(require('react-native').View, {}),
-}));
+jest.mock('moti', () => {
+  const React = require('react');
+  const {View} = require('react-native');
+  return {
+    MotiImage: () => React.createElement(View, {}),
+  };
+});
 
 jest.mock('../../src/components/toast', () => ({
   useToast: () => ({
@@ -59,15 +67,19 @@ jest.mock('../../src/services/schools-service', () => ({
   },
 }));
 
-jest.mock('lucide-react-native', () => ({
-  User: () => React.createElement(require('react-native').View, {}),
-  Mail: () => React.createElement(require('react-native').View, {}),
-  Phone: () => React.createElement(require('react-native').View, {}),
-  MapPin: () => React.createElement(require('react-native').View, {}),
-  Building2: () => React.createElement(require('react-native').View, {}),
-  Landmark: () => React.createElement(require('react-native').View, {}),
-  Hash: () => React.createElement(require('react-native').View, {}),
-}));
+jest.mock('lucide-react-native', () => {
+  const React = require('react');
+  const {View} = require('react-native');
+  return {
+    User: () => React.createElement(View, {}),
+    Mail: () => React.createElement(View, {}),
+    Phone: () => React.createElement(View, {}),
+    MapPin: () => React.createElement(View, {}),
+    Building2: () => React.createElement(View, {}),
+    Landmark: () => React.createElement(View, {}),
+    Hash: () => React.createElement(View, {}),
+  };
+});
 
 jest.mock('react-native-reanimated', () => ({
   Easing: {
