@@ -21,7 +21,7 @@
     "test:report": "jest --coverage --coverageReporters=text --coverageReporters=html --coverageReporters=json",
     "test:ci": "jest --ci --coverage --watchAll=false",
     "type-check": "tsc --noEmit",
-    "postinstall": "if command -v pod >/dev/null 2>&1 || command -v bundle >/dev/null 2>&1; then cd ios && (pod install || bundle exec pod install || true); else echo 'Warning: CocoaPods not found. Skipping pod install. Run: gem install cocoapods or bundle install'; fi",
+    "postinstall": "if [ -d 'ios' ] && command -v bundle >/dev/null 2>&1; then cd ios && bundle exec pod install || true; elif [ -d 'ios' ] && command -v pod >/dev/null 2>&1; then cd ios && pod install || true; fi",
     "clean": "rm -rf node_modules && yarn install",
     "clean:metro": "npx react-native start --reset-cache",
     "build:android": "cd android && ./gradlew assembleRelease",

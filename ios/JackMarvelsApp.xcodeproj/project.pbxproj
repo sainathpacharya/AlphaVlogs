@@ -435,7 +435,7 @@
 					"-lc++",
 					"$(inherited)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.jackmarvelsapp.JackMarvelsAppTests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jackmarvelsapp.JackMarvelsAppTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JackMarvelsApp.app/JackMarvelsApp";
 			};
@@ -459,7 +459,7 @@
 					"-lc++",
 					"$(inherited)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.jackmarvelsapp.JackMarvelsAppTests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jackmarvelsapp.JackMarvelsAppTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JackMarvelsApp.app/JackMarvelsApp";
 			};
@@ -492,7 +492,7 @@
 					"-framework",
 					Razorpay,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.jackmarvelsapp";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jackmarvelsapp;
 				PRODUCT_NAME = JackMarvelsApp;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -526,7 +526,7 @@
 					"-framework",
 					Razorpay,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.jackmarvelsapp";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jackmarvelsapp;
 				PRODUCT_NAME = JackMarvelsApp;
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
