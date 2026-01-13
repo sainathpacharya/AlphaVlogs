@@ -76,17 +76,31 @@ jobs:
           ./gradlew bundleProductionRelease --no-daemon
 
       - name: Setup Firebase Service Account
+        id: setup_firebase
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: |
-          if [ -n "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" ]; then
-            echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" > ${{ runner.temp }}/firebase-service-account.json
-            echo "✅ Firebase service account configured"
+          SERVICE_ACCOUNT_FILE="${{ runner.temp }}/firebase-service-account.json"
+
+          # Write secret to file and check if it was written successfully
+          if [ -n "$FIREBASE_SA_JSON" ]; then
+            echo "$FIREBASE_SA_JSON" > "$SERVICE_ACCOUNT_FILE"
+            # Verify the file was created and has content
+            if [ -f "$SERVICE_ACCOUNT_FILE" ] && [ -s "$SERVICE_ACCOUNT_FILE" ]; then
+              echo "✅ Firebase service account configured"
+              echo "firebase_configured=true" >> $GITHUB_OUTPUT
+            else
+              echo "⚠️ Failed to write service account file"
+              echo "firebase_configured=false" >> $GITHUB_OUTPUT
+            fi
           else
             echo "⚠️ FIREBASE_SERVICE_ACCOUNT_JSON secret not found. Skipping Firebase App Distribution upload."
+            echo "firebase_configured=false" >> $GITHUB_OUTPUT
           fi
         continue-on-error: true
 
       - name: Upload AAB to Firebase App Distribution
-        if: secrets.FIREBASE_SERVICE_ACCOUNT_JSON
+        if: steps.setup_firebase.outputs.firebase_configured == 'true'
         run: |
           cd android
           # Configure Gradle to use service account
