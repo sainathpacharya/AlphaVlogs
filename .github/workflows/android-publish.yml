@@ -38,6 +38,12 @@ jobs:
           node-version: '18'
           cache: 'yarn'
 
+      - name: Verify Node.js
+        run: |
+          echo "Node.js version: $(node --version)"
+          echo "Node.js path: $(which node)"
+          echo "✅ Node.js is available in PATH"
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
