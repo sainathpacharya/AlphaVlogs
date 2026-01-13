@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import React, {useState, useEffect, useRef} from 'react';
+import {View, Text, StyleSheet, Alert} from 'react-native';
 import OTPTextInput from 'react-native-otp-textinput';
-import { useOTPAutoRead } from '@/hooks/useOTPAutoRead';
+import {useOTPAutoRead} from '@/hooks/useOTPAutoRead';
 
 export interface OTPInputProps {
   length?: number;
@@ -47,7 +47,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
   } = useOTPAutoRead({
     enableAutoRead,
     timeout: autoReadTimeout,
-    onOTPReceived: (receivedOTP) => {
+    onOTPReceived: receivedOTP => {
       console.log('Auto-read OTP received:', receivedOTP);
       setOtp(receivedOTP);
       onChange?.(receivedOTP);
@@ -56,7 +56,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
         onComplete?.(receivedOTP);
       }
     },
-    onError: (error) => {
+    onError: error => {
       console.warn('Auto-read error:', error);
       // Don't show alert for permission denied, just log it
       if (!error.includes('permission')) {
@@ -99,10 +99,9 @@ const OTPInput: React.FC<OTPInputProps> = ({
     handleOTPChange(finalOtp);
   };
 
-  const handleKeyPress = (e: any, i: number) => {
-    if (e.nativeEvent.key === 'Backspace' && i > 0 && !otp[i]) {
-      otpRef.current?.focusPrevious();
-    }
+  const handleKeyPress = (text: string, i: number) => {
+    // OTPTextInput handles focus automatically on backspace
+    // This is just a placeholder handler
   };
 
   return (
@@ -110,7 +109,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
       <OTPTextInput
         ref={otpRef}
         value={otp}
-        handleTextChange={handleCellTextChange}
+        handleTextChange={(text: string) => handleCellTextChange(text, 0)}
         handleCellTextChange={handleCellTextChange}
         handleKeyPress={handleKeyPress}
         inputCount={length}
@@ -118,8 +117,8 @@ const OTPInput: React.FC<OTPInputProps> = ({
         tintColor={tintColor}
         offTintColor={offTintColor}
         defaultValue={otp}
-        containerStyle={[styles.otpContainer, textInputStyle]}
-        textInputStyle={[styles.otpInput, textInputStyle]}
+        containerStyle={styles.otpContainer}
+        textInputStyle={styles.otpInput}
         placeholder={placeholder}
         disabled={disabled}
       />
@@ -129,13 +128,10 @@ const OTPInput: React.FC<OTPInputProps> = ({
           <Text style={styles.instructionsText}>
             {isSupported
               ? platformInstructions
-              : 'Please manually enter the OTP from the SMS.'
-            }
+              : 'Please manually enter the OTP from the SMS.'}
           </Text>
           {isListening && (
-            <Text style={styles.listeningText}>
-              Listening for SMS...
-            </Text>
+            <Text style={styles.listeningText}>Listening for SMS...</Text>
           )}
         </View>
       )}

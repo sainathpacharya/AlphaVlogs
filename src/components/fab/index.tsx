@@ -461,7 +461,7 @@ export const Fab = ({
         rippleColor={rippleColor}
         rippleOpacity={rippleOpacity}
         rippleDuration={rippleDuration}
-        disabled={!!props.disabled}
+        disabled={Boolean(props.disabled)}
         {...props}>
         <UIFab {...props}>{children}</UIFab>
       </RippleEffect>

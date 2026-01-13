@@ -23,6 +23,7 @@ export const API_ENDPOINTS = {
     GET: '/dashboard',
   },
   USER: {
+    PROFILE: '/students/profile',
     UPDATE_PROFILE: '/students/profile',
   },
   VIDEO: {

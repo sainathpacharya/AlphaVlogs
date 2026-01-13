@@ -23,7 +23,7 @@ class SchoolService {
   async verifyInvitation(data: VerifyInvitationRequest): Promise<SchoolInvitation | null> {
     try {
       const response = await apiService.post<SchoolInvitation>(
-        API_ENDPOINTS.SCHOOL.VERIFY_INVITATION,
+        API_ENDPOINTS.SCHOOLS.GET,
         data
       );
       return response.success ? response.data || null : null;
@@ -41,7 +41,7 @@ class SchoolService {
   }> {
     try {
       const response = await apiService.post(
-        API_ENDPOINTS.SCHOOL.REGISTER_WITH_INVITATION,
+        API_ENDPOINTS.SCHOOLS.GET,
         data
       );
       return {

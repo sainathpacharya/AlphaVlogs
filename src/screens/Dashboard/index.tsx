@@ -22,7 +22,7 @@ import {DIMENSIONS} from '../../utils/styles';
 import {useThemeColors} from '../../utils/colors';
 import {useUserStore} from '../../stores';
 import {eventsService} from '../../services/events-service';
-import {EventItem as EventItemType} from '@/types';
+// EventItem type is defined locally below
 import {usePermissions} from '../../hooks/usePermissions';
 
 // ✅ Proper type for each item
@@ -188,8 +188,12 @@ const DashboardScreen: React.FC = () => {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) {return 'Good Morning';}
-    if (hour < 17) {return 'Good Afternoon';}
+    if (hour < 12) {
+      return 'Good Morning';
+    }
+    if (hour < 17) {
+      return 'Good Afternoon';
+    }
     return 'Good Evening';
   };
 

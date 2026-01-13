@@ -997,9 +997,13 @@ export const Button = ({
 
   // Determine ripple color based on button variant and state
   const getRippleColor = () => {
-    if (rippleColor) {return rippleColor;}
+    if (rippleColor) {
+      return rippleColor;
+    }
 
-    if (isDisabled) {return 'rgba(0, 0, 0, 0.1)';}
+    if (isDisabled) {
+      return 'rgba(0, 0, 0, 0.1)';
+    }
 
     switch (variant) {
       case 'outline':
@@ -1016,7 +1020,7 @@ export const Button = ({
       rippleColor={getRippleColor()}
       rippleOpacity={rippleOpacity}
       rippleDuration={rippleDuration}
-      disabled={!!(isDisabled || isLoading)}
+      disabled={Boolean(isDisabled || isLoading)}
       {...otherProps}>
       <UIButton {...otherProps} size={size}>
         {!isLoading ? (

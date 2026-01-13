@@ -15,6 +15,10 @@ export interface VerifyOTPRequest {
   otp: string;
 }
 
+// Alias for backward compatibility
+export type OTPVerificationRequest = VerifyOTPRequest;
+export type LoginRequest = VerifyOTPRequest;
+
 export interface RegisterRequest {
   firstName: string;
   lastName: string;
@@ -74,6 +78,11 @@ class AuthService {
       apiLogger.logServiceCall('AuthService', 'sendOTP', data, null, error);
       throw error;
     }
+  }
+
+  // Alias for login - verifyOTP is used for login
+  async login(data: LoginRequest): Promise<ApiResponse<LoginResponse>> {
+    return this.verifyOTP(data);
   }
 
   async verifyOTP(data: VerifyOTPRequest): Promise<ApiResponse<LoginResponse>> {
@@ -240,6 +249,24 @@ class AuthService {
       return result;
     } catch (error) {
       apiLogger.logServiceCall('AuthService', 'logout', null, null, error);
+      throw error;
+    }
+  }
+
+  async getProfile(): Promise<ApiResponse<User>> {
+    try {
+      if (MockWrapperService.isMockMode()) {
+        const mockResponse = await MockWrapperService.getMockService().getProfile('user_001');
+        const result = MockWrapperService.convertMockResponse(mockResponse);
+        apiLogger.logMockCall('AuthService', 'getProfile', null, result);
+        return result;
+      }
+
+      const result = await apiService.get<User>(API_ENDPOINTS.USER.PROFILE);
+      apiLogger.logServiceCall('AuthService', 'getProfile', null, result);
+      return result;
+    } catch (error) {
+      apiLogger.logServiceCall('AuthService', 'getProfile', null, null, error);
       throw error;
     }
   }

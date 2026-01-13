@@ -1,7 +1,7 @@
-import { AsForwarder, styled } from '@gluestack-style/react';
-import { createInput } from '@gluestack-ui/input';
+import {AsForwarder, styled} from '@gluestack-style/react';
+import {createInput} from '@gluestack-ui/input';
 import React from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import {Pressable, TextInput, View} from 'react-native';
 
 const StyledRoot = styled(
   View,
@@ -243,7 +243,7 @@ const StyledRoot = styled(
   },
   {
     descendantStyle: ['_input', '_icon'],
-  }
+  },
 );
 
 const StyledIcon = styled(
@@ -317,7 +317,7 @@ const StyledIcon = styled(
       stroke: 'colors',
       fill: 'colors',
     },
-  }
+  },
 );
 
 const StyledSlot = styled(
@@ -333,7 +333,7 @@ const StyledSlot = styled(
   },
   {
     descendantStyle: ['_icon'],
-  }
+  },
 );
 
 const StyledInputField = styled(
@@ -411,7 +411,7 @@ const StyledInputField = styled(
     propertyTokenMap: {
       placeholderTextColor: 'colors',
     },
-  }
+  },
 );
 const UIInput = createInput({
   Root: StyledRoot,
@@ -427,7 +427,7 @@ interface InputProps {
   [key: string]: any;
 }
 
-export const Input: React.FC<InputProps> = ({
+const InputComponent: React.FC<InputProps> = ({
   accessibilityLabel,
   testID,
   ...props
@@ -440,6 +440,10 @@ export const Input: React.FC<InputProps> = ({
   />
 );
 
+// Add Input.Input property for compatibility
+(InputComponent as any).Input = UIInput.Input;
+
+export const Input = InputComponent;
 export const InputIcon = UIInput.Icon;
 export const InputSlot = UIInput.Slot;
 export const InputField = UIInput.Input;

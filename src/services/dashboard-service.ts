@@ -7,7 +7,8 @@ class DashboardService {
   async getDashboard(): Promise<DashboardData> {
     if (MockWrapperService.isMockMode()) {
       const mockResponse = await MockWrapperService.getMockService().getDashboard();
-      return mockResponse.data;
+      // Mock API returns DashboardData directly, not wrapped
+      return mockResponse as any;
     }
 
     const response = await apiService.get<DashboardData>(API_ENDPOINTS.DASHBOARD.GET);

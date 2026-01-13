@@ -46,7 +46,7 @@ class VideoService {
           duration: Math.floor(Math.random() * 180) + 30, // Random duration between 30-210 seconds
         });
 
-        if (response.success && response.data) {
+        if (response.success && 'data' in response && response.data) {
           return response.data;
         } else {
           throw new Error('Failed to upload video');

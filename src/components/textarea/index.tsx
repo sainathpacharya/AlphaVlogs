@@ -1,17 +1,17 @@
-import { createTextarea } from '@gluestack-ui/textarea';
+import {createTextarea} from '@gluestack-ui/textarea';
 
-import { View, TextInput } from 'react-native';
-import { styled } from '@gluestack-style/react';
+import {View, TextInput} from 'react-native';
+import {styled} from '@gluestack-style/react';
 const StyledRoot = styled(
   View,
   {
-    'w': '100%',
-    'borderWidth': 1,
-    'borderColor': '$background300',
-    'borderRadius': '$sm',
-    'h': 100,
+    w: '100%',
+    borderWidth: 1,
+    borderColor: '$background300',
+    borderRadius: '$sm',
+    h: 100,
 
-    '_input': {
+    _input: {
       p: '$3',
       _web: {
         outlineWidth: 0,
@@ -24,20 +24,20 @@ const StyledRoot = styled(
     },
 
     ':focus': {
-      'borderColor': '$primary700',
+      borderColor: '$primary700',
       ':hover': {
         borderColor: '$primary700',
       },
     },
 
     ':disabled': {
-      'opacity': 0.4,
+      opacity: 0.4,
       ':hover': {
         borderColor: '$background300',
       },
     },
 
-    'variants': {
+    variants: {
       size: {
         xl: {
           _input: {
@@ -63,7 +63,7 @@ const StyledRoot = styled(
       },
       variant: {
         default: {
-          '_input': {
+          _input: {
             _web: {
               outlineWidth: '0',
               outline: 'none',
@@ -78,8 +78,8 @@ const StyledRoot = styled(
           },
 
           ':invalid': {
-            'borderColor': '$error700',
-            '_web': {
+            borderColor: '$error700',
+            _web: {
               boxShadow: 'inset 0 0 0 1px $error700',
             },
             ':hover': {
@@ -106,7 +106,7 @@ const StyledRoot = styled(
       },
     },
 
-    'defaultProps': {
+    defaultProps: {
       variant: 'default',
       size: 'md',
     },
@@ -114,7 +114,7 @@ const StyledRoot = styled(
   {
     descendantStyle: ['_input'],
   },
-  {}
+  {},
 );
 const StyledInput = styled(
   TextInput,
@@ -131,7 +131,7 @@ const StyledInput = styled(
     },
 
     _web: {
-      'cursor': 'text',
+      cursor: 'text',
       ':disabled': {
         cursor: 'not-allowed',
       },
@@ -145,12 +145,15 @@ const StyledInput = styled(
     propertyTokenMap: {
       placeholderTextColor: 'colors',
     },
-  }
+  },
 );
 const AccessibleTextarea = createTextarea({
   Root: StyledRoot,
   Input: StyledInput,
 });
 
-export const Textarea = AccessibleTextarea;
+const TextareaComponent = AccessibleTextarea;
+(TextareaComponent as any).Input = AccessibleTextarea.Input;
+
+export const Textarea = TextareaComponent;
 export const TextareaInput = AccessibleTextarea.Input;

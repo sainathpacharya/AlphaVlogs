@@ -255,4 +255,81 @@ const styles = StyleSheet.create({
   },
 });
 
+// Wrapper to support gluestack-ui Select API with children
+const SelectWrapper = React.forwardRef<any, any>((props, ref) => {
+  const {children, selectedValue, onValueChange, isDisabled, ...restProps} =
+    props;
+
+  // Extract options from children (SelectItem components)
+  const options: SelectOption[] = [];
+  const processChildren = (children: any) => {
+    Children.forEach(children, (child: any) => {
+      if (child && typeof child === 'object') {
+        const componentName = child.type?.displayName || child.type?.name || '';
+        if (
+          componentName === 'SelectItem' ||
+          child.type?.displayName === 'SelectItem'
+        ) {
+          const itemProps = child.props || {};
+          if (itemProps.value) {
+            const label =
+              itemProps.label || itemProps.children || itemProps.value;
+            options.push({value: itemProps.value, label: String(label)});
+          }
+        } else if (child.props && child.props.children) {
+          processChildren(child.props.children);
+        }
+      }
+    });
+  };
+
+  processChildren(children);
+
+  return (
+    <Select
+      ref={ref}
+      options={options}
+      value={selectedValue}
+      onValueChange={onValueChange}
+      disabled={isDisabled}
+      {...restProps}
+    />
+  );
+});
+
+SelectWrapper.displayName = 'Select';
+
 export {Select};
+
+// Stub exports for gluestack-ui Select API compatibility
+export const SelectTrigger: any = ({children, ...props}: any) => children;
+export const SelectInput: any = () => null;
+export const SelectIcon: any = ({children}: any) => children;
+export const SelectPortal: any = ({children}: any) => children;
+export const SelectBackdrop: any = () => null;
+export const SelectContent: any = ({children}: any) => children;
+export const SelectDragIndicatorWrapper: any = ({children}: any) => children;
+export const SelectDragIndicator: any = () => null;
+// SelectItem component for gluestack-ui API compatibility
+export const SelectItem: any = ({label, value, children, ...props}: any) => {
+  // This component is used by SelectWrapper to extract options
+  // It doesn't render anything itself
+  return null;
+};
+SelectItem.displayName = 'SelectItem';
+export const SelectItemText: any = ({children}: any) => children;
+
+// Default export supports both APIs
+const SelectComponent: any = React.forwardRef<any, any>(
+  (props: any, ref: any) => {
+    // If children are provided, use wrapper; otherwise use regular Select
+    if (props.children) {
+      return <SelectWrapper ref={ref} {...props} />;
+    }
+    return <Select ref={ref} {...props} />;
+  },
+);
+
+SelectComponent.displayName = 'Select';
+
+export default SelectComponent;

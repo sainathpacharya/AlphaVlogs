@@ -105,7 +105,18 @@ export const useThemeColors = () => {
   // Use user theme if set, otherwise fall back to system theme
   const theme = userTheme || systemColorScheme || 'dark';
 
-  return theme === 'dark' ? darkColors : lightColors;
+  const baseColors = theme === 'dark' ? darkColors : lightColors;
+
+  // Add aliases for compatibility
+  return {
+    ...baseColors,
+    // Aliases
+    text: baseColors.primaryText,
+    textSecondary: baseColors.secondaryText,
+    background: baseColors.primaryBackground,
+    backgroundSecondary: baseColors.secondaryBackground,
+    primary: baseColors.accentAction,
+  };
 };
 
 // Default export for backward compatibility
