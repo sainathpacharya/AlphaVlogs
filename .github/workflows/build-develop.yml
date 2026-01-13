@@ -91,7 +91,7 @@ jobs:
           echo "📦 Building APK with version code: $VERSION_CODE"
           echo "📦 Build number: ${{ github.run_number }}"
           echo "📦 Commit SHA: ${{ github.sha }}"
-          
+
           ./gradlew assembleDevelopRelease \
             -PversionCode=$VERSION_CODE \
             --no-daemon
@@ -101,7 +101,7 @@ jobs:
           echo "🔍 Verifying APK version code..."
           APK_PATH="app/build/outputs/apk/develop/release/app-develop-release.apk"
           METADATA_PATH="app/build/outputs/apk/develop/release/output-metadata.json"
-          
+
           if [ -f "$METADATA_PATH" ]; then
             echo "📄 Checking build metadata..."
             METADATA_VERSION_CODE=$(grep -o '"versionCode":[^,]*' "$METADATA_PATH" | grep -o '[0-9]\+' | head -n 1)
@@ -116,7 +116,7 @@ jobs:
           else
             echo "⚠️ Metadata file not found at $METADATA_PATH"
           fi
-          
+
           if [ -f "$APK_PATH" ]; then
             echo "✅ APK built successfully: $APK_PATH"
             echo "   Size: $(du -h "$APK_PATH" | cut -f1)"
@@ -230,13 +230,8 @@ jobs:
           BUILD_NUMBER="${{ github.run_number }}"
           BUILD_SHA="${{ github.sha }}"
           BUILD_DATE="$(date -u +'%Y-%m-%d %H:%M:%S UTC')"
-          RELEASE_NOTES="Development build #${BUILD_NUMBER} - Alpha Vlogs Dev
-          
-Build Date: ${BUILD_DATE}
-Commit: ${BUILD_SHA:0:7}
-Workflow: ${{ github.workflow }}
-Run: #${BUILD_NUMBER}"
-          
+          RELEASE_NOTES="Development build #${BUILD_NUMBER} - Alpha Vlogs Dev"$'\n'$'\n'"Build Date: ${BUILD_DATE}"$'\n'"Commit: ${BUILD_SHA:0:7}"$'\n'"Workflow: ${{ github.workflow }}"$'\n'"Run: #${BUILD_NUMBER}"
+
           echo "📤 Uploading build #${BUILD_NUMBER} to Firebase App Distribution..."
           firebase appdistribution:distribute "$APK_PATH" \
             --app "$DEVELOP_APP_ID" \
@@ -313,13 +308,8 @@ Run: #${BUILD_NUMBER}"
           BUILD_NUMBER="${{ github.run_number }}"
           BUILD_SHA="${{ github.sha }}"
           BUILD_DATE="$(date -u +'%Y-%m-%d %H:%M:%S UTC')"
-          RELEASE_NOTES="Development build #${BUILD_NUMBER} - Alpha Vlogs Dev
-          
-Build Date: ${BUILD_DATE}
-Commit: ${BUILD_SHA:0:7}
-Workflow: ${{ github.workflow }}
-Run: #${BUILD_NUMBER}"
-          
+          RELEASE_NOTES="Development build #${BUILD_NUMBER} - Alpha Vlogs Dev"$'\n'$'\n'"Build Date: ${BUILD_DATE}"$'\n'"Commit: ${BUILD_SHA:0:7}"$'\n'"Workflow: ${{ github.workflow }}"$'\n'"Run: #${BUILD_NUMBER}"
+
           echo "📤 Uploading build #${BUILD_NUMBER} to Firebase App Distribution..."
           firebase appdistribution:distribute "$AAB_PATH" \
             --app "$DEVELOP_APP_ID" \
@@ -438,7 +428,7 @@ Run: #${BUILD_NUMBER}"
           echo ""
           echo "❌ iOS build failed. Showing error summary..."
           echo ""
-          
+
           # Try to show error details from the build log if it exists
           BUILD_LOG_PATH="ios/build.log"
           if [ -f "$BUILD_LOG_PATH" ]; then
@@ -467,7 +457,7 @@ Run: #${BUILD_NUMBER}"
             echo "   The build may have failed before logging started."
             echo "   Check the 'Build iOS Archive' step output above for details."
           fi
-          
+
           echo ""
           echo "💡 Common iOS build issues:"
           echo "   1. Missing dependencies - check if 'pod install' completed successfully"

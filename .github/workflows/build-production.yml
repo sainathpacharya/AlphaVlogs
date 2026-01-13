@@ -28,7 +28,7 @@ on:
       - '.gitignore'
       - 'LICENSE'
   tags:
-    - 'v*.*.*' # Trigger on version tags like v1.0.0
+    - 'v*.*.*'
 
 env:
   PACKAGE_NAME_PRODUCTION: com.jackmarvelsapp
