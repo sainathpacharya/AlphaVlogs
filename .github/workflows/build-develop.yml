@@ -479,46 +479,84 @@ jobs:
           exit 1
 
       - name: Export IPA from Archive
+        id: export_ipa
         if: steps.build_ios.outputs.build_success == 'true'
         run: |
           cd ios
           # Check if archive exists
           if [ ! -d "$PWD/build/JackMarvelsApp-develop.xcarchive" ]; then
             echo "❌ Archive not found. Build may have failed."
+            echo "ipa_exported=false" >> $GITHUB_OUTPUT
             exit 1
           fi
 
           echo "✅ Archive found. Attempting to export IPA..."
 
-          # Create minimal ExportOptions.plist if it doesn't exist
-          if [ ! -f "$PWD/ExportOptions.plist" ]; then
-            echo "⚠️ ExportOptions.plist not found. Creating minimal one..."
-            cat > "$PWD/ExportOptions.plist" <<EOF
+          # Create minimal ExportOptions.plist for ad-hoc distribution (no code signing required)
+          cat > "$PWD/ExportOptions.plist" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
             <key>method</key>
-            <string>development</string>
+            <string>ad-hoc</string>
             <key>signingStyle</key>
-            <string>manual</string>
+            <string>automatic</string>
+            <key>teamID</key>
+            <string></string>
           </dict>
           </plist>
           EOF
-          fi
 
-          # Try to export IPA (will fail without code signing, which is expected)
+          # Try to export IPA
+          echo "📦 Exporting IPA from archive..."
           xcodebuild -exportArchive \
             -archivePath $PWD/build/JackMarvelsApp-develop.xcarchive \
             -exportPath $PWD/build/export \
             -exportOptionsPlist $PWD/ExportOptions.plist \
-            -allowProvisioningUpdates 2>&1 || {
+            -allowProvisioningUpdates 2>&1 | tee export.log || {
               echo ""
-              echo "⚠️ IPA export failed. This is expected if code signing is not configured."
-              echo "   Archive is still available for manual export."
-              echo "   Archive location: $PWD/build/JackMarvelsApp-develop.xcarchive"
+              echo "⚠️ IPA export failed. Checking export log..."
+              tail -n 50 export.log || true
+              echo ""
+              echo "📝 Note: IPA export requires code signing configuration."
+              echo "   Archive is available for manual export at: $PWD/build/JackMarvelsApp-develop.xcarchive"
+              echo "ipa_exported=false" >> $GITHUB_OUTPUT
               exit 0
             }
+
+          # Verify IPA was created
+          IPA_PATH="$PWD/build/export/JackMarvelsApp.ipa"
+          if [ -f "$IPA_PATH" ]; then
+            echo "✅ IPA exported successfully!"
+            echo "   Path: $IPA_PATH"
+            echo "   Size: $(du -h "$IPA_PATH" | cut -f1)"
+            echo "ipa_exported=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ IPA export completed but file not found at expected path: $IPA_PATH"
+            echo "   Checking export directory..."
+            ls -la "$PWD/build/export/" || echo "   Export directory not found"
+            echo "ipa_exported=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: IPA Export Status
+        if: steps.build_ios.outputs.build_success == 'true'
+        run: |
+          if [ "${{ steps.export_ipa.outputs.ipa_exported }}" != "true" ]; then
+            echo "⚠️ IPA was not exported successfully."
+            echo ""
+            echo "📝 To upload to Firebase App Distribution, you need to:"
+            echo "   1. Download the archive artifact: ios-archive-develop"
+            echo "   2. Open the archive in Xcode"
+            echo "   3. Export as IPA (Ad Hoc or Development)"
+            echo "   4. Upload manually to Firebase App Distribution"
+            echo ""
+            echo "   Or configure code signing in CI/CD to enable automatic IPA export."
+            echo ""
+            echo "   Archive location: ios/build/JackMarvelsApp-develop.xcarchive"
+          else
+            echo "✅ IPA exported successfully and ready for Firebase upload"
+          fi
 
       - name: Setup Firebase Service Account
         id: setup_firebase_ios
@@ -542,7 +580,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload IPA to Firebase App Distribution
-        if: steps.setup_firebase_ios.outputs.firebase_configured == 'true'
+        if: steps.setup_firebase_ios.outputs.firebase_configured == 'true' && steps.export_ipa.outputs.ipa_exported == 'true'
         run: |
           # Install Firebase CLI if not available
           if ! command -v firebase &> /dev/null; then
@@ -566,14 +604,15 @@ jobs:
 
           IOS_APP_ID="$IOS_DEVELOP_APP_ID"
 
-          # Try to find IPA file
+          # Find IPA file
           IPA_PATH="ios/build/export/JackMarvelsApp.ipa"
 
           if [ ! -f "$IPA_PATH" ]; then
-            echo "⚠️ IPA not found at $IPA_PATH."
-            echo "   This is expected if code signing is not configured for CI/CD."
-            echo "   Archive is available for manual export and upload."
-            exit 0
+            echo "❌ IPA not found at $IPA_PATH."
+            echo "   Expected path: $IPA_PATH"
+            echo "   Checking alternative locations..."
+            find ios/build -name "*.ipa" -type f || echo "   No IPA files found"
+            exit 1
           fi
 
           echo "✅ IPA found: $IPA_PATH"
