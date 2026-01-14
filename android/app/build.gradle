@@ -93,14 +93,23 @@ android {
     
     // Get version code from project property (set via -PversionCode=xxx in CI/CD)
     // Defaults to 1 if not set (for local builds)
-    def buildVersionCode = project.hasProperty('versionCode') ? project.property('versionCode').toInteger() : 1
-    
-    // Log the version code being used (helpful for debugging)
-    println "📦 Building with version code: $buildVersionCode"
+    def buildVersionCode = 1
     if (project.hasProperty('versionCode')) {
-        println "   (from -PversionCode=${project.property('versionCode')})")
+        try {
+            def versionCodeStr = project.property('versionCode').toString().trim()
+            if (versionCodeStr && !versionCodeStr.isEmpty()) {
+                buildVersionCode = versionCodeStr.toInteger()
+                println "📦 Building with version code: $buildVersionCode (from -PversionCode=$versionCodeStr)"
+            } else {
+                println "⚠️ Warning: versionCode property is empty, using default: 1"
+            }
+        } catch (Exception e) {
+            println "⚠️ Warning: Failed to parse versionCode property '${project.property('versionCode')}': ${e.message}"
+            println "   Using default version code: 1"
+            buildVersionCode = 1
+        }
     } else {
-        println "   (using default: 1)")
+        println "📦 Building with version code: $buildVersionCode (using default: 1)"
     }
     
     defaultConfig {
@@ -109,6 +118,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Version code can be overridden via -PversionCode=xxx
         // This allows CI/CD to set unique version codes for each build
+        // Set versionCode here - it will apply to all flavors
         versionCode buildVersionCode
         versionName "1.0"
     }
@@ -120,16 +130,14 @@ android {
             dimension "environment"
             applicationIdSuffix ".dev"
             versionNameSuffix "-dev"
-            // Ensure version code is set for develop flavor too
-            versionCode buildVersionCode
+            // versionCode is inherited from defaultConfig
             resValue "string", "app_name", "Alpha Vlogs Dev"
             // Use debug signing for develop builds
             signingConfig signingConfigs.debug
         }
         production {
             dimension "environment"
-            // Ensure version code is set for production flavor too
-            versionCode buildVersionCode
+            // versionCode is inherited from defaultConfig
             resValue "string", "app_name", "Alpha Vlogs"
             // Production builds will use release signing config
         }
