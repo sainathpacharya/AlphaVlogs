@@ -353,15 +353,26 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Install CocoaPods dependencies
-        run: |
-          cd ios
-          pod install --repo-update
-
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: '15.4'
+
+      - name: Check Xcode version
+        run: |
+          echo "🔍 Verifying Xcode version..."
+          xcodebuild -version
+          xcode-select -p
+          echo "✅ Xcode version verified"
+
+      - name: Clean and install Pods
+        run: |
+          cd ios
+          echo "🧹 Cleaning Pods..."
+          rm -rf Pods Podfile.lock
+          echo "📦 Installing CocoaPods dependencies..."
+          pod install --repo-update
+          echo "✅ Pods installed successfully"
 
       - name: Build iOS Archive
         id: build_ios
