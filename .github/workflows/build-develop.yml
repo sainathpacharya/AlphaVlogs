@@ -20,14 +20,6 @@ on:
         options:
           - apk
           - aab
-  push:
-    branches:
-      - develop
-      - main
-    paths-ignore:
-      - '**.md'
-      - '.gitignore'
-      - 'LICENSE'
 
 env:
   PACKAGE_NAME_DEVELOP: com.jackmarvelsapp.dev
@@ -83,7 +75,7 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Build APK
-        if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '' || github.event_name == 'push'
+        if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == ''
         run: |
           cd android
           # Use GitHub Actions run number as version code to ensure each build is unique
@@ -137,7 +129,7 @@ jobs:
             --no-daemon
 
       - name: Upload APK artifact
-        if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '' || github.event_name == 'push'
+        if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == ''
         uses: actions/upload-artifact@v4
         with:
           name: android-apk-develop
@@ -177,7 +169,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload APK to Firebase App Distribution
-        if: (github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '' || github.event_name == 'push') && steps.setup_firebase.outputs.firebase_configured == 'true'
+        if: (github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '') && steps.setup_firebase.outputs.firebase_configured == 'true'
         run: |
           # Verify APK exists
           APK_PATH="android/app/build/outputs/apk/develop/release/app-develop-release.apk"

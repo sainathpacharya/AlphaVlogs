@@ -20,15 +20,6 @@ on:
         options:
           - apk
           - aab
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*.*.*'
-    paths-ignore:
-      - '**.md'
-      - '.gitignore'
-      - 'LICENSE'
 
 env:
   PACKAGE_NAME_PRODUCTION: com.jackmarvelsapp
@@ -84,7 +75,7 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Build APK
-        if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '' || github.event_name == 'push'
+        if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == ''
         run: |
           cd android
           # Use GitHub Actions run number as version code to ensure each build is unique
@@ -107,7 +98,7 @@ jobs:
             --no-daemon
 
       - name: Upload APK artifact
-        if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '' || github.event_name == 'push'
+        if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == ''
         uses: actions/upload-artifact@v4
         with:
           name: android-apk-production
@@ -147,7 +138,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload APK to Firebase App Distribution
-        if: (github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '' || github.event_name == 'push') && steps.setup_firebase.outputs.firebase_configured == 'true'
+        if: (github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == '') && steps.setup_firebase.outputs.firebase_configured == 'true'
         run: |
           cd android
           # Configure Gradle to use service account
