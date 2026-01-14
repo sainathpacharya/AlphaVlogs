@@ -78,10 +78,13 @@ jobs:
         if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == ''
         run: |
           cd android
-          # Use GitHub Actions run number as version code to ensure each build is unique
-          # This prevents Firebase App Distribution from updating the same release
+          # For Firebase App Distribution: Use GitHub Actions run number as version code
+          # Firebase allows multiple builds with the same app version as long as build number is unique
+          # This is different from Play Store which requires strict version increments
           VERSION_CODE=${{ github.run_number }}
-          echo "📦 Building APK with version code: $VERSION_CODE"
+          echo "📦 Building APK for Firebase App Distribution"
+          echo "   Version Code: $VERSION_CODE (from GitHub run number)"
+          echo "   Note: Firebase allows same version name with unique build numbers"
           ./gradlew assembleProductionRelease \
             -PversionCode=$VERSION_CODE \
             --no-daemon
@@ -90,9 +93,11 @@ jobs:
         if: github.event.inputs.build_type == 'aab'
         run: |
           cd android
-          # Use GitHub Actions run number as version code to ensure each build is unique
+          # For Firebase App Distribution: Use GitHub Actions run number as version code
+          # Firebase allows multiple builds with the same app version as long as build number is unique
           VERSION_CODE=${{ github.run_number }}
-          echo "📦 Building AAB with version code: $VERSION_CODE"
+          echo "📦 Building AAB for Firebase App Distribution"
+          echo "   Version Code: $VERSION_CODE (from GitHub run number)"
           ./gradlew bundleProductionRelease \
             -PversionCode=$VERSION_CODE \
             --no-daemon

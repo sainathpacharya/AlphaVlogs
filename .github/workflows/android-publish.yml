@@ -70,10 +70,79 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
+      - name: Calculate Version for Play Store
+        id: calculate_version
+        run: |
+          # For Play Store, version code and version name must always increment
+          # Extract version from git tag (v1.2.3) or use input/manual version
+
+          if [ "${{ github.event_name }}" == "push" ] && [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            # Extract version from tag (e.g., v1.2.3 -> 1.2.3)
+            VERSION_TAG="${{ github.ref_name }}"
+            VERSION_NAME="${VERSION_TAG#v}"  # Remove 'v' prefix
+            echo "📦 Version from git tag: $VERSION_NAME"
+          elif [ -n "${{ github.event.inputs.version_name }}" ]; then
+            # Use version from workflow input
+            VERSION_NAME="${{ github.event.inputs.version_name }}"
+            echo "📦 Using version from input: $VERSION_NAME"
+          else
+            # For manual workflow_dispatch without input, try to get latest tag or use default
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+            if [ -n "$LATEST_TAG" ] && [[ "$LATEST_TAG" == v* ]]; then
+              VERSION_NAME="${LATEST_TAG#v}"
+              echo "📦 Using latest git tag: $VERSION_NAME"
+            else
+              VERSION_NAME="1.0.0"
+              echo "⚠️ No version specified and no git tags found, using default: $VERSION_NAME"
+              echo "⚠️ WARNING: For Play Store, you should specify a version or use a git tag!"
+            fi
+          fi
+
+          # Parse semantic version (major.minor.patch)
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NAME"
+          MAJOR=${MAJOR:-1}
+          MINOR=${MINOR:-0}
+          PATCH=${PATCH:-0}
+
+          # Calculate version code: major * 1000000 + minor * 1000 + patch
+          # This ensures version code always increments (e.g., 1.2.3 = 1002003)
+          VERSION_CODE=$((MAJOR * 1000000 + MINOR * 1000 + PATCH))
+
+          echo "📦 Version Name: $VERSION_NAME"
+          echo "📦 Version Code: $VERSION_CODE (calculated from $MAJOR.$MINOR.$PATCH)"
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+
+          # Validate version code is greater than 0
+          if [ "$VERSION_CODE" -le 0 ]; then
+            echo "❌ Error: Invalid version code calculated: $VERSION_CODE"
+            echo "   Version name: $VERSION_NAME"
+            exit 1
+          fi
+
       - name: Build AAB (App Bundle)
         run: |
           cd android
-          ./gradlew bundleProductionRelease --no-daemon
+          echo "🔨 Building AAB for Play Store..."
+          echo "   Version Name: ${{ steps.calculate_version.outputs.version_name }}"
+          echo "   Version Code: ${{ steps.calculate_version.outputs.version_code }}"
+          ./gradlew bundleProductionRelease \
+            -PversionName="${{ steps.calculate_version.outputs.version_name }}" \
+            -PversionCode=${{ steps.calculate_version.outputs.version_code }} \
+            --no-daemon
+
+          # Verify the version was applied
+          echo ""
+          echo "🔍 Verifying AAB version..."
+          AAB_PATH="app/build/outputs/bundle/production/release/app-production-release.aab"
+          if [ -f "$AAB_PATH" ]; then
+            echo "✅ AAB built successfully"
+            echo "   Path: $AAB_PATH"
+            echo "   Size: $(du -h "$AAB_PATH" | cut -f1)"
+          else
+            echo "❌ AAB not found at $AAB_PATH"
+            exit 1
+          fi
 
       - name: Setup Firebase Service Account
         id: setup_firebase
@@ -143,6 +212,8 @@ jobs:
         run: |
           echo "## Android Build & Publish Summary" >> $GITHUB_STEP_SUMMARY
           echo "- **Package:** ${{ env.PACKAGE_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version Name:** ${{ steps.calculate_version.outputs.version_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version Code:** ${{ steps.calculate_version.outputs.version_code }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Release Track:** ${{ github.event.inputs.track || 'internal' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Tag:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY

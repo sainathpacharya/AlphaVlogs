@@ -92,6 +92,8 @@ android {
     namespace "com.jackmarvelsapp"
     
     // Get version code from project property (set via -PversionCode=xxx in CI/CD)
+    // For Play Store: Must always increment (extracted from git tag)
+    // For Firebase App Distribution: Can use build number (github.run_number) for uniqueness
     // Defaults to 1 if not set (for local builds)
     def buildVersionCode = 1
     if (project.hasProperty('versionCode')) {
@@ -112,15 +114,37 @@ android {
         println "📦 Building with version code: $buildVersionCode (using default: 1)"
     }
     
+    // Get version name from project property (set via -PversionName=xxx in CI/CD)
+    // For Play Store: Must increment (extracted from git tag like v1.2.3)
+    // Defaults to "1.0" if not set (for local builds)
+    def buildVersionName = "1.0"
+    if (project.hasProperty('versionName')) {
+        try {
+            def versionNameStr = project.property('versionName').toString().trim()
+            if (versionNameStr && !versionNameStr.isEmpty()) {
+                buildVersionName = versionNameStr
+                println "📦 Building with version name: $buildVersionName (from -PversionName=$versionNameStr)"
+            } else {
+                println "⚠️ Warning: versionName property is empty, using default: 1.0"
+            }
+        } catch (Exception e) {
+            println "⚠️ Warning: Failed to parse versionName property '${project.property('versionName')}': ${e.message}"
+            println "   Using default version name: 1.0"
+            buildVersionName = "1.0"
+        }
+    } else {
+        println "📦 Building with version name: $buildVersionName (using default: 1.0)"
+    }
+    
     defaultConfig {
         applicationId "com.jackmarvelsapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Version code can be overridden via -PversionCode=xxx
-        // This allows CI/CD to set unique version codes for each build
-        // Set versionCode here - it will apply to all flavors
+        // Version code and name can be overridden via -PversionCode=xxx and -PversionName=xxx
+        // This allows CI/CD to set proper versions for each build
+        // Set versionCode and versionName here - they will apply to all flavors
         versionCode buildVersionCode
-        versionName "1.0"
+        versionName buildVersionName
     }
     
     // Product Flavors: develop and production
