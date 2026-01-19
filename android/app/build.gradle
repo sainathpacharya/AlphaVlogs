@@ -167,6 +167,15 @@ android {
         }
     }
     
+    // Filter out production debug variant to avoid ambiguity
+    // This makes 'react-native run-android' default to developDebug
+    variantFilter { variant ->
+        def names = variant.flavors*.name
+        if (names.contains("production") && variant.buildType.name == "debug") {
+            setIgnore(true)
+        }
+    }
+    
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
