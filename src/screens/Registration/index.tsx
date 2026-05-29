@@ -579,14 +579,7 @@ const RegistrationScreen = ({navigation}: any) => {
       testID="registration-screen"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{flex: 1, backgroundColor: colors.primaryBackground}}>
-      <StatusBar
-        backgroundColor={colors.primaryBackground}
-        barStyle={
-          colors.primaryBackground === '#FFFFFF'
-            ? 'dark-content'
-            : 'light-content'
-        }
-      />
+      <StatusBar translucent={false} />
       <ScrollView
         ref={scrollViewRef}
         testID="registration-scroll-view"

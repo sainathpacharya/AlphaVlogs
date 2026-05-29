@@ -1,0 +1,14 @@
+{
+  "id": "sub_001",
+  "userId": "user_001",
+  "plan": "premium",
+  "amount": 100,
+  "paymentMethod": "razorpay",
+  "status": "active",
+  "startDate": "2024-01-01T00:00:00Z",
+  "endDate": "2024-12-31T23:59:59Z",
+  "transactionId": "txn_static_123456",
+  "canUploadVideos": true,
+  "maxVideosPerMonth": 10,
+  "videosUploadedThisMonth": 3
+}

@@ -1,9 +1,84 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiService from './api';
-import { API_ENDPOINTS } from '@/constants';
+import { API_ENDPOINTS, STORAGE_KEYS } from '@/constants';
 import { ApiResponse, User, AuthTokens, OTPResponse } from '@/types';
 import { MockWrapperService } from './mock-wrapper';
 import { apiLogger } from '@/utils/api-logger';
 import { validateRegistrationData } from '@/utils/validation';
+import { normalizeAuthTokens } from '@/utils/api-response';
+
+/** Last 10 digits of an Indian mobile (API expects plain 10-digit string). */
+function toIndianMobile(mobile: string): string {
+  return mobile.replace(/\D/g, '').slice(-10);
+}
+
+/** Indian mobile: 10 digits, first digit 6–9. */
+function isValidIndianMobile(mobile: string): boolean {
+  return /^[6-9]\d{9}$/.test(mobile);
+}
+
+/** Display / storage format (e.g. +91xxxxxxxxxx). */
+function toE164(mobile: string): string {
+  const digits = toIndianMobile(mobile);
+  return digits.length === 10 ? `+91${digits}` : mobile;
+}
+
+function mapSendOtpError(message: string | undefined): string {
+  const msg = message?.trim() || 'Failed to send OTP';
+  if (msg.includes('not registered')) {
+    return 'This mobile number is not registered. Please register first or contact support.';
+  }
+  return msg;
+}
+
+function mapVerifyUserToAppUser(raw: Record<string, unknown>, mobile: string): User {
+  const role = String(raw.role ?? raw.userType ?? 'STUDENT').toUpperCase();
+  const isStudent = role === 'STUDENT';
+  return {
+    id: String(raw.id ?? raw.studentId ?? raw.userId ?? ''),
+    firstName: String(raw.firstName ?? raw.first_name ?? raw.username ?? 'User'),
+    lastName: String(raw.lastName ?? raw.last_name ?? ''),
+    email: String(raw.email ?? raw.emailId ?? raw.username ?? ''),
+    mobile: toE164(String(raw.mobile ?? raw.mobileNumber ?? mobile)),
+    state: String(raw.state ?? ''),
+    district: String(raw.district ?? ''),
+    city: String(raw.city ?? ''),
+    pincode: String(raw.pincode ?? ''),
+    roleId: isStudent ? 4 : 3,
+    role: isStudent ? 'student' : 'influencer',
+    isVerified: true,
+    isSubscribed:
+      raw.isSubscribed === true ||
+      raw.subscribed === true ||
+      String(raw.subscriptionStatus ?? '').toLowerCase() === 'active',
+    subscriptionStatus: raw.subscriptionStatus
+      ? String(raw.subscriptionStatus)
+      : undefined,
+    createdAt: String(raw.createdAt ?? new Date().toISOString()),
+    updatedAt: String(raw.updatedAt ?? new Date().toISOString()),
+  };
+}
+
+/** Map AlphaVlogs /api/auth/me to app User. */
+function mapMeToUser(me: { id: number; username: string; role: string; branchId: number | null }, mobile: string): User {
+  const role = (me.role || '').toUpperCase();
+  return {
+    id: String(me.id),
+    firstName: me.username || 'User',
+    lastName: '',
+    email: me.username || '',
+    mobile: toE164(mobile),
+    state: '',
+    district: '',
+    city: '',
+    pincode: '',
+    roleId: role === 'STUDENT' ? 4 : 3,
+    role: role === 'STUDENT' ? 'student' : 'influencer',
+    isVerified: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
 
 export interface SendOTPRequest {
   mobile: string;
@@ -48,35 +123,51 @@ class AuthService {
         return result;
       }
 
-      const resp = await apiService.post<any>(API_ENDPOINTS.AUTH.SEND_OTP, data);
-      const raw: any = resp as any;
-
-      // Handle different response formats from backend
-      if (raw && typeof raw.success === 'undefined') {
-        // Backend returns data directly without success wrapper
-        const result = { success: true, data: raw as OTPResponse, statusCode: 200 };
-        apiLogger.logServiceCall('AuthService', 'sendOTP', data, result);
-        return result;
-      }
-
-      // Backend returns standard ApiResponse format
-      apiLogger.logServiceCall('AuthService', 'sendOTP', data, resp);
-      return resp as ApiResponse<OTPResponse>;
-    } catch (error: any) {
-      // Handle specific error cases
-      if (error?.response?.data?.message === 'Mobile number not registered with any student') {
-        // Return a more user-friendly error message
-        const friendlyError = {
+      const mobile = toIndianMobile(data.mobile);
+      if (!isValidIndianMobile(mobile)) {
+        const err = {
           success: false,
-          error: 'This mobile number is not registered. Please register first or contact support.',
+          error: 'Enter a valid 10-digit Indian mobile number (starting with 6–9).',
           statusCode: 400,
         };
-        apiLogger.logServiceCall('AuthService', 'sendOTP', data, null, friendlyError);
-        return friendlyError;
+        apiLogger.logServiceCall('AuthService', 'sendOTP', data, null, err);
+        return err;
       }
 
-      apiLogger.logServiceCall('AuthService', 'sendOTP', data, null, error);
-      throw error;
+      const resp = await apiService.post<OTPResponse>(API_ENDPOINTS.STUDENTS.SEND_OTP, { mobile });
+
+      if (resp.success === false) {
+        const err = {
+          success: false,
+          error: mapSendOtpError(resp.error),
+          statusCode: resp.statusCode || 400,
+        };
+        apiLogger.logServiceCall('AuthService', 'sendOTP', data, null, err);
+        return err;
+      }
+
+      const inner = resp.data ?? (resp as unknown as OTPResponse);
+      const result: ApiResponse<OTPResponse> = {
+        success: true,
+        data: {
+          message: inner?.message ?? 'OTP sent successfully',
+          mobile: inner?.mobile ?? mobile,
+          expiresIn: inner?.expiresIn ?? 300,
+          otpMessage: inner?.message ?? 'OTP sent successfully',
+        },
+        statusCode: resp.statusCode ?? 200,
+      };
+      apiLogger.logServiceCall('AuthService', 'sendOTP', data, result);
+      return result;
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Failed to send OTP';
+      const friendlyError = {
+        success: false,
+        error: mapSendOtpError(msg),
+        statusCode: 400,
+      };
+      apiLogger.logServiceCall('AuthService', 'sendOTP', data, null, friendlyError);
+      return friendlyError;
     }
   }
 
@@ -94,65 +185,77 @@ class AuthService {
         return result;
       }
 
-      const resp = await apiService.post<any>(API_ENDPOINTS.AUTH.VERIFY_OTP, data);
-      const raw: any = resp as any;
-
-      // Check if the response indicates an error (apiService.post returns error responses, not throws)
-      if (raw && raw.success === false) {
-        let friendlyMessage = raw.error || 'Invalid or expired OTP. Please request a new OTP.';
-
-        // Check if error message contains backend error details
-        if (typeof friendlyMessage === 'string') {
-          // Backend returned error as string (e.g., the null pointer exception)
-          if (friendlyMessage.includes('createdOn') || friendlyMessage.includes('null') || friendlyMessage.includes('Timestamp')) {
-            friendlyMessage = 'Account data error. Please contact support or try registering again.';
-          } else if (friendlyMessage.includes('OTP') || friendlyMessage.includes('otp')) {
-            friendlyMessage = 'Invalid or expired OTP. Please request a new OTP.';
-          }
-        }
-
-        const friendlyError = {
+      const mobile = toIndianMobile(data.mobile);
+      if (!isValidIndianMobile(mobile)) {
+        const err = {
           success: false,
-          error: friendlyMessage,
-          statusCode: raw.statusCode || 400,
+          error: 'Enter a valid 10-digit Indian mobile number (starting with 6–9).',
+          statusCode: 400,
         };
-        apiLogger.logServiceCall('AuthService', 'verifyOTP', data, null, friendlyError);
-        return friendlyError;
+        apiLogger.logServiceCall('AuthService', 'verifyOTP', data, null, err);
+        return err;
       }
 
-      // Handle successful response
-      if (raw && typeof raw.success === 'undefined') {
-        // If backend returns user/tokens at top-level or under data, normalize
-        const payload = (raw.data && (raw.data.user || raw.data.tokens)) ? raw.data : raw;
-        const result = { success: true, data: payload as LoginResponse, statusCode: 200 };
-        apiLogger.logServiceCall('AuthService', 'verifyOTP', data, result);
-        return result;
+      const resp = await apiService.post<LoginResponse>(API_ENDPOINTS.STUDENTS.VERIFY_OTP, {
+        mobile,
+        otp: data.otp.trim(),
+      });
+
+      if (resp.success === false) {
+        const err = {
+          success: false,
+          error: resp.error || 'Invalid or expired OTP.',
+          statusCode: resp.statusCode || 401,
+        };
+        apiLogger.logServiceCall('AuthService', 'verifyOTP', data, null, err);
+        return err;
       }
 
-      apiLogger.logServiceCall('AuthService', 'verifyOTP', data, resp);
-      return resp as ApiResponse<LoginResponse>;
-    } catch (error: any) {
-      // This catch block handles unexpected errors (should rarely happen since apiService.post handles errors)
-      let friendlyMessage = 'Unable to verify OTP. Please try again.';
+      const inner = (resp.data ?? resp) as Record<string, unknown>;
+      const tokens = normalizeAuthTokens(inner);
+      if (!tokens) {
+        const err = { success: false, error: 'Invalid response from server.', statusCode: 500 };
+        apiLogger.logServiceCall('AuthService', 'verifyOTP', data, null, err);
+        return err;
+      }
+      await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKENS, JSON.stringify(tokens));
 
-      if (error?.response?.data) {
-        const errorData = error.response.data;
-        if (typeof errorData === 'string') {
-          if (errorData.includes('createdOn') || errorData.includes('null') || errorData.includes('Timestamp')) {
-            friendlyMessage = 'Account data error. Please contact support or try registering again.';
-          }
-        } else if (errorData?.message) {
-          friendlyMessage = errorData.message;
+      let user: User | undefined;
+      const rawUser = (inner.user ?? inner.student) as Record<string, unknown> | undefined;
+      if (rawUser && typeof rawUser === 'object') {
+        user = mapVerifyUserToAppUser(rawUser, mobile);
+      } else {
+        const meResp = await apiService.get<Record<string, unknown>>(API_ENDPOINTS.USER.PROFILE);
+        if (meResp.success === false) {
+          const err = {
+            success: false,
+            error: meResp.error || 'Logged in but could not load profile.',
+            statusCode: meResp.statusCode || 500,
+          };
+          apiLogger.logServiceCall('AuthService', 'verifyOTP', data, null, err);
+          return err;
         }
+        const me = (meResp.data ?? meResp) as Record<string, unknown>;
+        user = mapMeToUser(
+          {
+            id: Number(me.id),
+            username: String(me.username ?? ''),
+            role: String(me.role ?? ''),
+            branchId: (me.branchId as number | null) ?? null,
+          },
+          mobile
+        );
       }
 
-      const genericError = {
-        success: false,
-        error: friendlyMessage,
-        statusCode: error?.response?.status || 500,
-      };
-      apiLogger.logServiceCall('AuthService', 'verifyOTP', data, null, genericError);
-      return genericError;
+      const result: ApiResponse<LoginResponse> = { success: true, data: { user, tokens }, statusCode: 200 };
+      apiLogger.logServiceCall('AuthService', 'verifyOTP', data, result);
+      return result;
+    } catch (error: unknown) {
+      const friendlyMessage =
+        error instanceof Error ? error.message : 'Unable to verify OTP. Please try again.';
+      const err = { success: false, error: friendlyMessage, statusCode: 500 };
+      apiLogger.logServiceCall('AuthService', 'verifyOTP', data, null, err);
+      return err;
     }
   }
 
@@ -262,7 +365,17 @@ class AuthService {
         return result;
       }
 
-      const result = await apiService.get<User>(API_ENDPOINTS.USER.PROFILE);
+      const raw = await apiService.get<any>(API_ENDPOINTS.USER.PROFILE);
+      if (raw && (raw as any).success === false) {
+        apiLogger.logServiceCall('AuthService', 'getProfile', null, null, raw);
+        return raw as ApiResponse<User>;
+      }
+      const me = (raw?.data ?? raw) as { id: number; username: string; role: string; branchId?: number | null };
+      const user = mapMeToUser(
+        { id: me?.id, username: me?.username ?? '', role: me?.role ?? '', branchId: me?.branchId ?? null },
+        ''
+      );
+      const result: ApiResponse<User> = { success: true, data: user, statusCode: 200 };
       apiLogger.logServiceCall('AuthService', 'getProfile', null, result);
       return result;
     } catch (error) {

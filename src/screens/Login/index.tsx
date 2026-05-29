@@ -1,4 +1,4 @@
-import React, {useState, useRef, useEffect} from 'react';
+import React, {useState, useRef, useEffect, useCallback, useMemo} from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -12,6 +12,7 @@ import {
   Input,
   InputField,
   Button,
+  ButtonText,
   Text,
   Pressable,
   StatusBar,
@@ -27,11 +28,41 @@ import {Phone, XCircle} from 'lucide-react-native';
 import authService from '../../services/auth-service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {STORAGE_KEYS} from '@/constants';
-import {useUserStore} from '../../stores';
+import {useUserStore, useUserCachedStore} from '../../stores';
 
 const {width} = Dimensions.get('window');
 
-const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
+// Memoized logo so parent re-renders (e.g. timer) don't stutter the animation
+const LoginLogo = React.memo(function LoginLogo() {
+  const logoSize = useMemo(() => width * 0.5, []);
+  return (
+    <MotiImage
+      testID="login-logo"
+      source={appLogo}
+      style={{
+        width: logoSize,
+        height: logoSize,
+        marginBottom: 30,
+      }}
+      from={{translateY: 0}}
+      animate={{translateY: -10}}
+      transition={{
+        type: 'timing',
+        duration: 2000,
+        easing: Easing.inOut(Easing.ease),
+        loop: true,
+        repeatReverse: true,
+      }}
+    />
+  );
+});
+
+interface LoginScreenProps {
+  navigation: {navigate: (screen: string) => void};
+  setIsLoggedIn: (value: boolean) => void;
+}
+
+const LoginScreen = ({navigation, setIsLoggedIn}: LoginScreenProps) => {
   const colors = useThemeColors();
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
@@ -52,9 +83,9 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
     color: colors.inputText,
   };
 
-  const isMobileValid = mobile.length === 10 && /^\d{10}$/.test(mobile);
+  const isMobileValid = /^[6-9]\d{9}$/.test(mobile);
 
-  // Cleanup timer on component unmount
+  // Cleanup timer on component unmount only (ref-based timer avoids effect per tick)
   useEffect(() => {
     return () => {
       if (timerRef.current) {
@@ -71,34 +102,35 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
     }
   }, [isMobileValid]);
 
-  // Timer effect
-  useEffect(() => {
-    if (otpTimer > 0) {
-      timerRef.current = setTimeout(() => {
-        setOtpTimer(otpTimer - 1);
-      }, 1000);
-    } else if (otpTimer === 0 && !canResendOtp) {
-      setCanResendOtp(true);
+  const startOtpTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
     }
-
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    };
-  }, [otpTimer, canResendOtp]);
-
-  const startOtpTimer = () => {
     setOtpTimer(60);
     setCanResendOtp(false);
-  };
+    timerRef.current = setInterval(() => {
+      setOtpTimer(prev => {
+        if (prev <= 1) {
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+          setCanResendOtp(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
 
   const handleResendOtp = async () => {
     if (canResendOtp) {
       try {
         setIsLoading(true);
         setOtp('');
-        if (errors.otp) {setErrors(prev => ({...prev, otp: ''}));}
+        if (errors.otp) {
+          setErrors(prev => ({...prev, otp: ''}));
+        }
         if (otpRef.current) {
           otpRef.current.clear();
         }
@@ -131,39 +163,60 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
 
   const validate = () => {
     const newErrors: typeof errors = {};
-    let valid = true;
-
-    console.log(
-      'Validating - Mobile:',
-      mobile,
-      'OTP:',
-      otp,
-      'OTP Length:',
-      otp.length,
-    );
+    const errorMessages: string[] = [];
 
     if (!isMobileValid) {
-      newErrors.mobile = 'Enter a valid 10-digit mobile number';
-      valid = false;
+      newErrors.mobile = 'Enter a valid 10-digit mobile (starts with 6–9)';
+      errorMessages.push(`Mobile: ${newErrors.mobile}`);
     }
 
-    // For verify step, require OTP
     if (isOtpSent) {
       if (!otp || otp.trim().length < 6) {
         newErrors.otp = `Please enter the complete 6-digit OTP${otp.trim().length > 0 ? ` (${otp.trim().length}/6 digits entered)` : ''}`;
-        valid = false;
+        errorMessages.push(`OTP: ${newErrors.otp}`);
       }
     }
 
     setErrors(newErrors);
-    return valid;
+    return {
+      valid: errorMessages.length === 0,
+      errorMessages,
+    };
+  };
+
+  const handleSendOtp = async () => {
+    if (!isMobileValid) {
+      setErrors({mobile: 'Enter a valid 10-digit mobile (starts with 6–9)'});
+      Alert.alert('❌ Invalid mobile', 'Enter a valid 10-digit mobile starting with 6–9.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await authService.sendOTP({mobile, type: 'login'});
+      if (response.success) {
+        setIsOtpSent(true);
+        startOtpTimer();
+        Alert.alert('✅ OTP Sent', `OTP has been sent to +91 ${mobile}.`);
+      } else {
+        Alert.alert(
+          '❌ Failed to Send OTP',
+          response.error || 'Please try again.',
+        );
+      }
+    } catch {
+      Alert.alert(
+        '❌ Network Error',
+        'Unable to send OTP. Please try again.',
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleLogin = async () => {
-    if (!validate()) {
-      const errorMessages = [] as string[];
-      if (errors.mobile) {errorMessages.push(`Mobile: ${errors.mobile}`);}
-      if (errors.otp) {errorMessages.push(`OTP: ${errors.otp}`);}
+    const {valid, errorMessages} = validate();
+    if (!valid) {
       Alert.alert(
         '❌ Validation Failed',
         errorMessages.join('\n') || 'Please check your inputs.',
@@ -173,64 +226,38 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
 
     try {
       setIsLoading(true);
-      if (!isOtpSent) {
-        // Step 1: Send OTP
-        const response = await authService.sendOTP({mobile, type: 'login'});
-        if (response.success) {
-          setIsOtpSent(true);
-          startOtpTimer();
-          Alert.alert('✅ OTP Sent', `OTP has been sent to +91 ${mobile}.`);
-          // OTP input will auto-focus when isOtpSent becomes true
-        } else {
-          Alert.alert(
-            '❌ Failed to Send OTP',
-            response.error || 'Please try again.',
-          );
+      const response = await authService.verifyOTP({mobile, otp});
+      if (response.success && response.data) {
+        const user = response.data?.user;
+        const tokens = response.data?.tokens;
+        if (tokens) {
+          await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKENS, JSON.stringify(tokens));
+          await useUserCachedStore.getState().setTokens(tokens);
         }
-      } else {
-        // Step 2: Verify OTP
-        const response = await authService.verifyOTP({mobile, otp});
-        if (response.success && response.data) {
-          const {user, tokens} = response.data;
-
-          // Persist tokens and user
-          await AsyncStorage.setItem(
-            STORAGE_KEYS.AUTH_TOKENS,
-            JSON.stringify(tokens),
-          );
-          await AsyncStorage.setItem(
-            STORAGE_KEYS.USER_DATA,
-            JSON.stringify(user),
-          );
-
-          const {setUser, setAuthenticated} = useUserStore.getState();
-          setUser(user || null);
-          setAuthenticated(true);
-
-          Alert.alert(
-            '✅ Login Successful',
-            `Welcome ${user?.firstName || ''}!`,
-            [
-              {
-                text: 'Continue',
-                style: 'default',
-                onPress: () => {
-                  setShowConfetti(true);
-                  setTimeout(() => setIsLoggedIn(true), 800);
-                },
+        if (user) {
+          await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
+        }
+        const {setUser, setAuthenticated} = useUserStore.getState();
+        setUser(user || null);
+        setAuthenticated(true);
+        Alert.alert(
+          '✅ Login Successful',
+          `Welcome ${user?.firstName || 'User'}!`,
+          [
+            {
+              text: 'Continue',
+              style: 'default',
+              onPress: () => {
+                setShowConfetti(true);
+                setTimeout(() => setIsLoggedIn(true), 800);
               },
-            ],
-          );
-        } else {
-          Alert.alert(
-            '❌ Verification Failed',
-            response.error || 'Please request a new OTP.',
-          );
-        }
+            },
+          ],
+        );
+      } else {
+        Alert.alert('❌ Verification Failed', response.error || 'Please request a new OTP.');
       }
     } catch (error: any) {
-      // This catch block should rarely be hit now since verifyOTP returns error responses
-      // But keep it as a safety net for unexpected errors
       const errorMessage =
         error?.response?.data?.message ||
         error?.message ||
@@ -242,13 +269,14 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
   };
 
   const handleRegister = () => {
-    navigation.navigate('Signup');
+    navigation.navigate('ComingSoon');
   };
 
   const handleOtpChange = (text: string) => {
-    console.log('OTP changed to:', text, 'Length:', text.length);
     setOtp(text);
-    if (errors.otp) {setErrors(prev => ({...prev, otp: ''}));}
+    if (errors.otp) {
+      setErrors(prev => ({...prev, otp: ''}));
+    }
   };
 
   return (
@@ -256,14 +284,7 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
       testID="login-screen"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{flex: 1, backgroundColor: colors.primaryBackground}}>
-      <StatusBar
-        backgroundColor={colors.primaryBackground}
-        barStyle={
-          colors.primaryBackground === '#FFFFFF'
-            ? 'dark-content'
-            : 'light-content'
-        }
-      />
+      <StatusBar translucent={false} />
 
       <VStack
         testID="login-container"
@@ -272,25 +293,8 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
         alignItems="center"
         px="$5"
         space="lg">
-        {/* ✅ Animated Logo */}
-        <MotiImage
-          testID="login-logo"
-          source={appLogo}
-          style={{
-            width: width,
-            height: width * 0.2,
-            marginBottom: 30,
-          }}
-          from={{translateY: 0}}
-          animate={{translateY: -10}}
-          transition={{
-            type: 'timing',
-            duration: 2000,
-            easing: Easing.inOut(Easing.ease),
-            loop: true,
-            repeatReverse: true,
-          }}
-        />
+        {/* ✅ Animated Logo (memoized to avoid stutter when timer/state updates) */}
+        <LoginLogo />
 
         <Text
           testID="login-title"
@@ -309,7 +313,14 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
           variant="outline"
           borderColor={colors.accentAction}
           bg={colors.primaryBackground}
-          isInvalid={!!errors.mobile}>
+          isInvalid={!!errors.mobile}
+          style={{
+            elevation: 0,
+            shadowColor: 'transparent',
+            shadowOffset: {width: 0, height: 0},
+            shadowOpacity: 0,
+            shadowRadius: 0,
+          }}>
           <Box
             testID="login-mobile-icon"
             pl="$3"
@@ -328,8 +339,12 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
               // Remove all non-digit characters and limit to 10 digits
               const digits = val.replace(/\D/g, '').slice(0, 10);
               setMobile(digits);
-              if (otp.length > 0) {setOtp('');}
-              if (errors.mobile) {setErrors(prev => ({...prev, mobile: ''}));}
+              if (otp.length > 0) {
+                setOtp('');
+              }
+              if (errors.mobile) {
+                setErrors(prev => ({...prev, mobile: ''}));
+              }
             }}
             placeholderTextColor={colors.mutedText}
             color={colors.inputText}
@@ -374,7 +389,7 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
               <Text
                 testID="login-otp-label"
                 color={colors.primaryText}
-                fontSize="$md"
+                fontSize={16}
                 fontWeight="$medium"
                 mb="$3"
                 textAlign="center">
@@ -451,30 +466,27 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
         {/* ✅ Send/Verify Button */}
         <Button
           testID="login-submit-button"
-          onPress={handleLogin}
-          isDisabled={
-            isLoading ||
-            (!isOtpSent
-              ? !isMobileValid
-              : !isMobileValid || !otp || otp.length < 6)
-          }
+          onPress={isOtpSent ? handleLogin : handleSendOtp}
+          isDisabled={isLoading}
           w="$full"
           size="lg"
-          borderRadius="$md"
+          borderRadius={6}
           mt="$6"
           bg={colors.accentAction}
-          opacity={
-            isLoading ||
-            (!isOtpSent
-              ? !isMobileValid
-              : !isMobileValid || !otp || otp.length < 6)
-              ? 0.6
-              : 1
-          }>
-          <Text
+          opacity={isLoading ? 0.6 : 1}
+          style={{
+            elevation: 0,
+            shadowColor: 'transparent',
+            shadowOffset: {width: 0, height: 0},
+            shadowOpacity: 0,
+            shadowRadius: 0,
+          }}>
+          <ButtonText
             testID="login-submit-text"
             color={colors.white}
-            fontWeight="$bold">
+            fontWeight="$bold"
+            textAlign="center"
+            style={{width: '100%'}}>
             {isLoading
               ? isOtpSent
                 ? 'Verifying...'
@@ -482,7 +494,7 @@ const LoginScreen = ({navigation, setIsLoggedIn}: any) => {
               : isOtpSent
                 ? 'Verify OTP'
                 : 'Send OTP'}
-          </Text>
+          </ButtonText>
         </Button>
 
         {/* ✅ Register Prompt */}

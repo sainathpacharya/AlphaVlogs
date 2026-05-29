@@ -2,7 +2,7 @@ import React, {useState, useEffect} from 'react';
 import {Alert, ScrollView} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {launchImageLibrary} from 'react-native-image-picker';
-import LottieView from 'lottie-react-native';
+import {ImagePlus} from 'lucide-react-native';
 import {
   VStack,
   HStack,
@@ -18,12 +18,16 @@ import {commonStyles, screenStyles} from '@/utils/styles';
 import {useThemeColors} from '@/utils/colors';
 import {videoService} from '@/services/video-service';
 import {usePermissions} from '@/hooks/usePermissions';
+import {EventGifImage} from '@/components/EventGifImage';
+import {getEventIcon} from '@/utils/event-icons';
 
 interface VideoUploadScreenProps {
   route: {
     params: {
       eventId: string;
       eventTitle: string;
+      iconId?: string;
+      eventGifUrl?: string;
     };
   };
 }
@@ -34,6 +38,8 @@ interface VideoUploadNavProps {
     params: {
       eventId: string;
       eventTitle: string;
+      iconId?: string;
+      eventGifUrl?: string;
     };
   };
   navigation: any;
@@ -42,7 +48,11 @@ interface VideoUploadNavProps {
 const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
   const navigation = useNavigation();
   const colors = useThemeColors();
-  const {eventId, eventTitle} = route?.params || {eventId: '', eventTitle: ''};
+  const {eventId, eventTitle, iconId, eventGifUrl} = route?.params || {
+    eventId: '',
+    eventTitle: '',
+  };
+  const EventIcon = getEventIcon(iconId ?? eventId);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
@@ -176,7 +186,7 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
         commonStyles.container,
         {backgroundColor: colors.primaryBackground},
       ]}>
-      {/* Custom Header with Back Button */}
+      {/* Custom Header with Back Button - use theme colors so visible on light/dark */}
       <HStack
         alignItems="center"
         justifyContent="space-between"
@@ -187,26 +197,40 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
           onPress={() => navigation.goBack()}
           p="$2"
           borderRadius="$md"
-          style={{backgroundColor: 'rgba(255,255,255,0.1)'}}>
-          <Text style={commonStyles.textWhite} fontSize="$lg">
+          style={{
+            backgroundColor: colors.border || 'rgba(0,0,0,0.08)',
+          }}>
+          <Text
+            style={{color: colors.primaryText, fontSize: 18}}
+            fontSize="$lg">
             ←
           </Text>
         </Pressable>
-        <Text style={commonStyles.textTitle} flex={1} textAlign="center">
-          {eventTitle}
+        <Text
+          style={{
+            color: colors.primaryText,
+            fontSize: 20,
+            fontWeight: 'bold',
+            flex: 1,
+            textAlign: 'center',
+          }}>
+          {eventTitle || 'Video Upload'}
         </Text>
         <Box w="$10" />
       </HStack>
 
       <ScrollView style={{flex: 1}}>
         <VStack space="lg" p="$4">
-          {/* Header */}
+          {/* Header - same event icon as Dashboard */}
           <VStack space="sm" alignItems="center">
-            <LottieView
-              source={require('@/assets/lottie/specialTalent.json')}
-              autoPlay
-              loop
-              style={commonStyles.lottie}
+            <EventGifImage
+              gifUrl={eventGifUrl ?? null}
+              FallbackIcon={EventIcon}
+              width={120}
+              height={120}
+              color={colors.accentAction}
+              backgroundColor={colors.accentBackground}
+              borderRadius={16}
             />
             <Text style={commonStyles.textTitle}>
               {i18n.t('videoUpload.title')}
@@ -259,11 +283,10 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
               onPress={handleSelectVideo}
               style={screenStyles.videoUpload.selectVideoCard as any}>
               <VStack space="sm" alignItems="center">
-                <LottieView
-                  source={require('@/assets/lottie/buttonDots.json')}
-                  autoPlay
-                  loop
-                  style={screenStyles.videoUpload.selectVideoIcon}
+                <ImagePlus
+                  size={48}
+                  color={colors.accentAction}
+                  strokeWidth={1.75}
                 />
                 <Text style={screenStyles.videoUpload.selectVideoTitle as any}>
                   {i18n.t('videoUpload.chooseFromGallery')}

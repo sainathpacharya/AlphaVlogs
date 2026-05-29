@@ -2,10 +2,7 @@ import {ActivityIndicator, Pressable, Text, View} from 'react-native';
 
 import {AsForwarder, styled} from '@gluestack-style/react';
 import {createButton} from '@gluestack-ui/button';
-import LottieView from 'lottie-react-native';
 import {ComponentProps} from 'react';
-import buttonDots from '../../assets/lottie/buttonDots.json';
-import blackButtonDots from '../../assets/lottie/grayButtonDots.json';
 import {RippleEffect} from '../ripple-effect';
 
 const StyledRoot = styled(
@@ -1020,19 +1017,15 @@ export const Button = ({
       rippleColor={getRippleColor()}
       rippleOpacity={rippleOpacity}
       rippleDuration={rippleDuration}
-      disabled={Boolean(isDisabled || isLoading)}
-      {...otherProps}>
+      {...otherProps}
+      disabled={Boolean(isDisabled || isLoading)}>
       <UIButton {...otherProps} size={size}>
         {!isLoading ? (
           children
         ) : (
-          <LottieView
-            style={{
-              width: 60,
-              height: 25,
-            }}
-            source={variant === 'outline' ? blackButtonDots : buttonDots}
-            autoPlay
+          <ActivityIndicator
+            size="small"
+            color={variant === 'outline' ? '#64748b' : '#ffffff'}
           />
         )}
       </UIButton>

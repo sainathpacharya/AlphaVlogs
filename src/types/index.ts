@@ -14,6 +14,9 @@ export interface User {
   roleId: number; // 3 = influencer, 4 = student (mobile app only)
   role: 'influencer' | 'student';
   isVerified: boolean;
+  /** Set when backend includes subscription on login/profile. */
+  isSubscribed?: boolean;
+  subscriptionStatus?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -62,6 +65,7 @@ export interface Event {
   uploadEndDate: string;
   createdAt: string;
   allowedRoles?: number[]; // Array of role IDs that can access this event
+  eventGif?: string;
 }
 
 export interface InfluencerEvent {

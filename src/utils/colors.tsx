@@ -1,8 +1,8 @@
-import {useColorScheme} from 'react-native';
-import {useTheme} from '@/stores/user-store';
+import React from 'react';
+import {useColorScheme, type StatusBarStyle} from 'react-native';
 
-// Light theme colors
-const lightColors = {
+// Light theme colors (exported for screens that force light theme, e.g. Login)
+export const lightColors = {
   // Backgrounds
   primaryBackground: '#FFFFFF',
   secondaryBackground: '#F8F9FA',
@@ -23,6 +23,10 @@ const lightColors = {
   buttonBackground: '#007AFF',
   buttonText: '#FFFFFF',
   highlight: '#007AFF',
+
+  // Premium / subscribe CTA (warm orange — distinct from primary blue actions)
+  subscriptionCta: '#EA580C',
+  subscriptionCtaText: '#FFFFFF',
 
   // Status
   danger: '#DC3545',
@@ -72,6 +76,9 @@ const darkColors = {
   buttonText: '#FFFFFF',
   highlight: '#0A84FF',
 
+  subscriptionCta: '#F97316',
+  subscriptionCtaText: '#FFFFFF',
+
   // Status
   danger: '#FF453A',
   warning: '#FF9F0A',
@@ -97,28 +104,47 @@ const darkColors = {
   mutedBackground: '#3A3A3C',
 };
 
-// Hook to get theme-aware colors
-export const useThemeColors = () => {
-  const systemColorScheme = useColorScheme();
-  const userTheme = useTheme();
+export type AppColorScheme = 'light' | 'dark';
 
-  // Use user theme if set, otherwise fall back to system theme
-  const theme = userTheme || systemColorScheme || 'dark';
-
-  const baseColors = theme === 'dark' ? darkColors : lightColors;
-
-  // Add aliases for compatibility
-  return {
-    ...baseColors,
-    // Aliases
-    text: baseColors.primaryText,
-    textSecondary: baseColors.secondaryText,
-    background: baseColors.primaryBackground,
-    backgroundSecondary: baseColors.secondaryBackground,
-    primary: baseColors.accentAction,
-  };
+/** Resolves light/dark from the device appearance (iOS/Android system setting). */
+export const useAppColorScheme = (): AppColorScheme => {
+  const scheme = useColorScheme();
+  return scheme === 'dark' ? 'dark' : 'light';
 };
 
-// Default export for backward compatibility
-const colors = darkColors;
+// Hook to get theme-aware colors (follows device light/dark mode)
+export const useThemeColors = () => {
+  const theme = useAppColorScheme();
+
+  return React.useMemo(() => {
+    const baseColors = theme === 'dark' ? darkColors : lightColors;
+    return {
+      ...baseColors,
+      text: baseColors.primaryText,
+      textSecondary: baseColors.secondaryText,
+      background: baseColors.primaryBackground,
+      backgroundSecondary: baseColors.secondaryBackground,
+      primary: baseColors.accentAction,
+    };
+  }, [theme]);
+};
+
+/** Status bar icon style + background aligned with the active color scheme. */
+export const useStatusBarConfig = () => {
+  const colors = useThemeColors();
+  const theme = useAppColorScheme();
+  const isDark = theme === 'dark';
+
+  return React.useMemo(
+    () => ({
+      barStyle: (isDark ? 'light-content' : 'dark-content') as StatusBarStyle,
+      backgroundColor: colors.primaryBackground,
+      navigationStatusBarStyle: (isDark ? 'light' : 'dark') as 'light' | 'dark',
+    }),
+    [colors.primaryBackground, isDark],
+  );
+};
+
+// Default export for backward compatibility (light theme for now)
+const colors = lightColors;
 export default colors;

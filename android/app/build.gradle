@@ -25,11 +25,50 @@ react {
     debuggableVariants = ["developDebug"]
 
     /* Bundling */
-    //   A list containing the node command and its flags. Default is just 'node'.
-    // Use local Node.js path if it exists, otherwise use 'node' from PATH (for CI/CD)
-    def localNodePath = "/Users/nagasainathpalle/.nvm/versions/node/v20.19.4/bin/node"
-    def nodeExecutable = new File(localNodePath).exists() ? localNodePath : "node"
-    nodeExecutableAndArgs = [nodeExecutable]
+    // Resolve Node for JS bundling (Gradle/Android Studio often lack shell PATH).
+    // Override: NODE_BINARY=/path/to/node or -PnodeExecutable=/path/to/node
+    def resolveNodeExecutable = {
+        def envNode = System.getenv("NODE_BINARY")
+        if (envNode != null && !envNode.isEmpty() && new File(envNode).exists()) {
+            return envNode
+        }
+        if (project.hasProperty("nodeExecutable")) {
+            def propNode = project.property("nodeExecutable").toString()
+            if (new File(propNode).exists()) {
+                return propNode
+            }
+        }
+        def home = System.getenv("HOME")
+        if (home != null) {
+            def nvmDir = new File("${home}/.nvm/versions/node")
+            if (nvmDir.exists()) {
+                def versions = nvmDir.listFiles()?.findAll { it.isDirectory() }?.sort()?.reverse()
+                if (versions != null && !versions.isEmpty()) {
+                    def nvmNode = new File(versions[0], "bin/node")
+                    if (nvmNode.exists()) {
+                        return nvmNode.absolutePath
+                    }
+                }
+            }
+        }
+        for (path in ["/opt/homebrew/bin/node", "/usr/local/bin/node"]) {
+            if (new File(path).exists()) {
+                return path
+            }
+        }
+        try {
+            def proc = ["which", "node"].execute(null, rootDir.parentFile)
+            proc.waitFor()
+            if (proc.exitValue() == 0) {
+                def whichNode = proc.text.trim()
+                if (whichNode && new File(whichNode).exists()) {
+                    return whichNode
+                }
+            }
+        } catch (Exception ignored) {}
+        return "node"
+    }
+    nodeExecutableAndArgs = [resolveNodeExecutable()]
     //
     //   The command to run when bundling. By default is 'bundle'
     // bundleCommand = "ram-bundle"
@@ -89,7 +128,7 @@ android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
-    namespace "com.jackmarvelsapp"
+    namespace "com.nsnr.aplhavlogs"
     
     // Get version code from project property (set via -PversionCode=xxx in CI/CD)
     // For Play Store: Must always increment (extracted from git tag)
@@ -137,7 +176,7 @@ android {
     }
     
     defaultConfig {
-        applicationId "com.jackmarvelsapp"
+        applicationId "com.nsnr.aplhavlogs"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Version code and name can be overridden via -PversionCode=xxx and -PversionName=xxx
@@ -214,7 +253,7 @@ android {
     // To distribute a build, run: ./gradlew app:appDistributionUploadDevelopRelease
     // or: ./gradlew app:appDistributionUploadProductionRelease
     firebaseAppDistribution {
-        // Default app ID (for production builds with package: com.jackmarvelsapp)
+        // Default app ID (for production builds with package: com.nsnr.aplhavlogs)
         appId = "1:452248149004:android:183407f46643d288af2229"
         groups = ["testers"]
         releaseNotes = "Alpha Vlogs build"

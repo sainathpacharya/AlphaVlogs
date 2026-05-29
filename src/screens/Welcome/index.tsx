@@ -1,17 +1,16 @@
 import React, {useEffect} from 'react';
-import {Dimensions, StatusBar, View} from 'react-native';
-import {SafeAreaView, VStack} from '../../components';
+import {Dimensions} from 'react-native';
+import {SafeAreaView, StatusBar, VStack} from '../../components';
 import appLogo from '../../assets/png/appLogo.png';
 import {MotiImage} from 'moti';
 import {useThemeColors} from '../../utils/colors';
 import {useNavigation} from '@react-navigation/native';
-import {StackNavigationProp} from '@react-navigation/stack';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {AuthStackParamList} from '../../navigation/AuthStack/types';
 
 const {width, height} = Dimensions.get('window');
 
-// ✅ Type navigation prop
-type WelcomeScreenNavigationProp = StackNavigationProp<
+type WelcomeScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
   'Welcome'
 >;
@@ -32,34 +31,13 @@ const WelcomeScreen = () => {
     <SafeAreaView
       testID="welcome-screen"
       style={{flex: 1, backgroundColor: colors.primaryBackground}}>
-      <StatusBar
-        testID="welcome-status-bar"
-        backgroundColor={colors.primaryBackground}
-        barStyle={
-          colors.primaryBackground === '#FFFFFF'
-            ? 'dark-content'
-            : 'light-content'
-        }
-      />
-
-      <View
-        testID="welcome-status-bar-overlay"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: StatusBar.currentHeight || 50,
-          backgroundColor: colors.primaryBackground,
-          zIndex: 10,
-        }}
-      />
+      <StatusBar testID="welcome-status-bar" translucent={false} />
 
       <VStack
         testID="welcome-container"
         h="$full"
         w="$full"
-        style={{backgroundColor: colors.primaryBackground}}
+        style={{backgroundColor: colors.white}}
         justifyContent="center"
         alignItems="center">
         <MotiImage
@@ -85,8 +63,8 @@ const WelcomeScreen = () => {
             delay: 300,
           }}
           style={{
-            width: width,
-            height: height,
+            width: width * 0.69,
+            height: height * 0.3,
             resizeMode: 'cover',
           }}
         />

@@ -26,7 +26,7 @@ const initialState: AppState = {
     type: 'unknown',
   },
   location: null,
-  theme: 'dark',
+  theme: 'light',
   language: 'en',
 };
 

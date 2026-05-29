@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {View, StyleSheet, Alert, ScrollView, Dimensions} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
-import LottieView from 'lottie-react-native';
+import {Crown} from 'lucide-react-native';
 import {
   VStack,
   HStack,
@@ -37,7 +37,11 @@ const SubscriptionScreen: React.FC = () => {
     useState<string>('');
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentSubscription, setCurrentSubscription] = useState<any>(null);
+  const [currentSubscription, setCurrentSubscription] = useState<{
+    id: string;
+    plan: string;
+    endDate?: string;
+  } | null>(null);
 
   useEffect(() => {
     loadSubscriptionData();
@@ -47,8 +51,8 @@ const SubscriptionScreen: React.FC = () => {
     try {
       setIsLoading(true);
 
-      // Load current subscription
-      const subscription = await subscriptionService.getCurrentSubscription();
+      // Load current subscription (pass user id when available)
+      const subscription = await subscriptionService.getCurrentSubscription(user?.id);
       setCurrentSubscription(subscription);
 
       if (subscription?.plan === 'premium') {
@@ -82,7 +86,9 @@ const SubscriptionScreen: React.FC = () => {
         setSelectedPaymentMethod(finalMethods[0].id);
       }
     } catch (error) {
-      console.error('Error loading subscription data:', error);
+      if (__DEV__) {
+        console.error('Error loading subscription data:', error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -111,11 +117,19 @@ const SubscriptionScreen: React.FC = () => {
         return;
       }
 
+      const allowedMethods = ['razorpay', 'cash', 'cheque'] as const;
+      const paymentMethodType = allowedMethods.includes(
+        paymentMethod.type as (typeof allowedMethods)[number],
+      )
+        ? (paymentMethod.type as 'razorpay' | 'cash' | 'cheque')
+        : 'razorpay';
+
       // Create subscription
       const subscription = await subscriptionService.createSubscription({
         plan: 'premium',
-        paymentMethod: paymentMethod.type,
+        paymentMethod: paymentMethodType,
         amount: SUBSCRIPTION.PRICING.PREMIUM_ANNUAL,
+        userId: user?.id ?? '',
       });
 
       let paymentResult;
@@ -123,32 +137,29 @@ const SubscriptionScreen: React.FC = () => {
       // Handle Razorpay payment
       if (paymentMethod.type === 'razorpay') {
         try {
-          // Prepare user details for Razorpay
-          const userDetails = {
-            email: user?.email || 'user@alphavlogs.com',
-            contact: user?.mobile || '9999999999',
-            name: `${user?.firstName || 'Alpha'} ${user?.lastName || 'Vlogs User'}`.trim(),
-          };
-
-          // Initiate Razorpay payment
           const razorpayResponse =
             await subscriptionService.initiateRazorpayPayment(
               SUBSCRIPTION.PRICING.PREMIUM_ANNUAL,
-              userDetails,
-              'Jack Marvels Premium Subscription',
+              subscription.id,
             );
 
-          // Process payment with Razorpay response
           paymentResult = await subscriptionService.processPayment({
             subscriptionId: subscription.id,
+            amount: SUBSCRIPTION.PRICING.PREMIUM_ANNUAL,
             paymentMethod: selectedPaymentMethod,
             paymentData: razorpayResponse,
           });
-        } catch (razorpayError: any) {
-          console.error('Razorpay payment error:', razorpayError);
+        } catch (razorpayError: unknown) {
+          if (__DEV__) {
+            console.error('Razorpay payment error:', razorpayError);
+          }
 
           // Handle specific Razorpay errors
-          if (razorpayError.message === 'Payment was cancelled by user') {
+          const message =
+            razorpayError instanceof Error
+              ? razorpayError.message
+              : 'Payment failed';
+          if (message === 'Payment was cancelled by user') {
             Alert.alert(
               'Payment Cancelled',
               'You cancelled the payment. You can try again anytime.',
@@ -157,24 +168,23 @@ const SubscriptionScreen: React.FC = () => {
           } else {
             Alert.alert(
               'Payment Error',
-              razorpayError.message ||
-                'Payment processing failed. Please try again.',
+              message || 'Payment processing failed. Please try again.',
             );
             return;
           }
         }
       } else {
-        // Process other payment methods
         paymentResult = await subscriptionService.processPayment({
           subscriptionId: subscription.id,
+          amount: SUBSCRIPTION.PRICING.PREMIUM_ANNUAL,
           paymentMethod: selectedPaymentMethod,
         });
       }
 
-      if (paymentResult.success) {
+      if (paymentResult?.success) {
         Alert.alert(
           '✅ Subscription Successful',
-          `Welcome to Jack Marvels Premium! You now have access to all quizzes and premium features.\n\nTransaction ID: ${paymentResult.transactionId}`,
+          `Welcome to Jack Marvels Premium! You now have access to all quizzes and premium features.\n\nTransaction ID: ${(paymentResult as { transactionId?: string }).transactionId ?? 'N/A'}`,
           [
             {
               text: 'Continue',
@@ -191,12 +201,13 @@ const SubscriptionScreen: React.FC = () => {
           'Payment processing failed. Please try again or contact support.',
         );
       }
-    } catch (error: any) {
-      console.error('Error subscribing:', error);
-      Alert.alert(
-        '❌ Subscription Error',
-        error.message || 'Something went wrong. Please try again later.',
-      );
+    } catch (error: unknown) {
+      if (__DEV__) {
+        console.error('Error subscribing:', error);
+      }
+      const message =
+        error instanceof Error ? error.message : 'Something went wrong. Please try again later.';
+      Alert.alert('❌ Subscription Error', message);
     } finally {
       setIsLoading(false);
     }
@@ -212,14 +223,22 @@ const SubscriptionScreen: React.FC = () => {
           text: 'Yes',
           style: 'destructive',
           onPress: async () => {
+            if (!currentSubscription?.id) {
+              Alert.alert('Error', 'No active subscription to cancel.');
+              return;
+            }
             try {
-              const success = await subscriptionService.cancelSubscription();
+              const success = await subscriptionService.cancelSubscription(
+                currentSubscription.id,
+              );
               if (success) {
                 Alert.alert(
                   'Subscription Cancelled',
                   'Your subscription has been cancelled.',
                 );
                 loadSubscriptionData();
+              } else {
+                Alert.alert('Error', 'Failed to cancel subscription.');
               }
             } catch (error) {
               Alert.alert('Error', 'Failed to cancel subscription.');
@@ -385,12 +404,11 @@ const SubscriptionScreen: React.FC = () => {
           testID="subscription-header-section"
           space="sm"
           alignItems="center">
-          <LottieView
-            testID="subscription-lottie"
-            source={require('@/assets/lottie/quiz.json')}
-            autoPlay
-            loop
-            style={styles.lottie}
+          <Crown
+            testID="subscription-icon"
+            size={72}
+            color={colors.accentAction}
+            strokeWidth={1.75}
           />
           <Text testID="subscription-header-title" style={styles.headerTitle}>
             Choose Your Plan
@@ -415,7 +433,7 @@ const SubscriptionScreen: React.FC = () => {
                   Current Plan:{' '}
                   {currentSubscription.plan === 'premium' ? 'Premium' : 'Free'}
                 </Text>
-                {currentSubscription.plan === 'premium' && (
+                {currentSubscription.plan === 'premium' && currentSubscription.endDate && (
                   <Text
                     testID="subscription-expiry-date"
                     style={styles.expiryText}>
@@ -504,10 +522,6 @@ const getStyles = (colors: any) =>
     container: {
       flex: 1,
       backgroundColor: colors.primaryBackground,
-    },
-    lottie: {
-      width: 120,
-      height: 120,
     },
     headerTitle: {
       fontSize: 24,

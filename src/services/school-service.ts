@@ -1,6 +1,7 @@
 import { apiService } from './api';
 import { SchoolInvitation, School } from '@/types';
 import { API_ENDPOINTS } from '@/constants';
+import { isMockMode } from '@/config/api-config';
 
 export interface VerifyInvitationRequest {
   invitationCode: string;
@@ -22,6 +23,20 @@ class SchoolService {
   // Verify school invitation
   async verifyInvitation(data: VerifyInvitationRequest): Promise<SchoolInvitation | null> {
     try {
+      if (isMockMode()) {
+        return {
+          id: 'inv_static_001',
+          schoolId: '1',
+          invitationCode: data.invitationCode || 'STATIC01',
+          studentEmail: data.studentEmail,
+          parentEmail: undefined,
+          grade: '5',
+          section: 'A',
+          isUsed: false,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          createdAt: new Date(),
+        };
+      }
       const response = await apiService.post<SchoolInvitation>(
         API_ENDPOINTS.SCHOOLS.GET,
         data
@@ -40,6 +55,9 @@ class SchoolService {
     userId?: string;
   }> {
     try {
+      if (isMockMode()) {
+        return { success: true, message: 'Registration successful', userId: 'user_static_inv' };
+      }
       const response = await apiService.post(
         API_ENDPOINTS.SCHOOLS.GET,
         data
@@ -61,6 +79,11 @@ class SchoolService {
   // Get school information
   async getSchoolInfo(schoolId: string): Promise<School | null> {
     try {
+      if (isMockMode()) {
+        const staticData = require('../data/schools.json') as { schools: Array<Record<string, unknown>> };
+        const school = staticData.schools.find((s: any) => String(s.id) === String(schoolId));
+        return school ? (school as unknown as School) : null;
+      }
       const response = await apiService.get<School>(`/schools/${schoolId}`);
       return response.success ? response.data || null : null;
     } catch (error) {
@@ -76,6 +99,9 @@ class SchoolService {
     invitationCode?: string;
   }> {
     try {
+      if (isMockMode()) {
+        return { hasInvitation: false };
+      }
       const response = await apiService.get(`/schools/check-invitation?email=${email}`);
       return {
         hasInvitation: response.success && response.data?.hasInvitation,
@@ -91,6 +117,9 @@ class SchoolService {
   // Get available grades for school
   async getAvailableGrades(schoolId: string): Promise<string[]> {
     try {
+      if (isMockMode()) {
+        return ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+      }
       const response = await apiService.get<string[]>(`/schools/${schoolId}/grades`);
       return response.success ? response.data || [] : [];
     } catch (error) {
@@ -102,6 +131,9 @@ class SchoolService {
   // Get sections for a specific grade
   async getSections(schoolId: string, grade: string): Promise<string[]> {
     try {
+      if (isMockMode()) {
+        return ['A', 'B', 'C', 'D'];
+      }
       const response = await apiService.get<string[]>(
         `/schools/${schoolId}/grades/${grade}/sections`
       );
@@ -125,9 +157,9 @@ class SchoolService {
     return emailRegex.test(email);
   }
 
-  // Validate grade format
+  // Validate grade format (KG to 10th class)
   validateGrade(grade: string): boolean {
-    const validGrades = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+    const validGrades = ['KG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
     return validGrades.includes(grade);
   }
 

@@ -7,7 +7,13 @@ export type AppStackParamList = {
     VideoUpload: {
       eventId: string;
       eventTitle: string;
+      iconId?: string;
+      eventGifUrl?: string;
     };
+    ComingSoon: undefined;
+    AboutUs: undefined;
+    TermsAndConditions: undefined;
+    PrivacyPolicy: undefined;
     BadgePage: {
       header?: React.ReactElement;
       description?: string;

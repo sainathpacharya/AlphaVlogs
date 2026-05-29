@@ -4,7 +4,7 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/__tests__/setup.ts'],
   testEnvironment: 'node',
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@react-navigation|@gluestack-ui|@gluestack-style|react-native-reanimated|react-native-safe-area-context|@tanstack/react-query|zustand|react-native-push-notification|react-native-image-picker|react-native-video|react-native-video-processing|react-native-keychain|react-native-device-info|react-native-permissions|react-native-otp-textinput|react-native-confetti-cannon|react-native-indicators|react-native-svg|react-native-community|react-native-community/netinfo|lottie-react-native|lucide-react-native|moti|i18next|@expo)/)',
+    'node_modules/(?!(react-native|@react-native|@react-navigation|@gluestack-ui|@gluestack-style|react-native-reanimated|react-native-safe-area-context|@tanstack/react-query|zustand|react-native-image-picker|react-native-video|react-native-video-processing|react-native-keychain|react-native-device-info|react-native-permissions|react-native-otp-textinput|react-native-confetti-cannon|react-native-indicators|react-native-svg|react-native-community|react-native-community/netinfo|lucide-react-native|moti|i18next|@expo)/)',
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
@@ -34,19 +34,19 @@ module.exports = {
     '^@/constants/(.*)$': '<rootDir>/__tests__/__mocks__/constants.js',
     // Mock React Native modules
     '^react-native$': '<rootDir>/__tests__/__mocks__/react-native.js',
-    '^react-native-push-notification$': '<rootDir>/__tests__/__mocks__/react-native-push-notification.js',
     '^react-native-image-picker$': '<rootDir>/__tests__/__mocks__/react-native-image-picker.js',
     '^react-native-video$': '<rootDir>/__tests__/__mocks__/react-native-video.js',
     '^react-native-video-processing$': '<rootDir>/__tests__/__mocks__/react-native-video-processing.js',
     '^react-native-keychain$': '<rootDir>/__tests__/__mocks__/react-native-keychain.js',
     '^react-native-device-info$': '<rootDir>/__tests__/__mocks__/react-native-device-info.js',
+    '^react-native-ssl-public-key-pinning$':
+      '<rootDir>/__tests__/__mocks__/react-native-ssl-public-key-pinning.js',
     '^react-native-permissions$': '<rootDir>/__tests__/__mocks__/react-native-permissions.js',
     '^react-native-otp-textinput$': '<rootDir>/__tests__/__mocks__/react-native-otp-textinput.js',
     '^react-native-confetti-cannon$': '<rootDir>/__tests__/__mocks__/react-native-confetti-cannon.js',
     '^react-native-indicators$': '<rootDir>/__tests__/__mocks__/react-native-indicators.js',
     '^react-native-svg$': '<rootDir>/__tests__/__mocks__/react-native-svg.js',
     '^@react-native-community/netinfo$': '<rootDir>/__tests__/__mocks__/react-native-community-netinfo.js',
-    '^lottie-react-native$': '<rootDir>/__tests__/__mocks__/lottie-react-native.js',
     '^lucide-react-native$': '<rootDir>/__tests__/__mocks__/lucide-react-native.js',
     '^moti$': '<rootDir>/__tests__/__mocks__/moti.js',
     '^i18next$': '<rootDir>/__tests__/__mocks__/i18next.js',
@@ -57,6 +57,7 @@ module.exports = {
     '^@gluestack-ui/config$': '<rootDir>/__tests__/__mocks__/gluestack-ui-config.js',
     '^@gluestack-ui/themed$': '<rootDir>/__tests__/__mocks__/gluestack-ui-themed.js',
     '^react-native-reanimated$': '<rootDir>/__tests__/__mocks__/react-native-reanimated.js',
+    '^react-native-fast-image$': '<rootDir>/__tests__/__mocks__/react-native-fast-image.js',
   },
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',

@@ -1,11 +1,6 @@
 import {renderHook} from '@testing-library/react-native';
 import {useToast} from '../../src/hooks/useToast';
 
-// Mock the toast service
-jest.mock('../../src/services/notification-service', () => ({
-  showToast: jest.fn(),
-}));
-
 describe('useToast Hook', () => {
   beforeEach(() => {
     jest.clearAllMocks();

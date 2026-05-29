@@ -131,7 +131,9 @@ export const initializeSecureStorage = async () => {
       useUserCachedStore.setState({ tokens });
     }
   } catch (error) {
-    console.error('Failed to load tokens from secure storage:', error);
+    if (__DEV__) {
+      console.error('Failed to load tokens from secure storage:', error);
+    }
   }
 };
 

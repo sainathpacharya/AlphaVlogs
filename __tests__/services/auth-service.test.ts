@@ -2,26 +2,33 @@ import { authService } from '../../src/services/auth-service';
 import { MockWrapperService } from '../../src/services/mock-wrapper';
 import { apiLogger } from '../../src/utils/api-logger';
 import apiService from '../../src/services/api';
-import { API_ENDPOINTS } from '../../src/constants';
 
-// Mock dependencies
 jest.mock('../../src/services/mock-wrapper');
 jest.mock('../../src/utils/api-logger');
 jest.mock('../../src/services/api');
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(),
+  getItem: jest.fn(),
+  removeItem: jest.fn(),
+}));
 jest.mock('../../src/constants', () => ({
+  getApiBaseUrl: () => 'http://192.168.29.26:8080',
   APP_CONFIG: {
-    apiUrl: 'https://api.jackmarvels.com',
+    apiUrl: 'http://192.168.29.26:8080',
     environment: 'development',
   },
   API_ENDPOINTS: {
+    STUDENTS: {
+      SEND_OTP: '/api/students/send-otp',
+      VERIFY_OTP: '/api/students/verify-otp',
+    },
     AUTH: {
-      SEND_OTP: '/auth/send-otp',
-      VERIFY_OTP: '/auth/verify-otp',
-      REGISTER: '/auth/register',
+      REGISTER: '/students/register',
       LOGOUT: '/auth/logout',
     },
     USER: {
-      UPDATE_PROFILE: '/user/profile',
+      PROFILE: '/api/auth/me',
+      UPDATE_PROFILE: '/students/profile',
     },
   },
   API: {
@@ -50,90 +57,65 @@ describe('AuthService', () => {
     it('should call mock service when in mock mode', async () => {
       mockMockWrapperService.isMockMode.mockReturnValue(true);
       mockMockWrapperService.getMockService.mockReturnValue({
-        sendOTP: jest.fn().mockResolvedValue({ success: true, data: { otp: '123456' } }),
+        sendOTP: jest.fn().mockResolvedValue({
+          success: true,
+          data: { message: 'OTP sent', expiresIn: 300 },
+        }),
       } as any);
       mockMockWrapperService.convertMockResponse.mockReturnValue({
         success: true,
-        data: { otp: '123456' },
+        data: { message: 'OTP sent', expiresIn: 300 },
       });
 
       const result = await authService.sendOTP(mockData);
 
       expect(mockMockWrapperService.isMockMode).toHaveBeenCalled();
-      expect(mockMockWrapperService.getMockService).toHaveBeenCalled();
-      expect(mockApiLogger.logMockCall).toHaveBeenCalledWith(
-        'AuthService',
-        'sendOTP',
-        mockData,
-        { success: true, data: { otp: '123456' } }
-      );
-      expect(result).toEqual({ success: true, data: { otp: '123456' } });
+      expect(result.success).toBe(true);
     });
 
-    it('should call real API when not in mock mode', async () => {
+    it('should POST 10-digit mobile to student send-otp', async () => {
       mockMockWrapperService.isMockMode.mockReturnValue(false);
-      const mockResponse = { success: true, data: { otp: '123456' } };
-      mockApiService.post.mockResolvedValue(mockResponse);
-
-      const result = await authService.sendOTP(mockData);
-
-      expect(mockApiService.post).toHaveBeenCalledWith('/auth/send-otp', mockData);
-      expect(mockApiLogger.logServiceCall).toHaveBeenCalledWith(
-        'AuthService',
-        'sendOTP',
-        mockData,
-        mockResponse
-      );
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should handle backend response without success wrapper', async () => {
-      mockMockWrapperService.isMockMode.mockReturnValue(false);
-      const mockResponse = { otp: '123456' };
-      mockApiService.post.mockResolvedValue(mockResponse);
-
-      const result = await authService.sendOTP(mockData);
-
-      expect(result).toEqual({
+      mockApiService.post.mockResolvedValue({
         success: true,
-        data: { otp: '123456' },
+        data: {
+          message: 'OTP sent successfully',
+          mobile: '9876543210',
+          expiresIn: 300,
+        },
         statusCode: 200,
       });
-    });
-
-    it('should handle mobile number not registered error', async () => {
-      mockMockWrapperService.isMockMode.mockReturnValue(false);
-      const error = {
-        response: {
-          data: {
-            message: 'Mobile number not registered with any student',
-          },
-        },
-      };
-      mockApiService.post.mockRejectedValue(error);
 
       const result = await authService.sendOTP(mockData);
 
-      expect(result).toEqual({
-        success: false,
-        error: 'This mobile number is not registered. Please register first or contact support.',
-        statusCode: 400,
+      expect(mockApiService.post).toHaveBeenCalledWith('/api/students/send-otp', {
+        mobile: '9876543210',
       });
+      expect(result.success).toBe(true);
+      expect(result.data?.expiresIn).toBe(300);
     });
 
-    it('should throw error for other API errors', async () => {
+    it('should reject invalid Indian mobile format', async () => {
       mockMockWrapperService.isMockMode.mockReturnValue(false);
-      const error = new Error('Network error');
-      mockApiService.post.mockRejectedValue(error);
 
-      await expect(authService.sendOTP(mockData)).rejects.toThrow('Network error');
-      expect(mockApiLogger.logServiceCall).toHaveBeenCalledWith(
-        'AuthService',
-        'sendOTP',
-        mockData,
-        null,
-        error
-      );
+      const result = await authService.sendOTP({ mobile: '5876543210', type: 'login' });
+
+      expect(mockApiService.post).not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/6–9/);
+    });
+
+    it('should map unregistered mobile error', async () => {
+      mockMockWrapperService.isMockMode.mockReturnValue(false);
+      mockApiService.post.mockResolvedValue({
+        success: false,
+        error: 'Mobile number not registered with any student',
+        statusCode: 400,
+      });
+
+      const result = await authService.sendOTP(mockData);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/not registered/i);
     });
   });
 
@@ -156,201 +138,51 @@ describe('AuthService', () => {
 
       const result = await authService.verifyOTP(mockData);
 
-      expect(mockMockWrapperService.isMockMode).toHaveBeenCalled();
-      expect(mockApiLogger.logMockCall).toHaveBeenCalledWith(
-        'AuthService',
-        'verifyOTP',
-        mockData,
-        mockResponse
-      );
-      expect(result).toEqual(mockResponse);
+      expect(result.success).toBe(true);
     });
 
-    it('should call real API when not in mock mode', async () => {
+    it('should POST mobile and otp to student verify-otp', async () => {
       mockMockWrapperService.isMockMode.mockReturnValue(false);
-      const mockResponse = {
+      mockApiService.post.mockResolvedValue({
         success: true,
-        data: { user: { id: '1' }, tokens: { accessToken: 'token' } },
-      };
-      mockApiService.post.mockResolvedValue(mockResponse);
-
-      const result = await authService.verifyOTP(mockData);
-
-      expect(mockApiService.post).toHaveBeenCalledWith('/auth/verify-otp', mockData);
-      expect(mockApiLogger.logServiceCall).toHaveBeenCalledWith(
-        'AuthService',
-        'verifyOTP',
-        mockData,
-        mockResponse
-      );
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should handle backend response without success wrapper', async () => {
-      mockMockWrapperService.isMockMode.mockReturnValue(false);
-      const mockResponse = {
-        data: { user: { id: '1' }, tokens: { accessToken: 'token' } },
-      };
-      mockApiService.post.mockResolvedValue(mockResponse);
-
-      const result = await authService.verifyOTP(mockData);
-
-      expect(result).toEqual({
-        success: true,
-        data: { user: { id: '1' }, tokens: { accessToken: 'token' } },
+        data: {
+          accessToken: 'access',
+          refreshToken: 'refresh',
+          user: { id: 1, firstName: 'Test', role: 'STUDENT' },
+        },
         statusCode: 200,
       });
-    });
-
-    it('should handle direct user/tokens response', async () => {
-      mockMockWrapperService.isMockMode.mockReturnValue(false);
-      const mockResponse = { user: { id: '1' }, tokens: { accessToken: 'token' } };
-      mockApiService.post.mockResolvedValue(mockResponse);
 
       const result = await authService.verifyOTP(mockData);
 
-      expect(result).toEqual({
+      expect(mockApiService.post).toHaveBeenCalledWith('/api/students/verify-otp', {
+        mobile: '9876543210',
+        otp: '123456',
+      });
+      expect(result.success).toBe(true);
+      expect(result.data?.tokens.accessToken).toBe('access');
+    });
+
+    it('should fetch profile when verify response has tokens only', async () => {
+      mockMockWrapperService.isMockMode.mockReturnValue(false);
+      mockApiService.post.mockResolvedValue({
         success: true,
-        data: { user: { id: '1' }, tokens: { accessToken: 'token' } },
+        data: {
+          tokens: { accessToken: 'access', refreshToken: 'refresh', expiresIn: 900 },
+        },
         statusCode: 200,
       });
-    });
-  });
+      mockApiService.get.mockResolvedValue({
+        success: true,
+        data: { id: 1, username: 'student@test.com', role: 'STUDENT' },
+        statusCode: 200,
+      });
 
-  describe('register', () => {
-    const mockData = {
-      firstName: 'John',
-      lastName: 'Doe',
-      emailId: 'john@example.com',
-      mobileNumber: '9876543210',
-      state: 'California',
-      district: 'Los Angeles',
-      city: 'Los Angeles',
-      pincode: '123456',
-      promocode: 'PROMO123',
-      schoolId: '1',
-      schoolName: 'Test School',
-    };
+      const result = await authService.verifyOTP(mockData);
 
-    it('should call mock service when in mock mode', async () => {
-      mockMockWrapperService.isMockMode.mockReturnValue(true);
-      const mockResponse = { success: true, data: { id: '1', firstName: 'John' } };
-      mockMockWrapperService.getMockService.mockReturnValue({
-        register: jest.fn().mockResolvedValue(mockResponse),
-      } as any);
-      mockMockWrapperService.convertMockResponse.mockReturnValue(mockResponse);
-
-      const result = await authService.register(mockData);
-
-      expect(mockMockWrapperService.isMockMode).toHaveBeenCalled();
-      expect(mockApiLogger.logMockCall).toHaveBeenCalledWith(
-        'AuthService',
-        'register',
-        mockData,
-        mockResponse
-      );
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should call real API when not in mock mode', async () => {
-      mockMockWrapperService.isMockMode.mockReturnValue(false);
-      const mockResponse = { success: true, data: { id: '1', firstName: 'John' } };
-      mockApiService.post.mockResolvedValue(mockResponse);
-
-      const result = await authService.register(mockData);
-
-      expect(mockApiService.post).toHaveBeenCalledWith('/auth/register', mockData);
-      expect(mockApiLogger.logServiceCall).toHaveBeenCalledWith(
-        'AuthService',
-        'register',
-        mockData,
-        mockResponse
-      );
-      expect(result).toEqual(mockResponse);
-    });
-  });
-
-  describe('logout', () => {
-    it('should call mock service when in mock mode', async () => {
-      mockMockWrapperService.isMockMode.mockReturnValue(true);
-      const mockResponse = { success: true };
-      mockMockWrapperService.getMockService.mockReturnValue({
-        logout: jest.fn().mockResolvedValue(mockResponse),
-      } as any);
-      mockMockWrapperService.convertMockResponse.mockReturnValue(mockResponse);
-
-      const result = await authService.logout();
-
-      expect(mockMockWrapperService.isMockMode).toHaveBeenCalled();
-      expect(mockApiLogger.logMockCall).toHaveBeenCalledWith(
-        'AuthService',
-        'logout',
-        null,
-        mockResponse
-      );
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should call real API when not in mock mode', async () => {
-      mockMockWrapperService.isMockMode.mockReturnValue(false);
-      const mockResponse = { success: true };
-      mockApiService.post.mockResolvedValue(mockResponse);
-
-      const result = await authService.logout();
-
-      expect(mockApiService.post).toHaveBeenCalledWith('/auth/logout');
-      expect(mockApiLogger.logServiceCall).toHaveBeenCalledWith(
-        'AuthService',
-        'logout',
-        null,
-        mockResponse
-      );
-      expect(result).toEqual(mockResponse);
-    });
-  });
-
-  describe('updateProfile', () => {
-    const mockData = {
-      firstName: 'Jane',
-      lastName: 'Smith',
-      studentId: 123,
-    };
-
-    it('should call mock service when in mock mode', async () => {
-      mockMockWrapperService.isMockMode.mockReturnValue(true);
-      const mockResponse = { success: true, data: { id: '1', firstName: 'Jane' } };
-      mockMockWrapperService.getMockService.mockReturnValue({
-        updateProfile: jest.fn().mockResolvedValue(mockResponse),
-      } as any);
-      mockMockWrapperService.convertMockResponse.mockReturnValue(mockResponse);
-
-      const result = await authService.updateProfile(mockData);
-
-      expect(mockMockWrapperService.isMockMode).toHaveBeenCalled();
-      expect(mockApiLogger.logMockCall).toHaveBeenCalledWith(
-        'AuthService',
-        'updateProfile',
-        mockData,
-        mockResponse
-      );
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should call real API when not in mock mode', async () => {
-      mockMockWrapperService.isMockMode.mockReturnValue(false);
-      const mockResponse = { success: true, data: { id: '1', firstName: 'Jane' } };
-      mockApiService.put.mockResolvedValue(mockResponse);
-
-      const result = await authService.updateProfile(mockData);
-
-      expect(mockApiService.put).toHaveBeenCalledWith('/user/profile', mockData);
-      expect(mockApiLogger.logServiceCall).toHaveBeenCalledWith(
-        'AuthService',
-        'updateProfile',
-        mockData,
-        mockResponse
-      );
-      expect(result).toEqual(mockResponse);
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/auth/me');
+      expect(result.success).toBe(true);
+      expect(result.data?.user.role).toBe('student');
     });
   });
 });

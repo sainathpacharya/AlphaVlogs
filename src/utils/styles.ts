@@ -7,8 +7,11 @@ const { width, height } = Dimensions.get('window');
 const DIMENSIONS = {
   screenWidth: width,
   screenHeight: height,
-  cardWidth: (width - 60) / 2,
-  cardHeight: 180,
+  cardWidth: (width - 48) / 2,
+  cardHeight: 208,
+  cardMediaHeight: 120,
+  // Legacy — prefer cardMediaHeight for event tiles
+  cardIconSize: Math.min(120 - 16, (width - 48) / 2 - 24),
   borderRadius: {
     small: 8,
     medium: 12,
@@ -203,14 +206,11 @@ const commonStyles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // Lottie styles
-  lottie: {
+  eventIcon: {
     width: 120,
     height: 120,
-  },
-  lottieSmall: {
-    width: 40,
-    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

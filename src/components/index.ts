@@ -2,7 +2,8 @@
 // export * from "./actionsheet";
 // export * from "./alert";
 // export * from "./alert-dialog";
-// export * from "./avatar";
+export * from './avatar';
+export * from './UserAvatar';
 export * from './badge';
 export * from './box';
 export * from './button';
@@ -55,6 +56,3 @@ export { TabPanel } from './_custom/Tab/TabPanel';
 export { TranslationExample } from './TranslationExample';
 export { TranslationTest } from './TranslationTest';
 export { RippleDemo } from './ripple-demo';
-export { default as YouTubePlayer } from './YouTubePlayer';
-export { default as YouTubeUpload } from './YouTubeUpload';
-export { default as GifPlayer } from './GifPlayer';

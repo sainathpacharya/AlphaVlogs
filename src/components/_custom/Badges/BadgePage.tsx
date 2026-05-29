@@ -2,31 +2,14 @@ import {SafeAreaView} from '@/components/safe-area-view';
 import {ScrollView} from '@/components/scroll-view';
 import {VStack, HStack, Text, Pressable, Box} from '@/components/vstack';
 import {AppStackParamList} from '@/navigation/AppStack/types';
-import {navigateHelpArticle} from '@/utils/navigation';
-import {redirectBadgeUrl} from '@/utils/provider-badges';
-import {useLinkTo, useNavigation} from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import Markdown from 'react-native-markdown-display';
 import {useThemeColors} from '@/utils/colors';
 
 const BadgePage = ({
   route,
 }: NativeStackScreenProps<AppStackParamList, 'BadgePage'>) => {
-  const linkTo = useLinkTo();
-  const handleOpenArticleModal = ({
-    articleId,
-    sectionId,
-  }: {
-    sectionId: number;
-    articleId: number;
-  }) => {
-    navigateHelpArticle({
-      sectionId,
-      id: articleId,
-      icon: 'arrow',
-      label: 'Additional medical coverage',
-    });
-  };
+  const navigation = useNavigation();
 
   return (
     <SafeAreaView>
@@ -62,27 +45,9 @@ const BadgePage = ({
         {route?.params?.header}
 
         <ScrollView>
-          <Markdown
-            onLinkPress={(url: string) => {
-              return redirectBadgeUrl(url, linkTo, handleOpenArticleModal);
-            }}
-            style={{
-              image: {
-                resizeMode: 'cover',
-                height: 64,
-                width: '50%',
-              },
-              paragraph: {
-                color: '#232121',
-              },
-              link: {
-                color: '#007E8C',
-                textDecorationLine: 'none',
-                fontStyle: 'normal',
-              },
-            }}>
+          <Text style={{color: colors.primaryText, fontSize: 16, lineHeight: 24}}>
             {atob(route?.params?.description || '')}
-          </Markdown>
+          </Text>
         </ScrollView>
       </VStack>
     </SafeAreaView>

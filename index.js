@@ -2,6 +2,8 @@
  * @format
  */
 
+import 'react-native-gesture-handler';
+
 // Polyfill for Intl.PluralRules to fix i18next compatibility
 if (!global.Intl) {
   global.Intl = {};
@@ -24,5 +26,15 @@ if (!global.Intl.PluralRules) {
 import {AppRegistry} from 'react-native';
 import App from './App';
 import {name as appName} from './app.json';
+import {bootstrapSslPinning} from './src/config/ssl-pinning';
 
-AppRegistry.registerComponent(appName, () => App);
+// Initialize SSL pinning before any network traffic (release builds only).
+bootstrapSslPinning()
+  .catch((error) => {
+    if (__DEV__) {
+      console.warn('[ssl-pinning] bootstrap failed:', error);
+    }
+  })
+  .finally(() => {
+    AppRegistry.registerComponent(appName, () => App);
+  });

@@ -1,35 +1,80 @@
 import React from 'react';
-import {Alert} from 'react-native';
+import {Alert, ScrollView} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
-import {VStack, HStack, Text, Box, Pressable} from '@/components';
+import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {ChevronRight, LogOut} from 'lucide-react-native';
+import {
+  VStack,
+  HStack,
+  Text,
+  Box,
+  Pressable,
+  Button,
+  ButtonText,
+  UserAvatar,
+} from '@/components';
+import {APP_CONFIG} from '@/constants';
 import {useThemeColors} from '@/utils/colors';
+import {maskEmail, maskMobile} from '@/utils/privacy';
+import {getAppVersion} from '@/utils/platform';
 import {useUserStore} from '@/stores';
-import {i18n} from '@/services/i18n-service';
+import {AppStackParamList} from '@/navigation/AppStack/types';
+
+type ProfileNav = NativeStackNavigationProp<AppStackParamList, 'Profile'>;
+
+type ProfileMenuItemProps = {
+  label: string;
+  testID: string;
+  onPress: () => void;
+  colors: ReturnType<typeof useThemeColors>;
+  isLast?: boolean;
+};
+
+const ProfileMenuItem = ({
+  label,
+  testID,
+  onPress,
+  colors,
+  isLast,
+}: ProfileMenuItemProps) => (
+  <Pressable testID={testID} onPress={onPress}>
+    <HStack
+      alignItems="center"
+      justifyContent="space-between"
+      py="$3.5"
+      style={{
+        borderBottomWidth: isLast ? 0 : 1,
+        borderBottomColor: colors.border || 'rgba(0,0,0,0.08)',
+      }}>
+      <Text style={{color: colors.primaryText, fontSize: 16, fontWeight: '500'}}>
+        {label}
+      </Text>
+      <ChevronRight size={20} color={colors.mutedText} strokeWidth={2} />
+    </HStack>
+  </Pressable>
+);
 
 const ProfileScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<ProfileNav>();
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
   const {user, setAuthenticated, setUser, reset} = useUserStore();
+  const appVersion = getAppVersion() || APP_CONFIG.version;
 
   const handleLogout = () => {
     Alert.alert(
       'Logout',
       'Are you sure you want to logout?',
       [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
+        {text: 'Cancel', style: 'cancel'},
         {
           text: 'Logout',
           style: 'destructive',
           onPress: () => {
-            // Reset user store (this will clear persistent storage)
             reset();
-            // Clear authentication state
             setAuthenticated(false);
             setUser(null);
-
             Alert.alert(
               '✅ Logged Out',
               'You have been successfully logged out. You will need to log in again to access the app.',
@@ -47,23 +92,25 @@ const ProfileScreen = () => {
       testID="profile-screen"
       flex={1}
       style={{backgroundColor: colors.primaryBackground}}>
-      {/* Custom Header with Back Button */}
       <HStack
         testID="profile-header"
         alignItems="center"
         justifyContent="space-between"
-        p="$4"
-        pt="$12"
-        style={{backgroundColor: colors.primaryBackground}}>
+        px="$4"
+        pb="$3"
+        style={{
+          backgroundColor: colors.primaryBackground,
+          paddingTop: insets.top + 4,
+        }}>
         <Pressable
           testID="profile-back-button"
           onPress={() => navigation.goBack()}
           p="$2"
           borderRadius="$md"
-          style={{backgroundColor: 'rgba(255,255,255,0.1)'}}>
+          style={{backgroundColor: colors.border || 'rgba(0,0,0,0.08)'}}>
           <Text
             testID="profile-back-arrow"
-            style={{color: colors.white, fontSize: 18}}>
+            style={{color: colors.primaryText, fontSize: 18}}>
             ←
           </Text>
         </Pressable>
@@ -81,38 +128,18 @@ const ProfileScreen = () => {
         <Box w="$10" />
       </HStack>
 
-      <VStack testID="profile-content" flex={1} p="$4" space="lg">
-        {/* Profile Header */}
-        <VStack
-          testID="profile-header-section"
-          space="md"
-          alignItems="center"
-          pt="$6">
-          <Box
-            testID="profile-avatar"
-            style={{
-              backgroundColor: colors.accentAction,
-              width: 100,
-              height: 100,
-              borderRadius: 50,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-            {user?.profileImage ? (
-              <Text
-                testID="profile-avatar-initial"
-                style={{color: colors.white, fontSize: 40}}>
-                {user.firstName?.charAt(0) || 'U'}
-              </Text>
-            ) : (
-              <Text
-                testID="profile-avatar-icon"
-                style={{color: colors.white, fontSize: 40}}>
-                👤
-              </Text>
-            )}
-          </Box>
-          <VStack testID="profile-user-info" space="sm" alignItems="center">
+      <ScrollView
+        testID="profile-content"
+        style={{flex: 1}}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingBottom: insets.bottom + 16,
+          flexGrow: 1,
+        }}
+        showsVerticalScrollIndicator={false}>
+        <VStack testID="profile-header-section" space="md" alignItems="center" pt="$2" pb="$4">
+          <UserAvatar user={user} size="xl" testID="profile-avatar" />
+          <VStack testID="profile-user-info" space="xs" alignItems="center">
             <Text
               testID="profile-user-name"
               style={{
@@ -127,18 +154,17 @@ const ProfileScreen = () => {
             <Text
               testID="profile-user-email"
               style={{color: colors.mutedText, fontSize: 16}}>
-              {user?.email || 'user@example.com'}
+              {maskEmail(user?.email)}
             </Text>
             <Text
               testID="profile-user-mobile"
               style={{color: colors.mutedText, fontSize: 14}}>
-              {user?.mobile || '+91 XXXXXXXXXX'}
+              {maskMobile(user?.mobile)}
             </Text>
           </VStack>
         </VStack>
 
-        {/* User Information */}
-        <VStack testID="profile-account-info" space="md" pt="$6">
+        <VStack testID="profile-account-info" space="md" pb="$4">
           <Text
             testID="profile-account-title"
             style={{
@@ -149,7 +175,7 @@ const ProfileScreen = () => {
             Account Information
           </Text>
 
-          {user?.state && (
+          {user?.state ? (
             <HStack
               testID="profile-location-row"
               justifyContent="space-between"
@@ -165,9 +191,9 @@ const ProfileScreen = () => {
                 {user.city}, {user.state}
               </Text>
             </HStack>
-          )}
+          ) : null}
 
-          {user?.pincode && (
+          {user?.pincode ? (
             <HStack
               testID="profile-pincode-row"
               justifyContent="space-between"
@@ -183,7 +209,7 @@ const ProfileScreen = () => {
                 {user.pincode}
               </Text>
             </HStack>
-          )}
+          ) : null}
 
           <HStack
             testID="profile-status-row"
@@ -197,9 +223,7 @@ const ProfileScreen = () => {
             <Text
               testID="profile-status-value"
               style={{
-                color: user?.isVerified
-                  ? colors.accentAction
-                  : colors.mutedText,
+                color: user?.isVerified ? colors.accentAction : colors.mutedText,
                 fontSize: 16,
               }}>
               {user?.isVerified ? '✅ Verified' : '⏳ Pending'}
@@ -207,48 +231,75 @@ const ProfileScreen = () => {
           </HStack>
         </VStack>
 
-        {/* Action Buttons */}
         <VStack
-          testID="profile-actions"
-          space="md"
-          flex={1}
-          justifyContent="flex-end"
-          pb="$6">
-          <Pressable
-            testID="profile-permissions-button"
-            onPress={() => navigation.navigate('Permissions' as never)}
-            style={{
-              backgroundColor: colors.accentAction,
-              borderRadius: 12,
-              paddingVertical: 16,
-              paddingHorizontal: 24,
-              alignItems: 'center',
-            }}>
-            <Text
-              testID="profile-permissions-text"
-              style={{color: colors.white, fontSize: 18, fontWeight: 'bold'}}>
-              Manage Permissions
-            </Text>
-          </Pressable>
+          testID="profile-legal-menu"
+          pt="$2"
+          pb="$6"
+          style={{
+            borderTopWidth: 1,
+            borderTopColor: colors.border || 'rgba(0,0,0,0.08)',
+          }}>
+          <ProfileMenuItem
+            testID="profile-terms-button"
+            label="Terms and Conditions"
+            colors={colors}
+            onPress={() => navigation.navigate('TermsAndConditions')}
+          />
+          <ProfileMenuItem
+            testID="profile-privacy-button"
+            label="Privacy Policy"
+            colors={colors}
+            onPress={() => navigation.navigate('PrivacyPolicy')}
+          />
+          <ProfileMenuItem
+            testID="profile-about-button"
+            label="About Us"
+            colors={colors}
+            isLast
+            onPress={() => navigation.navigate('AboutUs')}
+          />
+        </VStack>
 
-          <Pressable
+        <Box flex={1} minHeight={16} />
+
+        <VStack testID="profile-actions" space="sm" w="$full" pb="$2">
+          <Button
             testID="profile-logout-button"
             onPress={handleLogout}
+            action="negative"
+            variant="solid"
+            size="lg"
+            w="$full"
             style={{
-              backgroundColor: '#FF3B30',
-              borderRadius: 12,
-              paddingVertical: 16,
-              paddingHorizontal: 24,
-              alignItems: 'center',
+              alignSelf: 'stretch',
+              elevation: 0,
+              shadowColor: 'transparent',
             }}>
-            <Text
-              testID="profile-logout-text"
-              style={{color: colors.white, fontSize: 18, fontWeight: 'bold'}}>
-              Logout
-            </Text>
-          </Pressable>
+            <HStack
+              alignItems="center"
+              justifyContent="center"
+              space="sm"
+              w="$full">
+              <LogOut size={20} color={colors.white} strokeWidth={2.5} />
+              <ButtonText
+                testID="profile-logout-text"
+                style={{flex: 0, textAlign: 'center'}}>
+                Logout
+              </ButtonText>
+            </HStack>
+          </Button>
+          <Text
+            testID="profile-app-version"
+            style={{
+              color: colors.mutedText,
+              fontSize: 12,
+              textAlign: 'center',
+              marginTop: 8,
+            }}>
+            Version {appVersion}
+          </Text>
         </VStack>
-      </VStack>
+      </ScrollView>
     </VStack>
   );
 };

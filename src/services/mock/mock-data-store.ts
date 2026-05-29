@@ -1,118 +1,21 @@
 import { User, Event, InfluencerEvent, Subscription, PaymentMethod, VideoSubmission, QuizQuestion, Notification } from '@/types';
 
+// Static data (no API calls) – loaded from JSON
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const staticEvents = require('../../data/events.json') as Event[];
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const staticUsers = require('../../data/users.json') as User[];
+
 /**
- * Centralized mock data storage
+ * Centralized mock/static data storage – used when API_CONFIG.MODE === 'mock'
  */
 export class MockDataStore {
-  private users: User[] = [
-    {
-      id: 'user_001',
-      firstName: 'Rahul',
-      lastName: 'Sharma',
-      email: 'rahul.sharma@example.com',
-      mobile: '9876543210',
-      state: 'Maharashtra',
-      district: 'Mumbai',
-      city: 'Mumbai',
-      pincode: '400001',
-      profileImage: undefined,
-      roleId: 4,
-      role: 'student',
-      isVerified: true,
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z',
-    },
-    {
-      id: 'user_002',
-      firstName: 'Priya',
-      lastName: 'Patel',
-      email: 'priya.patel@example.com',
-      mobile: '8765432109',
-      state: 'Gujarat',
-      district: 'Ahmedabad',
-      city: 'Ahmedabad',
-      pincode: '380001',
-      profileImage: undefined,
-      roleId: 3,
-      role: 'influencer',
-      isVerified: true,
-      createdAt: '2024-01-10T14:30:00Z',
-      updatedAt: '2024-01-10T14:30:00Z',
-    },
-  ];
+  private users: User[] = staticUsers.map(u => ({
+    ...u,
+    profileImage: u.profileImage ?? undefined,
+  }));
 
-  private events: Event[] = [
-    {
-      id: 'event_001',
-      title: 'National Anthem',
-      description: 'Sing the national anthem with pride and patriotism',
-      category: 'Singing',
-      isActive: true,
-      startDate: '2024-01-15T00:00:00Z',
-      endDate: '2024-02-15T23:59:59Z',
-      canUpload: true,
-      uploadStartDate: '2024-01-15T00:00:00Z',
-      uploadEndDate: '2024-02-10T23:59:59Z',
-      allowedRoles: [4],
-      createdAt: '2024-01-01T00:00:00Z',
-    },
-    {
-      id: 'event_002',
-      title: 'Tongue Twister',
-      description: 'Master challenging tongue twisters with speed and clarity',
-      category: 'Speaking',
-      isActive: true,
-      startDate: '2024-02-01T00:00:00Z',
-      endDate: '2024-03-01T23:59:59Z',
-      canUpload: false,
-      uploadStartDate: '2024-02-01T00:00:00Z',
-      uploadEndDate: '2024-02-25T23:59:59Z',
-      allowedRoles: [4],
-      createdAt: '2024-01-01T00:00:00Z',
-    },
-    {
-      id: 'event_003',
-      title: 'Singing',
-      description: 'Showcase your vocal talent with any song of your choice',
-      category: 'Singing',
-      isActive: true,
-      startDate: '2024-01-20T00:00:00Z',
-      endDate: '2024-02-20T23:59:59Z',
-      canUpload: true,
-      uploadStartDate: '2024-01-20T00:00:00Z',
-      uploadEndDate: '2024-02-15T23:59:59Z',
-      allowedRoles: [4],
-      createdAt: '2024-01-01T00:00:00Z',
-    },
-    {
-      id: 'event_004',
-      title: 'Dancing',
-      description: 'Express yourself through dance in any style',
-      category: 'Dance',
-      isActive: true,
-      startDate: '2024-02-05T00:00:00Z',
-      endDate: '2024-03-05T23:59:59Z',
-      canUpload: true,
-      uploadStartDate: '2024-02-05T00:00:00Z',
-      uploadEndDate: '2024-02-28T23:59:59Z',
-      allowedRoles: [4],
-      createdAt: '2024-01-01T00:00:00Z',
-    },
-    {
-      id: 'event_005',
-      title: 'Movie Dialogues',
-      description: 'Recreate famous movie dialogues with acting skills',
-      category: 'Acting',
-      isActive: true,
-      startDate: '2024-01-25T00:00:00Z',
-      endDate: '2024-02-25T23:59:59Z',
-      canUpload: true,
-      uploadStartDate: '2024-01-25T00:00:00Z',
-      uploadEndDate: '2024-02-20T23:59:59Z',
-      allowedRoles: [4],
-      createdAt: '2024-01-01T00:00:00Z',
-    },
-  ];
+  private events: Event[] = staticEvents;
 
   private influencerEvents: InfluencerEvent[] = [
     {

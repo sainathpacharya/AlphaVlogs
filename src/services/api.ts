@@ -1,9 +1,16 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Keychain from 'react-native-keychain';
 import NetInfo from '@react-native-community/netinfo';
-import { APP_CONFIG, API_ENDPOINTS, API, STORAGE_KEYS } from '@/constants';
+import { getApiBaseUrl, API_ENDPOINTS, API, STORAGE_KEYS } from '@/constants';
 import { ApiResponse, AuthTokens } from '@/types';
 import { apiLogger } from '@/utils/api-logger';
+import { normalizeAuthTokens, parseApiErrorMessage } from '@/utils/api-response';
+
+type ApiRequestConfig = AxiosRequestConfig & {
+  skipAuth?: boolean;
+  _retry?: boolean;
+};
 
 class ApiService {
   private api: AxiosInstance;
@@ -15,7 +22,7 @@ class ApiService {
 
   constructor() {
     this.api = axios.create({
-      baseURL: APP_CONFIG.apiUrl,
+      baseURL: getApiBaseUrl(),
       timeout: API.TIMEOUT,
       headers: {
         'Content-Type': 'application/json',
@@ -35,10 +42,15 @@ class ApiService {
           throw new Error('No internet connection');
         }
 
-        // Add auth token to requests
-        const tokens = await this.getStoredTokens();
-        if (tokens?.accessToken) {
-          config.headers.Authorization = `Bearer ${tokens.accessToken}`;
+        // Add auth token to requests (never on /api/auth/refresh — backend JWT filter rejects stale Bearer tokens)
+        const requestConfig = config as ApiRequestConfig;
+        if (!requestConfig.skipAuth && !this.isRefreshRequest(config)) {
+          const tokens = await this.getStoredTokens();
+          if (tokens?.accessToken) {
+            config.headers.Authorization = `Bearer ${tokens.accessToken}`;
+          }
+        } else {
+          delete config.headers.Authorization;
         }
 
         // Add request timestamp for caching and logging
@@ -70,9 +82,13 @@ class ApiService {
           apiLogger.logRequestError(error, startTime);
         }
 
-        const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+        const originalRequest = error.config as ApiRequestConfig;
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (
+          error.response?.status === 401 &&
+          !originalRequest._retry &&
+          !this.isRefreshRequest(originalRequest)
+        ) {
           if (this.isRefreshing) {
             // Wait for the token refresh to complete
             return new Promise((resolve, reject) => {
@@ -94,7 +110,17 @@ class ApiService {
             const tokens = await this.getStoredTokens();
             if (tokens?.refreshToken) {
               const response = await this.refreshToken(tokens.refreshToken);
-              const newTokens = response.data;
+              const body = response.data as unknown;
+              const newTokens =
+                normalizeAuthTokens(body) ??
+                normalizeAuthTokens(
+                  body && typeof body === 'object'
+                    ? (body as Record<string, unknown>).data
+                    : null,
+                );
+              if (!newTokens) {
+                throw new Error('Invalid refresh response from server');
+              }
 
               await this.storeTokens(newTokens);
 
@@ -127,9 +153,27 @@ class ApiService {
   private async getStoredTokens(): Promise<AuthTokens | null> {
     try {
       const tokensJson = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKENS);
-      return tokensJson ? JSON.parse(tokensJson) : null;
+      if (tokensJson) {
+        const parsed = normalizeAuthTokens(JSON.parse(tokensJson));
+        if (parsed) {
+          return parsed;
+        }
+      }
+
+      const credentials = await Keychain.getInternetCredentials('auth_tokens');
+      if (credentials?.password) {
+        const parsed = normalizeAuthTokens(JSON.parse(credentials.password));
+        if (parsed) {
+          await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKENS, JSON.stringify(parsed));
+          return parsed;
+        }
+      }
+
+      return null;
     } catch (error) {
-      console.error('Error getting stored tokens:', error);
+      if (__DEV__) {
+        console.error('Error getting stored tokens:', error);
+      }
       return null;
     }
   }
@@ -138,7 +182,9 @@ class ApiService {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKENS, JSON.stringify(tokens));
     } catch (error) {
-      console.error('Error storing tokens:', error);
+      if (__DEV__) {
+        console.error('Error storing tokens:', error);
+      }
     }
   }
 
@@ -147,12 +193,23 @@ class ApiService {
       await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKENS);
       await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
     } catch (error) {
-      console.error('Error clearing auth:', error);
+      if (__DEV__) {
+        console.error('Error clearing auth:', error);
+      }
     }
   }
 
+  private isRefreshRequest(config?: AxiosRequestConfig): boolean {
+    const url = config?.url ?? '';
+    return url === API_ENDPOINTS.AUTH.REFRESH || url.endsWith(API_ENDPOINTS.AUTH.REFRESH);
+  }
+
   private async refreshToken(refreshToken: string): Promise<AxiosResponse<AuthTokens>> {
-    return this.api.post('/auth/refresh', { refreshToken });
+    return this.api.post(
+      API_ENDPOINTS.AUTH.REFRESH,
+      { refreshToken },
+      { skipAuth: true } as ApiRequestConfig,
+    );
   }
 
   // Generic request methods
@@ -203,25 +260,11 @@ class ApiService {
 
   private handleError(error: any): ApiResponse {
     if (error.response) {
-      // Server responded with error status
-      let errorMessage = error.response.statusText || 'An error occurred';
-
-      // Handle different response data formats
-      if (error.response.data) {
-        if (typeof error.response.data === 'string') {
-          // Backend returned error as string
-          errorMessage = error.response.data;
-        } else if (error.response.data.message) {
-          // Backend returned error object with message property
-          errorMessage = error.response.data.message;
-        } else if (error.response.data.error) {
-          // Backend returned error object with error property
-          errorMessage = error.response.data.error;
-        } else if (typeof error.response.data === 'object') {
-          // Try to stringify if it's an object
-          errorMessage = JSON.stringify(error.response.data);
-        }
-      }
+      const data = error.response.data;
+      const errorMessage =
+        (typeof data === 'string' ? data : parseApiErrorMessage(data)) ||
+        error.response.statusText ||
+        'An error occurred';
 
       return {
         success: false,

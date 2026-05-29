@@ -1,190 +1,133 @@
-import React, {useState, useEffect} from 'react';
-import {FlatList, ListRenderItem} from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
-import LottieView from 'lottie-react-native';
-
+import React, {useState, useEffect, useCallback} from 'react';
+import {Alert, FlatList, ListRenderItem, Platform, StyleSheet} from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import Animated from 'react-native-reanimated';
 import {
   Box,
   Text,
   VStack,
-  StatusBar,
   Pressable,
   HStack,
   LoadingSpinner,
+  UserAvatar,
 } from '../../components';
+import {DashboardEventCard, DashboardEventCardItem} from '../../components/DashboardEventCard';
 import {useNavigation} from '@react-navigation/native';
 import {useTranslation} from '../../hooks/useTranslation';
-import {DIMENSIONS} from '../../utils/styles';
 import {useThemeColors} from '../../utils/colors';
 import {useUserStore} from '../../stores';
 import {eventsService} from '../../services/events-service';
-// EventItem type is defined locally below
-import {usePermissions} from '../../hooks/usePermissions';
+import {resolveDashboardEventId} from '../../utils/event-icons';
+import {resolveEventGifUrl} from '../../utils/event-media';
+import {subscriptionService} from '../../services/subscription-service';
 
-// ✅ Proper type for each item
-interface EventItem {
-  id: string;
-  title: string;
-}
+const SUBSCRIBERS_ONLY_MESSAGE =
+  'This feature is only for subscribed students only.';
 
-const CARD_WIDTH = DIMENSIONS.cardWidth;
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<DashboardEventCardItem>);
 
-// ✅ Correctly typed Animated FlatList
-const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<EventItem>);
-
-// ✅ Lottie map
-const lottieMap: Record<string, any> = {
-  'National Anthem': require('../../assets/lottie/nationalAnthem.json'),
-  'Tongue Twister': require('../../assets/lottie/tongueTwister.json'),
-  Singing: require('../../assets/lottie/singing.json'),
-  Dancing: require('../../assets/lottie/dance.json'),
-  'Movie dialogues': require('../../assets/lottie/movieDialogues.json'),
-  'Comedy Act / Skit': require('../../assets/lottie/drama.json'),
-  Shayari: require('../../assets/lottie/shayari.json'),
-  Rhymes: require('../../assets/lottie/poems.json'),
-  Poems: require('../../assets/lottie/poetryN.json'),
-  Cooking: require('../../assets/lottie/cooking.json'),
-  'Twins Act': require('../../assets/lottie/twinsAct.json'),
-  'Any special Talent': require('../../assets/lottie/specialTalent.json'),
-  'Mom and Kid Act': require('../../assets/lottie/momChild.json'),
-  'Craft Making': require('../../assets/lottie/crafting.json'),
-  'Kids group performance with teacher': require('../../assets/lottie/kidsTeacher.json'),
-};
-
-// ✅ Card component
-const DashboardCard: React.FC<{
-  item: EventItem;
-  index: number;
-  onPress: () => void;
-  colors: any;
-}> = ({item, index, onPress, colors}) => {
-  const animated = useSharedValue(0);
-
-  React.useEffect(() => {
-    // Animate in with spring & stagger by index
-    setTimeout(() => {
-      animated.value = withSpring(1, {
-        damping: 10,
-        stiffness: 90,
-      });
-    }, index * 100);
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: animated.value,
-    transform: [{scale: animated.value}],
-  }));
-
-  const lottieSource =
-    lottieMap[item.title] || require('../../assets/lottie/grayButtonDots.json');
-
-  return (
-    <Animated.View style={animatedStyle}>
-      <Pressable
-        testID={`dashboard-event-card-${item.id}`}
-        onPress={onPress}
-        style={{
-          backgroundColor: colors.cardBackground,
-          borderColor: colors.accentAction,
-          borderWidth: 2,
-          borderRadius: DIMENSIONS.borderRadius.large,
-          padding: DIMENSIONS.padding.sm,
-          margin: DIMENSIONS.margin.sm,
-          width: CARD_WIDTH,
-          height: DIMENSIONS.cardHeight,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-        <LottieView
-          testID={`dashboard-event-lottie-${item.id}`}
-          source={lottieSource}
-          autoPlay
-          loop
-          style={{width: 40, height: 40}}
-        />
-        <Text
-          testID={`dashboard-event-title-${item.id}`}
-          style={{
-            color: colors.primaryText,
-            fontSize: 16,
-            fontWeight: 'bold',
-            textAlign: 'center',
-          }}>
-          {item.title}
-        </Text>
-      </Pressable>
-    </Animated.View>
-  );
-};
-
-// ✅ Dashboard screen
 const DashboardScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
   const {user} = useUserStore();
-  const [events, setEvents] = useState<EventItem[]>([]);
+  const [events, setEvents] = useState<DashboardEventCardItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const {requestEssentialPermissions} = usePermissions();
+  const [eventsError, setEventsError] = useState<string | null>(null);
   const {t} = useTranslation();
 
-  const handleEventPress = (event: EventItem) => {
-    navigation.navigate('VideoUpload', {
-      eventId: event.id,
-      eventTitle: event.title,
-    });
-  };
+  const handleEventPress = useCallback(
+    async (event: DashboardEventCardItem) => {
+      try {
+        const subscribed = await subscriptionService.isStudentSubscribed(user);
+        if (subscribed) {
+          navigation.navigate('VideoUpload', {
+            eventId: event.id,
+            eventTitle: event.title,
+            iconId: event.iconId,
+            eventGifUrl: event.gifUrl ?? undefined,
+          });
+          return;
+        }
 
-  const handleSubscriptionPress = () => {
+        Alert.alert('Subscription required', SUBSCRIBERS_ONLY_MESSAGE, [
+          {
+            text: 'Subscribe',
+            onPress: () => navigation.navigate('Subscription'),
+          },
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('ComingSoon'),
+          },
+        ]);
+      } catch (error) {
+        if (__DEV__) {
+          console.error('Subscription check failed:', error);
+        }
+        Alert.alert('Subscription required', SUBSCRIBERS_ONLY_MESSAGE, [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('ComingSoon'),
+          },
+        ]);
+      }
+    },
+    [navigation, user],
+  );
+
+  const handleSubscriptionPress = useCallback(() => {
     navigation.navigate('Subscription');
-  };
+  }, [navigation]);
 
-  const handleProfilePress = () => {
+  const handleProfilePress = useCallback(() => {
     navigation.navigate('Profile');
-  };
+  }, [navigation]);
 
-  // Load events from mock service and check permissions
   useEffect(() => {
-    const initializeApp = async () => {
+    const loadEvents = async () => {
       try {
         setLoading(true);
+        setEventsError(null);
 
-        // Check and request essential permissions
-        await requestEssentialPermissions();
-
-        // Load events
         const response = await eventsService.getEvents();
+        const list = response.data?.data;
 
-        if (response.success && response.data && response.data.data) {
-          // Transform EventItemType to local EventItem
-          const transformedEvents = response.data.data.map(
-            (event: EventItemType) => ({
-              id: event.id,
+        if (response.success && Array.isArray(list) && list.length > 0) {
+          setEvents(
+            list.map((event) => ({
+              id: String(event.id),
+              iconId: resolveDashboardEventId({
+                id: event.id,
+                title: event.title,
+              }),
               title: event.title,
-            }),
+              gifUrl: resolveEventGifUrl(event.eventGif),
+            })),
           );
-          setEvents(transformedEvents);
+        } else if (response.success && Array.isArray(list) && list.length === 0) {
+          setEvents([]);
+          setEventsError('No events available for your account.');
+        } else {
+          setEvents([]);
+          setEventsError(
+            response.error ||
+              response.message ||
+              'Failed to load events. Please log in again.',
+          );
         }
       } catch (error) {
-        console.error('Error initializing app:', error);
-        // Fallback to static data if API fails
-        setEvents([
-          {id: 'event_001', title: 'National Anthem'},
-          {id: 'event_002', title: 'Tongue Twister'},
-          {id: 'event_003', title: 'Singing'},
-          {id: 'event_004', title: 'Dancing'},
-          {id: 'event_005', title: 'Movie Dialogues'},
-        ]);
+        if (__DEV__) {
+          console.error('Error loading events:', error);
+        }
+        setEvents([]);
+        setEventsError('Unable to load events. Pull to refresh or try again later.');
       } finally {
         setLoading(false);
       }
     };
 
-    initializeApp();
-  }, [requestEssentialPermissions]);
+    loadEvents();
+  }, []);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -204,45 +147,39 @@ const DashboardScreen: React.FC = () => {
     return 'User';
   };
 
-  const renderItem: ListRenderItem<EventItem> = ({item, index}) => (
-    <DashboardCard
-      item={item}
-      index={index}
-      onPress={() => handleEventPress(item)}
-      colors={colors}
-    />
+  const renderItem = useCallback<ListRenderItem<DashboardEventCardItem>>(
+    ({item, index}) => (
+      <DashboardEventCard
+        item={item}
+        index={index}
+        onPress={() => handleEventPress(item)}
+        colors={colors}
+      />
+    ),
+    [handleEventPress, colors],
   );
 
   return (
     <VStack
       testID="dashboard-screen"
       flex={1}
-      style={{backgroundColor: colors.primaryBackground}}
-      pt="$10">
-      <StatusBar
-        testID="dashboard-status-bar"
-        barStyle={
-          colors.primaryBackground === '#FFFFFF'
-            ? 'dark-content'
-            : 'light-content'
-        }
-        backgroundColor={colors.primaryBackground}
-      />
-
-      {/* Header with Greeting and Profile */}
+      style={{
+        backgroundColor: colors.secondaryBackground ?? colors.primaryBackground,
+        paddingTop: insets.top + 4,
+      }}>
       <HStack
         testID="dashboard-header"
         alignItems="center"
         justifyContent="space-between"
         px="$4"
-        pb="$4"
-        mb="$2">
+        pb="$3"
+        mb="$1">
         <VStack testID="dashboard-greeting" flex={1}>
           <Text
             testID="dashboard-greeting-text"
             style={{
               color: colors.mutedText,
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: '500',
             }}>
             {getGreeting()}
@@ -251,52 +188,40 @@ const DashboardScreen: React.FC = () => {
             testID="dashboard-user-name"
             style={{
               color: colors.primaryText,
-              fontSize: 24,
-              fontWeight: 'bold',
+              fontSize: 22,
+              fontWeight: '700',
+              letterSpacing: -0.3,
             }}>
             {getUserName()}!
           </Text>
         </VStack>
-        <HStack space="sm" alignItems="center">
-          <Pressable
-            testID="dashboard-profile-button"
-            onPress={handleProfilePress}
-            p="$2"
-            borderRadius="$full"
-            style={{
-              backgroundColor: colors.accentAction,
-              width: 50,
-              height: 50,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-            {user?.profileImage ? (
-              <Text
-                testID="dashboard-profile-initial"
-                style={{color: colors.white, fontSize: 20}}>
-                {user.firstName?.charAt(0) || 'U'}
-              </Text>
-            ) : (
-              <Text
-                testID="dashboard-profile-icon"
-                style={{color: colors.white, fontSize: 20}}>
-                👤
-              </Text>
-            )}
-          </Pressable>
-        </HStack>
+        <Pressable
+          testID="dashboard-profile-button"
+          onPress={handleProfilePress}
+          enableRipple={false}>
+          <UserAvatar user={user} size="md" testID="dashboard-profile-icon" />
+        </Pressable>
       </HStack>
 
-      {/* Subscription Banner */}
       <Box
         testID="dashboard-subscription-banner"
+        mx="$4"
+        mb="$3"
         style={{
           backgroundColor: colors.cardBackground,
-          padding: 16,
-          borderRadius: 12,
-          borderWidth: 1,
+          padding: 14,
+          borderRadius: 14,
+          borderWidth: StyleSheet.hairlineWidth,
           borderColor: colors.border,
-          marginBottom: 16,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: {width: 0, height: 2},
+              shadowOpacity: 0.06,
+              shadowRadius: 8,
+            },
+            android: {elevation: 2},
+          }),
         }}>
         <HStack space="md" alignItems="center" justifyContent="space-between">
           <VStack testID="dashboard-subscription-content" flex={1}>
@@ -304,14 +229,14 @@ const DashboardScreen: React.FC = () => {
               testID="dashboard-subscription-title"
               style={{
                 color: colors.primaryText,
-                fontSize: 18,
-                fontWeight: 'bold',
+                fontSize: 16,
+                fontWeight: '700',
               }}>
               {t('dashboard.unlockPremium')}
             </Text>
             <Text
               testID="dashboard-subscription-description"
-              style={{color: colors.mutedText, fontSize: 14}}>
+              style={{color: colors.mutedText, fontSize: 13, marginTop: 2}}>
               {t('dashboard.accessAllQuizzes')}
             </Text>
           </VStack>
@@ -319,14 +244,21 @@ const DashboardScreen: React.FC = () => {
             testID="dashboard-subscription-button"
             onPress={handleSubscriptionPress}
             style={{
-              backgroundColor: colors.accentAction,
-              paddingHorizontal: 16,
-              paddingVertical: 8,
+              backgroundColor: colors.subscriptionCta ?? '#EA580C',
+              paddingHorizontal: 10,
+              paddingVertical: 6,
               borderRadius: 8,
+              alignSelf: 'center',
+              flexShrink: 0,
+              marginLeft: 8,
             }}>
             <Text
               testID="dashboard-subscription-button-text"
-              style={{color: colors.buttonText, fontWeight: 'bold'}}>
+              style={{
+                color: colors.subscriptionCtaText ?? colors.white,
+                fontWeight: '700',
+                fontSize: 12,
+              }}>
               {t('dashboard.subscribe')}
             </Text>
           </Pressable>
@@ -355,9 +287,26 @@ const DashboardScreen: React.FC = () => {
           testID="dashboard-events-list"
           data={events}
           renderItem={renderItem}
-          keyExtractor={item => item.id}
+          keyExtractor={(item) => item.id}
           numColumns={2}
-          contentContainerStyle={{paddingBottom: 20, paddingHorizontal: 10}}
+          style={{flex: 1}}
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          windowSize={7}
+          removeClippedSubviews={Platform.OS === 'ios'}
+          contentContainerStyle={{
+            paddingBottom: insets.bottom + 24,
+            paddingHorizontal: 8,
+            flexGrow: 1,
+          }}
+          columnWrapperStyle={events.length > 0 ? {justifyContent: 'space-between'} : undefined}
+          ListEmptyComponent={
+            <VStack flex={1} alignItems="center" justifyContent="center" py="$8" px="$4">
+              <Text style={{color: colors.mutedText, textAlign: 'center', fontSize: 15}}>
+                {eventsError || 'No events available right now.'}
+              </Text>
+            </VStack>
+          }
         />
       )}
     </VStack>

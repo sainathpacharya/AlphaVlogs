@@ -1,6 +1,6 @@
 import React, {useState, useRef} from 'react';
 import {View, StyleSheet, Alert, Dimensions} from 'react-native';
-import FastImage from 'react-native-fast-image';
+import {Image} from 'react-native';
 import {
   Box,
   Text,
@@ -161,11 +161,8 @@ const GifPlayerComponent: React.FC<GifPlayerProps> = ({
             </Button>
           </VStack>
         ) : (
-          <FastImage
-            source={{
-              uri: gifUrl,
-              priority: FastImage.priority.normal,
-            }}
+          <Image
+            source={{uri: gifUrl}}
             style={[
               styles.gifImage,
               {
@@ -174,9 +171,9 @@ const GifPlayerComponent: React.FC<GifPlayerProps> = ({
                 opacity: isPlaying ? 1 : 0.5,
               },
             ]}
-            resizeMode={FastImage.resizeMode.contain}
+            resizeMode="contain"
             onLoadStart={handleLoadStart}
-            onLoad={handleLoadEnd}
+            onLoadEnd={handleLoadEnd}
             onError={() => handleError('Failed to load GIF')}
           />
         )}

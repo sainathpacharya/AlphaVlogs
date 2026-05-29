@@ -1,7 +1,12 @@
 import { apiService } from './api';
-import { Subscription } from '@/types';
+import { Subscription, User } from '@/types';
 import { API_ENDPOINTS } from '@/constants';
 import { MockWrapperService } from './mock-wrapper';
+import {
+  isSubscriptionActive,
+  isSubscribedFromUser,
+  parseSubscriptionPayload,
+} from '@/utils/subscription';
 
 export interface UpdateSubscriptionRequest {
   plan: 'premium';
@@ -10,19 +15,60 @@ export interface UpdateSubscriptionRequest {
 }
 
 class SubscriptionService {
-  // Get current subscription
-  async getCurrentSubscription(userId: string): Promise<Subscription | null> {
+  /** Whether the logged-in student has an active subscription (profile + API). */
+  async isStudentSubscribed(user?: User | null): Promise<boolean> {
+    if (isSubscribedFromUser(user ?? null)) {
+      return true;
+    }
+
+    const userId = user?.id;
+    const subscription = await this.getStudentSubscription(userId);
+    return isSubscriptionActive(subscription);
+  }
+
+  /** Student subscription from backend (Bearer required). */
+  async getStudentSubscription(userId?: string): Promise<Subscription | null> {
+    try {
+      if (MockWrapperService.isMockMode()) {
+        return this.getCurrentSubscription(userId);
+      }
+
+      const response = await apiService.get<unknown>(API_ENDPOINTS.STUDENTS.SUBSCRIPTION);
+      if (response.success === false) {
+        return null;
+      }
+      return (
+        parseSubscriptionPayload(response.data ?? response) ??
+        (await this.getCurrentSubscription(userId))
+      );
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Error getting student subscription:', error);
+      }
+      return null;
+    }
+  }
+
+  // Get current subscription (userId optional in mock mode – defaults to static user)
+  async getCurrentSubscription(userId?: string): Promise<Subscription | null> {
     try {
       if (MockWrapperService.isMockMode()) {
         const mockService = MockWrapperService.getMockService();
-        const response = await mockService.getSubscription(userId, {include: ['methods']});
-        return response.success && 'data' in response ? response.data : null;
+        const uid = userId || 'user_001';
+        const response = await mockService.getSubscription(uid, ['methods']);
+        const data = response.success && 'data' in response ? response.data : null;
+        return (data && typeof data === 'object' && 'subscription' in data)
+          ? (data as { subscription: Subscription }).subscription
+          : (data as Subscription | null);
       }
 
-      const response = await apiService.get<Subscription>(`${API_ENDPOINTS.SUBSCRIPTION.UPDATE}?userId=${userId}`);
+      const uid = userId || '';
+      const response = await apiService.get<Subscription>(`${API_ENDPOINTS.SUBSCRIPTION.UPDATE}?userId=${uid}`);
       return response.success ? (response.data || null) : null;
     } catch (error) {
-      console.error('Error getting subscription:', error);
+      if (__DEV__) {
+        console.error('Error getting subscription:', error);
+      }
       return null;
     }
   }
@@ -32,7 +78,7 @@ class SubscriptionService {
     try {
       if (MockWrapperService.isMockMode()) {
         const mockService = MockWrapperService.getMockService();
-        const response = await mockService.getSubscription('user_001', {include: ['methods']});
+        const response = await mockService.getSubscription('user_001', ['methods']);
         return response.success && 'data' in response && response.data?.paymentMethods 
           ? response.data.paymentMethods 
           : [];
@@ -45,7 +91,9 @@ class SubscriptionService {
         { id: 'cheque', type: 'cheque', name: 'Cheque', isEnabled: true },
       ];
     } catch (error) {
-      console.error('Error getting payment methods:', error);
+      if (__DEV__) {
+        console.error('Error getting payment methods:', error);
+      }
       return [];
     }
   }
@@ -65,7 +113,9 @@ class SubscriptionService {
       }
       return response.data!;
     } catch (error) {
-      console.error('Error creating subscription:', error);
+      if (__DEV__) {
+        console.error('Error creating subscription:', error);
+      }
       throw error;
     }
   }
@@ -73,8 +123,7 @@ class SubscriptionService {
   // Initiate Razorpay payment
   async initiateRazorpayPayment(amount: number, subscriptionId: string): Promise<any> {
     try {
-      // This would typically integrate with Razorpay service
-      const { razorpayService } = await import('./razorpay-service');
+      const { razorpayService } = require('./razorpay-service');
       return await razorpayService.initiatePayment({
         description: 'Subscription Payment',
         amount,
@@ -85,15 +134,25 @@ class SubscriptionService {
           contact: '',
           name: '',
         },
+        theme: {
+          color: '#0A84FF',
+        },
       });
     } catch (error) {
-      console.error('Error initiating Razorpay payment:', error);
+      if (__DEV__) {
+        console.error('Error initiating Razorpay payment:', error);
+      }
       throw error;
     }
   }
 
-  // Process payment
-  async processPayment(data: { subscriptionId: string; amount: number; paymentMethod: string }): Promise<any> {
+  // Process payment (paymentData optional for Razorpay verification)
+  async processPayment(data: {
+    subscriptionId: string;
+    amount: number;
+    paymentMethod: string;
+    paymentData?: unknown;
+  }): Promise<any> {
     try {
       if (MockWrapperService.isMockMode()) {
         const mockService = MockWrapperService.getMockService();
@@ -105,23 +164,31 @@ class SubscriptionService {
       const response = await apiService.post(`${API_ENDPOINTS.SUBSCRIPTION.UPDATE}/process-payment`, data);
       return response.success ? response.data : null;
     } catch (error) {
-      console.error('Error processing payment:', error);
+      if (__DEV__) {
+        console.error('Error processing payment:', error);
+      }
       throw error;
     }
   }
 
   // Cancel subscription
-  async cancelSubscription(subscriptionId: string): Promise<void> {
+  async cancelSubscription(subscriptionId: string): Promise<boolean> {
     try {
       if (MockWrapperService.isMockMode()) {
         const mockService = MockWrapperService.getMockService();
-        await mockService.cancelSubscription(subscriptionId);
-        return;
+        const response = await mockService.cancelSubscription(subscriptionId);
+        return response?.success === true;
       }
 
-      await apiService.post(`${API_ENDPOINTS.SUBSCRIPTION.UPDATE}/cancel`, { subscriptionId });
+      const response = await apiService.post<{ success?: boolean }>(
+        `${API_ENDPOINTS.SUBSCRIPTION.UPDATE}/cancel`,
+        { subscriptionId },
+      );
+      return response?.success === true;
     } catch (error) {
-      console.error('Error cancelling subscription:', error);
+      if (__DEV__) {
+        console.error('Error cancelling subscription:', error);
+      }
       throw error;
     }
   }
@@ -142,7 +209,9 @@ class SubscriptionService {
       }
       return response.data!;
     } catch (error) {
-      console.error('Error updating subscription:', error);
+      if (__DEV__) {
+        console.error('Error updating subscription:', error);
+      }
       throw error;
     }
   }

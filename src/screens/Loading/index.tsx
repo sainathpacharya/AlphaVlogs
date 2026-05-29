@@ -1,6 +1,6 @@
 import React from 'react';
 import {View, Dimensions} from 'react-native';
-import {SafeAreaView, VStack, Spinner, Text} from '@/components';
+import {SafeAreaView, StatusBar, VStack, Spinner, Text} from '@/components';
 import {MotiImage} from 'moti';
 import appLogo from '@/assets/png/appLogo.png';
 import {useThemeColors} from '@/utils/colors';
@@ -13,6 +13,7 @@ const LoadingScreen = () => {
     <SafeAreaView
       testID="loading-screen"
       style={{flex: 1, backgroundColor: colors.primaryBackground}}>
+      <StatusBar translucent={false} />
       <VStack
         testID="loading-container"
         h="$full"

@@ -6,6 +6,7 @@
  */
 
 import React, {useEffect} from 'react';
+import {useColorScheme} from 'react-native';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {GluestackUIProvider} from '@/components';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
@@ -14,8 +15,10 @@ import Navigation from '@/navigation';
 import {useNetwork} from '@/hooks/useNetwork';
 import {initializeSecureStorage} from '@/stores/user-cached-store';
 import {useUserStore, useUserCachedStore} from '@/stores';
+import {useShallow} from 'zustand/react/shallow';
 import {LogBox} from 'react-native';
 import {i18next} from '@/services/i18n-service';
+import {subscribeSslPinningErrors} from '@/config/ssl-pinning';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -31,13 +34,34 @@ const queryClient = new QueryClient({
   },
 });
 
+// Select only what we need; useShallow so store updates (e.g. networkStatus) don't re-render the whole app
+const useAppContentStore = () =>
+  useUserStore(
+    useShallow((state) => ({
+      setAuthenticated: state.setAuthenticated,
+      setUser: state.setUser,
+      setTheme: state.setTheme,
+      isAuthenticated: state.isAuthenticated,
+      user: state.user,
+    })),
+  );
+const useAppContentCachedStore = () =>
+  useUserCachedStore(
+    useShallow((state) => ({
+      tokens: state.tokens,
+      userData: state.userData,
+    })),
+  );
+
 const AppContent = React.memo(() => {
   const {setAuthenticated, setUser, setTheme, isAuthenticated, user} =
-    useUserStore();
-  const {tokens, userData} = useUserCachedStore();
+    useAppContentStore();
+  const {tokens, userData} = useAppContentCachedStore();
 
   // Initialize network monitoring
   useNetwork();
+
+  useEffect(() => subscribeSslPinningErrors(), []);
 
   // Initialize app state
   useEffect(() => {
@@ -50,18 +74,14 @@ const AppContent = React.memo(() => {
         // Check if user is authenticated from persistent store
         if (isAuthenticated && user) {
           // User is already authenticated from persistent store
-          console.log(
-            'User authenticated from persistent store:',
-            user.firstName,
-          );
         } else if (tokens?.accessToken && userData) {
-          // User has valid tokens, restore session
           setUser(userData);
           setAuthenticated(true);
-          console.log('User session restored from tokens');
         }
       } catch (error) {
-        console.error('Failed to initialize app:', error);
+        if (__DEV__) {
+          console.error('Failed to initialize app:', error);
+        }
       }
     };
 
@@ -69,11 +89,11 @@ const AppContent = React.memo(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
 
-  // Set light theme as default
+  // Keep store theme in sync with device appearance
+  const colorScheme = useColorScheme();
   useEffect(() => {
-    setTheme('light');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+    setTheme(colorScheme === 'dark' ? 'dark' : 'light');
+  }, [colorScheme, setTheme]);
 
   return <Navigation />;
 });

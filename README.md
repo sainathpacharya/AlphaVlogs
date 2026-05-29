@@ -167,7 +167,7 @@ RootNavigator
 Create a `.env` file in the root directory:
 
 ```env
-API_URL=https://api.jackmarvels.com
+API_URL=https://api.alphavlogs.com
 ENVIRONMENT=development
 ```
 
@@ -233,7 +233,7 @@ npm run build:ios
 
 - Secure token storage using React Native Keychain
 - Biometric authentication support
-- Network security with certificate handling
+- SSL public key pinning for `api.alphavlogs.com` in release builds ([docs/SSL_PINNING.md](docs/SSL_PINNING.md))
 - Input validation and sanitization
 - JWT token refresh mechanism
 

@@ -1,18 +1,30 @@
 import { AppConfig, AsyncStorageKeys, SecureStorageKeys } from '@/types';
+import { getApiBaseUrl as resolveApiBaseUrl } from '@/config/api-config';
 
-// App Configuration
+// App Configuration – AlphaVlogs backend
 export const APP_CONFIG: AppConfig = {
-  apiUrl: __DEV__ ? 'http://98.93.175.154:8080/jackmarvels/api' : 'https://api.jackmarvels.com',
+  get apiUrl() {
+    return resolveApiBaseUrl();
+  },
   environment: __DEV__ ? 'development' : 'production',
   version: '1.0.0',
   buildNumber: '1',
 };
 
-// API Endpoints
+export { resolveApiBaseUrl as getApiBaseUrl };
+
+// API Endpoints – Jack Marvels / AlphaVlogs backend
 export const API_ENDPOINTS = {
+  STUDENTS: {
+    SEND_OTP: '/api/students/send-otp',
+    VERIFY_OTP: '/api/students/verify-otp',
+    EVENTS: '/api/students/events',
+    SUBSCRIPTION: '/api/students/subscription',
+  },
   AUTH: {
-    SEND_OTP: '/students/send-otp',
-    VERIFY_OTP: '/students/verify-otp',
+    SEND_OTP: '/api/auth/send-otp',
+    VERIFY_OTP: '/api/auth/verify-otp',
+    REFRESH: '/api/auth/refresh',
     REGISTER: '/students/register',
     LOGOUT: '/auth/logout',
   },
@@ -23,7 +35,7 @@ export const API_ENDPOINTS = {
     GET: '/dashboard',
   },
   USER: {
-    PROFILE: '/students/profile',
+    PROFILE: '/api/auth/me',
     UPDATE_PROFILE: '/students/profile',
   },
   VIDEO: {
@@ -243,9 +255,9 @@ export const NOTIFICATION_TYPES = {
   GENERAL: 'general',
 } as const;
 
-// School Constants
+// School Constants (students from KG to 10th class)
 export const SCHOOL = {
   INVITATION_EXPIRY_DAYS: 7,
   MAX_STUDENTS_PER_SCHOOL: 1000,
-  SUPPORTED_GRADES: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
+  SUPPORTED_GRADES: ['KG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
 } as const;

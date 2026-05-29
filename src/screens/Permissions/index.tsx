@@ -203,14 +203,7 @@ const PermissionsScreen: React.FC = () => {
 
   return (
     <Box style={{flex: 1, backgroundColor: colors.primaryBackground}}>
-      <StatusBar
-        barStyle={
-          colors.primaryBackground === '#000000'
-            ? 'light-content'
-            : 'dark-content'
-        }
-        backgroundColor={colors.primaryBackground}
-      />
+      <StatusBar translucent={false} />
 
       {/* Header */}
       <Box

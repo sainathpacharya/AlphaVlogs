@@ -16,7 +16,7 @@ import { trackGetCareEvents, trackPlanningForCare } from '@/utils/LogEvent';
 import { EventType } from '@/utils/LogEvent/types';
 import { useRoute } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { TouchableOpacity } from 'react-native';
 
 interface Props {
   item: ProviderLocation;

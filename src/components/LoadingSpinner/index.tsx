@@ -5,17 +5,19 @@ import { useThemeColors } from '@/utils/colors';
 interface LoadingSpinnerProps {
   size?: number | 'small' | 'large';
   color?: string;
+  testID?: string;
 }
 
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   size = 'large',
   color,
+  testID,
 }) => {
   const colors = useThemeColors();
   const spinnerColor = color || colors.accentAction;
 
   return (
-    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+    <View testID={testID} style={{ alignItems: 'center', justifyContent: 'center' }}>
       <ActivityIndicator size={size} color={spinnerColor} />
     </View>
   );
