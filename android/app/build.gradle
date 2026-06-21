@@ -133,8 +133,8 @@ android {
     // Get version code from project property (set via -PversionCode=xxx in CI/CD)
     // For Play Store: Must always increment (extracted from git tag)
     // For Firebase App Distribution: Can use build number (github.run_number) for uniqueness
-    // Defaults to 1 if not set (for local builds)
-    def buildVersionCode = 1
+    // Defaults to 5 if not set (for local builds)
+    def buildVersionCode = 5
     if (project.hasProperty('versionCode')) {
         try {
             def versionCodeStr = project.property('versionCode').toString().trim()
@@ -142,15 +142,15 @@ android {
                 buildVersionCode = versionCodeStr.toInteger()
                 println "📦 Building with version code: $buildVersionCode (from -PversionCode=$versionCodeStr)"
             } else {
-                println "⚠️ Warning: versionCode property is empty, using default: 1"
+                println "⚠️ Warning: versionCode property is empty, using default: 5"
             }
         } catch (Exception e) {
             println "⚠️ Warning: Failed to parse versionCode property '${project.property('versionCode')}': ${e.message}"
-            println "   Using default version code: 1"
-            buildVersionCode = 1
+            println "   Using default version code: 5"
+            buildVersionCode = 5
         }
     } else {
-        println "📦 Building with version code: $buildVersionCode (using default: 1)"
+        println "📦 Building with version code: $buildVersionCode (using default: 5)"
     }
     
     // Get version name from project property (set via -PversionName=xxx in CI/CD)

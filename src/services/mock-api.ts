@@ -643,7 +643,7 @@ class MockApiService {
       app: {
         name: 'Jack Marvels',
         version: '1.0.0',
-        buildNumber: '1',
+        buildNumber: '5',
         environment: 'development',
       },
       features: {

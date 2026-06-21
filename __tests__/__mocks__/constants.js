@@ -3,8 +3,8 @@ module.exports = {
   APP_CONFIG: {
     apiUrl: 'http://localhost:3000/api',
     environment: 'test',
-    version: '1.0.0',
-    buildNumber: '1',
+    version: '1.0',
+    buildNumber: '5',
   },
   API_ENDPOINTS: {
     AUTH: {
