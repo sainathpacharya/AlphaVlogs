@@ -21,17 +21,6 @@ Full setup, secrets, validation, and rollback: **[docs/GITHUB_ACTIONS_SETUP.md](
 | Android package | `com.nsnr.aplhavlogs.dev` | `com.nsnr.aplhavlogs` |
 | iOS bundle ID | `com.nsnr.aplhavlogs.dev` | `com.nsnr.aplhavlogs` |
 
-## Legacy workflows (deprecated)
-
-Do not use for new releases:
-
-- `build-develop.yml` — combined Android + iOS develop
-- `build-production.yml` — combined Android + iOS production
-- `android-publish.yml` — legacy Play publish
-- `ios-publish.yml` — legacy TestFlight publish
-
-These remain until the new workflows are validated in production, then can be removed.
-
 ## Quick validation
 
 1. Configure secrets per `docs/GITHUB_ACTIONS_SETUP.md`

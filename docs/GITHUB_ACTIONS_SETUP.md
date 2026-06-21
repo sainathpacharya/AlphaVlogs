@@ -16,8 +16,6 @@ Alpha Vlogs uses **four independent workflows** (no shared/reusable workflows). 
 | Android package | `com.nsnr.aplhavlogs.dev` | `com.nsnr.aplhavlogs` |
 | iOS bundle ID | `com.nsnr.aplhavlogs.dev` | `com.nsnr.aplhavlogs` |
 
-Legacy combined workflows (`build-develop.yml`, `build-production.yml`, `android-publish.yml`, `ios-publish.yml`) remain for reference but should not be used for new releases.
-
 ---
 
 ## 1. GitHub Environments (recommended)
