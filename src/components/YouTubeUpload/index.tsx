@@ -8,21 +8,11 @@ import {
   VStack,
   HStack,
   Input,
-  TextArea,
+  InputField,
+  Textarea,
+  TextareaInput,
   Progress,
   Select,
-  SelectTrigger,
-  SelectInput,
-  SelectIcon,
-  SelectPortal,
-  SelectBackdrop,
-  SelectContent,
-  SelectDragIndicatorWrapper,
-  SelectDragIndicator,
-  SelectItem,
-  SelectItemText,
-  Icon,
-  ChevronDownIcon,
 } from '@/components';
 import {useThemeColors} from '@/utils/colors';
 import {youtubeService, YouTubeUploadRequest} from '@/services/youtube-service';
@@ -228,31 +218,31 @@ const YouTubeUploadComponent: React.FC<YouTubeUploadProps> = ({
         </Text>
 
         <Input>
-          <Input.Input
+          <InputField
             placeholder="Enter video title"
             value={title}
             onChangeText={setTitle}
-            isDisabled={isUploading}
+            editable={!isUploading}
           />
         </Input>
 
-        <TextArea>
-          <TextArea.Input
+        <Textarea>
+          <TextareaInput
             placeholder="Enter video description"
             value={description}
             onChangeText={setDescription}
-            isDisabled={isUploading}
+            editable={!isUploading}
             multiline
             numberOfLines={4}
           />
-        </TextArea>
+        </Textarea>
 
         <Input>
-          <Input.Input
+          <InputField
             placeholder="Enter tags (comma separated)"
             value={tags}
             onChangeText={setTags}
-            isDisabled={isUploading}
+            editable={!isUploading}
           />
         </Input>
 
@@ -261,27 +251,17 @@ const YouTubeUploadComponent: React.FC<YouTubeUploadProps> = ({
             Privacy Status
           </Text>
           <Select
-            selectedValue={privacyStatus}
-            onValueChange={value => setPrivacyStatus(value as any)}
-            isDisabled={isUploading}>
-            <SelectTrigger variant="outline" size="md">
-              <SelectInput placeholder="Select privacy status" />
-              <SelectIcon mr="$3">
-                <Icon as={ChevronDownIcon} />
-              </SelectIcon>
-            </SelectTrigger>
-            <SelectPortal>
-              <SelectBackdrop />
-              <SelectContent>
-                <SelectDragIndicatorWrapper>
-                  <SelectDragIndicator />
-                </SelectDragIndicatorWrapper>
-                <SelectItem label="Private" value="private" />
-                <SelectItem label="Public" value="public" />
-                <SelectItem label="Unlisted" value="unlisted" />
-              </SelectContent>
-            </SelectPortal>
-          </Select>
+            options={[
+              {label: 'Private', value: 'private'},
+              {label: 'Public', value: 'public'},
+              {label: 'Unlisted', value: 'unlisted'},
+            ]}
+            value={privacyStatus}
+            onValueChange={value =>
+              setPrivacyStatus(value as 'private' | 'public' | 'unlisted')
+            }
+            disabled={isUploading}
+          />
         </VStack>
       </VStack>
 

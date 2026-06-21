@@ -1,10 +1,30 @@
 import {Box} from '@/components';
-import {FC, ReactNode} from 'react';
+import React from 'react';
+import {TouchableOpacity} from 'react-native';
+import {useTabsContext} from './Tabs';
 
 interface TabListProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
-export const TabList: FC<TabListProps> = ({children}) => {
-  return <Box flexDirection="row">{children}</Box>;
+export const TabList: React.FC<TabListProps> = ({children}) => {
+  const {onChange} = useTabsContext();
+  let tabIndex = 0;
+
+  return (
+    <Box flexDirection="row">
+      {React.Children.map(children, child => {
+        const currentIndex = tabIndex;
+        tabIndex += 1;
+        return (
+          <TouchableOpacity
+            key={currentIndex}
+            onPress={() => onChange(currentIndex)}
+            accessibilityRole="tab">
+            {child}
+          </TouchableOpacity>
+        );
+      })}
+    </Box>
+  );
 };

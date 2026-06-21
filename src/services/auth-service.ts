@@ -368,7 +368,7 @@ class AuthService {
         return err;
       }
 
-      const inner = (resp.data ?? resp) as Record<string, unknown>;
+      const inner = (resp.data ?? resp) as unknown as Record<string, unknown>;
       const result = await buildVerifyOtpResponse(inner, mobile);
       apiLogger.logServiceCall('AuthService', 'verifyOTP', data, result);
       return result;
@@ -426,7 +426,7 @@ class AuthService {
         };
       }
 
-      const inner = (resp.data ?? resp) as Record<string, unknown>;
+      const inner = (resp.data ?? resp) as unknown as Record<string, unknown>;
       const result = await resolveLoginFromApiBody(inner, mobile);
       apiLogger.logServiceCall('AuthService', 'selectProfile', data, result);
       return result;
@@ -469,7 +469,7 @@ class AuthService {
         };
       }
 
-      const inner = (resp.data ?? resp) as Record<string, unknown>;
+      const inner = (resp.data ?? resp) as unknown as Record<string, unknown>;
       const profiles = mapStudentProfiles(inner.profiles);
       const result: ApiResponse<StudentProfilesResponse> = {
         success: true,
@@ -519,7 +519,7 @@ class AuthService {
         return { success: false, error, statusCode };
       }
 
-      const inner = (resp.data ?? resp) as Record<string, unknown>;
+      const inner = (resp.data ?? resp) as unknown as Record<string, unknown>;
       const rawUser = (inner.user ?? inner.student) as Record<string, unknown> | undefined;
       const mobile = rawUser
         ? toIndianMobile(String(rawUser.mobile ?? rawUser.mobileNumber ?? ''))

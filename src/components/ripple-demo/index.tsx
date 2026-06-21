@@ -1,5 +1,5 @@
 import React from 'react';
-import {VStack, Text, Button, Pressable, Fab, Box} from '../index';
+import {VStack, Text, Button, Pressable, Box} from '../index';
 import {useThemeColors} from '../../utils/colors';
 
 export const RippleDemo: React.FC = () => {
@@ -69,17 +69,19 @@ export const RippleDemo: React.FC = () => {
 
       <VStack space="md">
         <Text fontSize="$lg" color={colors.primaryText}>
-          FAB with Ripple Effect
+          Floating action (ripple demo)
         </Text>
         <Box position="relative" h="$20" w="$full">
-          <Fab
+          <Button
             onPress={() => console.log('FAB pressed!')}
             bg={colors.danger}
             rippleColor="rgba(255, 255, 255, 0.4)"
             rippleDuration={350}
-            placement="bottom right">
+            position="absolute"
+            bottom={0}
+            right={0}>
             <Text color={colors.white}>+</Text>
-          </Fab>
+          </Button>
         </Box>
       </VStack>
     </VStack>

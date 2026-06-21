@@ -14,7 +14,6 @@ export interface OTPInputProps {
   tintColor?: string;
   offTintColor?: string;
   containerStyle?: any;
-  textInputStyle?: any;
   showInstructions?: boolean;
   disabled?: boolean;
 }
@@ -30,7 +29,6 @@ const OTPInput: React.FC<OTPInputProps> = ({
   tintColor = '#007AFF',
   offTintColor = '#CCCCCC',
   containerStyle,
-  textInputStyle,
   showInstructions = true,
   disabled = false,
 }) => {
@@ -81,7 +79,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
     if (value !== otp) {
       setOtp(value);
     }
-  }, [value]);
+  }, [value, otp]);
 
   const handleOTPChange = (text: string) => {
     setOtp(text);
@@ -99,19 +97,12 @@ const OTPInput: React.FC<OTPInputProps> = ({
     handleOTPChange(finalOtp);
   };
 
-  const handleKeyPress = (text: string, i: number) => {
-    // OTPTextInput handles focus automatically on backspace
-    // This is just a placeholder handler
-  };
-
   return (
     <View style={[styles.container, containerStyle]}>
       <OTPTextInput
         ref={otpRef}
-        value={otp}
-        handleTextChange={(text: string) => handleCellTextChange(text, 0)}
+        handleTextChange={handleOTPChange}
         handleCellTextChange={handleCellTextChange}
-        handleKeyPress={handleKeyPress}
         inputCount={length}
         keyboardType="numeric"
         tintColor={tintColor}

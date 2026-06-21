@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import {ScrollView, RefreshControl, StyleSheet} from 'react-native';
+import {ScrollView, RefreshControl, StyleSheet, Image} from 'react-native';
 import {
   Box,
   Text,
@@ -11,6 +11,7 @@ import {
   InputIcon,
   InputSlot,
   SearchIcon,
+  Tabs,
   Tab,
   TabList,
   TabTitle,
@@ -108,14 +109,10 @@ const YouTubeScreen: React.FC = () => {
       style={[styles.videoCard, {backgroundColor: colors.backgroundSecondary}]}>
       <VStack space="sm">
         <Box style={styles.thumbnailContainer}>
-          <img
-            src={video.thumbnail}
-            alt={video.title}
+          <Image
+            source={{uri: video.thumbnail}}
+            accessibilityLabel={video.title}
             style={styles.thumbnail}
-            onError={e => {
-              e.currentTarget.src =
-                'https://via.placeholder.com/320x180?text=No+Thumbnail';
-            }}
           />
           <Box style={styles.durationBadge}>
             <Text size="xs" color="white" fontWeight="bold">
@@ -182,7 +179,7 @@ const YouTubeScreen: React.FC = () => {
             {backgroundColor: colors.backgroundSecondary},
           ]}>
           <VStack space="sm">
-            <Skeleton h="$32" w="100%" />
+            <Skeleton height={128} width="100%" />
             <VStack space="xs">
               <SkeletonText lines={2} />
               <SkeletonText lines={1} />
@@ -224,7 +221,7 @@ const YouTubeScreen: React.FC = () => {
         </VStack>
 
         {/* Tabs */}
-        <Tab value={activeTab} onChange={setActiveTab}>
+        <Tabs value={activeTab} onChange={setActiveTab}>
           <TabList>
             <Tab>
               <TabTitle>Videos</TabTitle>
@@ -312,7 +309,7 @@ const YouTubeScreen: React.FC = () => {
               </ScrollView>
             </TabPanel>
           </TabPanels>
-        </Tab>
+        </Tabs>
       </VStack>
     </Box>
   );

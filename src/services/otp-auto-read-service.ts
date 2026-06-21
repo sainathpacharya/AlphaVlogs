@@ -66,7 +66,6 @@ class OTPAutoReadService {
           if (match && match[1]) {
             const otp = match[1];
             this.stopListening();
-            return { success: true, otp };
           }
         });
       }

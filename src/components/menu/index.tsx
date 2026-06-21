@@ -73,7 +73,7 @@ const StyledItem = styled(
       bg: '$background100',
       // @ts-ignore
       outlineWidth: '$0',
-      outlineStyle: 'none',
+      outlineStyle: 'none' as 'solid',
     },
 
     ':focusVisible': {

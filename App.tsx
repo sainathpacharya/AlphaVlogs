@@ -13,6 +13,7 @@ import {I18nextProvider} from 'react-i18next';
 import Navigation from '@/navigation';
 import {useNetwork} from '@/hooks/useNetwork';
 import apiService from '@/services/api';
+import {devLog} from '@/utils/dev-log';
 import {initializeSecureStorage} from '@/stores/user-cached-store';
 import {useUserStore, useUserCachedStore} from '@/stores';
 import {useShallow} from 'zustand/react/shallow';
@@ -86,7 +87,7 @@ const AppContent = React.memo(() => {
         }
       } catch (error) {
         if (__DEV__) {
-          console.error('Failed to initialize app:', error);
+          devLog('Failed to initialize app', error);
         }
       }
     };

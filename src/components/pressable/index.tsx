@@ -27,6 +27,7 @@ export const Pressable = ({
   rippleOpacity = 0.2,
   rippleDuration = 200,
   enableRipple = true,
+  disabled,
   ...props
 }: PressableProps) => {
   if (enableRipple) {
@@ -35,12 +36,18 @@ export const Pressable = ({
         rippleColor={rippleColor}
         rippleOpacity={rippleOpacity}
         rippleDuration={rippleDuration}
-        disabled={Boolean(props.disabled)}
+        disabled={disabled === true}
         {...props}>
-        <StyledPressable {...props}>{children}</StyledPressable>
+        <StyledPressable disabled={disabled} {...props}>
+          {children}
+        </StyledPressable>
       </RippleEffect>
     );
   }
 
-  return <StyledPressable {...props}>{children}</StyledPressable>;
+  return (
+    <StyledPressable disabled={disabled} {...props}>
+      {children}
+    </StyledPressable>
+  );
 };

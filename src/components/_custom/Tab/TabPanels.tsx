@@ -1,10 +1,13 @@
 import {Box} from '@/components';
-import {FC, ReactNode} from 'react';
+import React from 'react';
+import {useTabsContext} from './Tabs';
 
 interface TabPanelsProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
-export const TabPanels: FC<TabPanelsProps> = ({children}) => {
-  return <Box>{children}</Box>;
+export const TabPanels: React.FC<TabPanelsProps> = ({children}) => {
+  const {value} = useTabsContext();
+  const panels = React.Children.toArray(children);
+  return <Box>{panels[value] ?? null}</Box>;
 };

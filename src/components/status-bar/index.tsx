@@ -9,6 +9,7 @@ import {useStatusBarConfig} from '@/utils/colors';
 
 export type AppStatusBarProps = StatusBarProps & {
   backgroundColor?: string;
+  testID?: string;
 };
 
 /**

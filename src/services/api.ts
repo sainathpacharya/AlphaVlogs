@@ -7,6 +7,7 @@ import { ApiResponse, AuthTokens } from '@/types';
 import { apiLogger, ApiLogRequest, ApiLogResponse, ApiLogError } from '@/utils/api-logger';
 import { normalizeAuthTokens, parseApiErrorMessage } from '@/utils/api-response';
 import { purgeAuthTokensFromDevice } from '@/utils/auth-storage';
+import { useUserCachedStore } from '@/stores/user-cached-store';
 
 export type ApiRequestConfig = {
   skipAuth?: boolean;
@@ -100,7 +101,6 @@ class ApiService {
   async clearStoredAuth(): Promise<void> {
     await this.clearAuth();
     try {
-      const { useUserCachedStore } = await import('@/stores/user-cached-store');
       useUserCachedStore.setState({ tokens: null, userData: null });
     } catch (error) {
       if (__DEV__) {

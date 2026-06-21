@@ -50,7 +50,9 @@ async function assertPaymentAuth(): Promise<void> {
 class PaymentService {
   async createOrder(request: CreateOrderRequest): Promise<CreateOrderResult> {
     if (MockWrapperService.isMockMode()) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise<void>(resolve => {
+        setTimeout(() => resolve(), 500);
+      });
       return {
         order_id: `order_mock_${Date.now()}`,
         amount: request.amount,
@@ -113,7 +115,9 @@ class PaymentService {
     }
 
     if (MockWrapperService.isMockMode()) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise<void>(resolve => {
+        setTimeout(() => resolve(), 500);
+      });
       return {
         verified: true,
         orderId: payment.razorpay_order_id,

@@ -1,5 +1,6 @@
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import type {NativeStackNavigationOptions} from '@react-navigation/native-stack';
 import {useStatusBarConfig} from '@/utils/colors';
 import {useIsAuthenticated, useIsLoading} from '@/stores';
 import {RootStackParamList} from '@/types';
@@ -20,7 +21,7 @@ const RootNavigator = () => {
         headerShown: false,
         statusBarStyle: navigationStatusBarStyle,
         statusBarBackgroundColor: backgroundColor,
-      }}>
+      } as NativeStackNavigationOptions}>
       {isLoading ? (
         <Stack.Screen name="Loading" component={LoadingScreen} />
       ) : isAuthenticated ? (

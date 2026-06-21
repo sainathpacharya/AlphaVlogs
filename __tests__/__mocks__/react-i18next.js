@@ -1,5 +1,3 @@
-const React = require('react');
-
 const useTranslation = () => ({
   t: jest.fn((key) => key),
   i18n: {

@@ -19,6 +19,16 @@ export interface RegisterWithInvitationRequest {
   parentPhone?: string;
 }
 
+interface RegisterWithInvitationResponse {
+  userId?: string;
+}
+
+interface SchoolInvitationCheckResponse {
+  hasInvitation?: boolean;
+  schoolName?: string;
+  invitationCode?: string;
+}
+
 class SchoolService {
   // Verify school invitation
   async verifyInvitation(data: VerifyInvitationRequest): Promise<SchoolInvitation | null> {
@@ -58,7 +68,7 @@ class SchoolService {
       if (isMockMode()) {
         return { success: true, message: 'Registration successful', userId: 'user_static_inv' };
       }
-      const response = await apiService.post(
+      const response = await apiService.post<RegisterWithInvitationResponse>(
         API_ENDPOINTS.SCHOOLS.GET,
         data
       );
@@ -102,9 +112,11 @@ class SchoolService {
       if (isMockMode()) {
         return { hasInvitation: false };
       }
-      const response = await apiService.get(`/schools/check-invitation?email=${email}`);
+      const response = await apiService.get<SchoolInvitationCheckResponse>(
+        `/schools/check-invitation?email=${email}`,
+      );
       return {
-        hasInvitation: response.success && response.data?.hasInvitation,
+        hasInvitation: Boolean(response.success && response.data?.hasInvitation),
         schoolName: response.data?.schoolName,
         invitationCode: response.data?.invitationCode,
       };

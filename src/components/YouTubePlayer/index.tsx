@@ -1,5 +1,5 @@
 import React, {useRef, useState} from 'react';
-import {View, StyleSheet, Alert} from 'react-native';
+import {StyleSheet, Alert} from 'react-native';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import {Box, Text, Button, VStack, HStack} from '@/components';
 import {useThemeColors} from '@/utils/colors';

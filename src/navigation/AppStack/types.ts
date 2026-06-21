@@ -15,10 +15,6 @@ export type AppStackParamList = {
     AboutUs: undefined;
     TermsAndConditions: undefined;
     PrivacyPolicy: undefined;
-    BadgePage: {
-      header?: React.ReactElement;
-      description?: string;
-    };
     MockTest: undefined;
     Permissions: undefined;
   };

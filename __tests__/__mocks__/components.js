@@ -1,5 +1,5 @@
 const React = require('react');
-const { View, Text, TextInput, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, StatusBar, ActivityIndicator, Alert } = require('react-native');
+const { View, Text, TextInput, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, StatusBar, ActivityIndicator } = require('react-native');
 
 // Mock all the custom components
 const MockComponent = (props) => {
@@ -55,7 +55,7 @@ const MockFlatList = (props) => {
 
 // Mock Select component with proper structure
 const MockSelect = (props) => {
-  const { children, options, value, onValueChange, ...otherProps } = props;
+  const { children, ...otherProps } = props;
   return React.createElement(View, otherProps, children);
 };
 
@@ -164,12 +164,12 @@ module.exports = {
   // Translation components
   TranslationExample: MockComponent,
   TranslationTest: MockComponent,
-  
+
   // Media components
   YouTubePlayer: MockComponent,
   YouTubeUpload: MockComponent,
   GifPlayer: MockComponent,
-  
+
   // Additional components
   RippleDemo: MockComponent,
   RippleEffect: MockComponent,

@@ -4,7 +4,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { i18n } from '@/services/i18n-service';
 
 export const TranslationTest: React.FC = () => {
-  const { t, tn, hasKey, getCurrentLanguage } = useTranslation();
+  const { t, hasKey, getCurrentLanguage } = useTranslation();
 
   // Test both the new hook and legacy service
   const legacyTranslation = i18n.t('dashboard.unlockPremium');

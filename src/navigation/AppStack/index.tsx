@@ -1,5 +1,6 @@
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import type {NativeStackNavigationOptions} from '@react-navigation/native-stack';
 import {useStatusBarConfig} from '@/utils/colors';
 import {AppStackParamList} from './types';
 import DashboardScreen from '../../screens/Dashboard';
@@ -9,7 +10,6 @@ import QuizScreen from '../../screens/Quiz';
 import ResultsScreen from '../../screens/Results';
 import SubscriptionScreen from '../../screens/Subscription';
 import VideoUploadScreen from '../../screens/VideoUpload';
-import BadgePage from '../../components/_custom/Badges/BadgePage';
 import MockTestScreen from '../../screens/MockTest';
 import PermissionsScreen from '../../screens/Permissions';
 import ComingSoonScreen from '../../screens/ComingSoon';
@@ -28,7 +28,7 @@ const AppStackScreen = () => {
         headerShown: false,
         statusBarStyle: navigationStatusBarStyle,
         statusBarBackgroundColor: backgroundColor,
-      }}>
+      } as NativeStackNavigationOptions}>
       <AppStack.Screen name="Dashboard" component={DashboardScreen} />
       <AppStack.Screen name="Profile" component={ProfileScreen} />
       <AppStack.Screen name="SwitchProfile" component={SwitchProfileScreen} />
@@ -42,7 +42,6 @@ const AppStackScreen = () => {
           title: route.params?.eventTitle || 'Video Upload',
         })}
       />
-      <AppStack.Screen name="BadgePage" component={BadgePage} />
       <AppStack.Screen name="MockTest" component={MockTestScreen} />
       <AppStack.Screen name="Permissions" component={PermissionsScreen} />
       <AppStack.Screen name="ComingSoon" component={ComingSoonScreen} />

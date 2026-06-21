@@ -11,6 +11,7 @@ import {
   InputIcon,
   InputSlot,
   SearchIcon,
+  Tabs,
   Tab,
   TabList,
   TabTitle,
@@ -19,18 +20,6 @@ import {
   Skeleton,
   SkeletonText,
   Select,
-  SelectTrigger,
-  SelectInput,
-  SelectIcon,
-  SelectPortal,
-  SelectBackdrop,
-  SelectDragIndicatorWrapper,
-  SelectDragIndicator,
-  SelectContent,
-  SelectItem,
-  SelectItemText,
-  Icon,
-  ChevronDownIcon,
 } from '@/components';
 import {useIsMounted} from '@/hooks';
 import {useThemeColors} from '@/utils/colors';
@@ -227,7 +216,7 @@ const GifPlayerScreen: React.FC = () => {
           key={i}
           style={[styles.gifCard, {backgroundColor: colors.cardBackground}]}>
           <VStack space="sm">
-            <Skeleton h="$32" w="100%" />
+            <Skeleton height={128} width="100%" />
             <VStack space="xs">
               <SkeletonText lines={2} />
               <SkeletonText lines={1} />
@@ -270,36 +259,21 @@ const GifPlayerScreen: React.FC = () => {
             </Button>
 
             <Select
-              selectedValue={selectedCategory}
-              onValueChange={handleCategoryChange}>
-              <SelectTrigger variant="outline" size="md" flex={1}>
-                <SelectInput placeholder="Category" />
-                <SelectIcon mr="$3">
-                  <Icon as={ChevronDownIcon} />
-                </SelectIcon>
-              </SelectTrigger>
-              <SelectPortal>
-                <SelectBackdrop />
-                <SelectContent>
-                  <SelectDragIndicatorWrapper>
-                    <SelectDragIndicator />
-                  </SelectDragIndicatorWrapper>
-                  <SelectItem label="All Categories" value="" />
-                  {categories.map(category => (
-                    <SelectItem
-                      key={category}
-                      label={category}
-                      value={category}
-                    />
-                  ))}
-                </SelectContent>
-              </SelectPortal>
-            </Select>
+              options={[
+                {label: 'All Categories', value: ''},
+                ...categories.map(category => ({
+                  label: category,
+                  value: category,
+                })),
+              ]}
+              value={selectedCategory}
+              onValueChange={handleCategoryChange}
+            />
           </HStack>
         </VStack>
 
         {/* Tabs */}
-        <Tab value={activeTab} onChange={setActiveTab}>
+        <Tabs value={activeTab} onChange={setActiveTab}>
           <TabList>
             <Tab>
               <TabTitle>GIFs</TabTitle>
@@ -413,7 +387,7 @@ const GifPlayerScreen: React.FC = () => {
               </ScrollView>
             </TabPanel>
           </TabPanels>
-        </Tab>
+        </Tabs>
       </VStack>
     </Box>
   );

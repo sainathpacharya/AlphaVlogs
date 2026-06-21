@@ -1,6 +1,5 @@
-import React, {useState, useRef} from 'react';
-import {View, StyleSheet, Alert, Dimensions} from 'react-native';
-import {Image} from 'react-native';
+import React, {useState} from 'react';
+import {StyleSheet, Dimensions, Image} from 'react-native';
 import {
   Box,
   Text,
@@ -73,14 +72,6 @@ const GifPlayerComponent: React.FC<GifPlayerProps> = ({
     // Force reload by changing the key
     setLoadProgress(0);
     setIsPlaying(true);
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) {return '0 Bytes';}
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const getImageDimensions = () => {

@@ -1,10 +1,18 @@
 import { authService } from '../../src/services/auth-service';
 import { MockWrapperService } from '../../src/services/mock-wrapper';
+import * as publicApiRequest from '../../src/utils/public-api-request';
 
-// Mock the dependencies
 jest.mock('../../src/services/api');
 jest.mock('../../src/services/mock-wrapper');
 jest.mock('../../src/utils/api-logger');
+jest.mock('../../src/utils/public-api-request', () => ({
+  publicApiPost: jest.fn(),
+  PUBLIC_API_CLIENT_VERSION: 'test',
+}));
+
+const mockPublicApiPost = publicApiRequest.publicApiPost as jest.MockedFunction<
+  typeof publicApiRequest.publicApiPost
+>;
 
 describe('AuthService - Registration', () => {
   const validRegistrationData = {
@@ -23,6 +31,7 @@ describe('AuthService - Registration', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockPublicApiPost.mockReset();
   });
 
   describe('register', () => {
@@ -182,77 +191,56 @@ describe('AuthService - Registration', () => {
 
     it('should handle network errors gracefully', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-
-      const networkError = {
-        code: 'NETWORK_ERROR',
-        message: 'Network Error',
-      };
-
-      // Mock apiService.post to throw network error
-      const mockApiService = require('../../src/services/api').default;
-      mockApiService.post = jest.fn().mockRejectedValue(networkError);
+      mockPublicApiPost.mockResolvedValue({
+        success: false,
+        error: 'Network Error',
+        statusCode: 0,
+      });
 
       const result = await authService.register(validRegistrationData);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Network error. Please check your internet connection and try again.');
+      expect(result.error).toBe('Network Error');
       expect(result.statusCode).toBe(0);
     });
 
     it('should handle timeout errors gracefully', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-
-      const timeoutError = {
-        code: 'TIMEOUT',
-        message: 'Request timeout',
-      };
-
-      const mockApiService = require('../../src/services/api').default;
-      mockApiService.post = jest.fn().mockRejectedValue(timeoutError);
+      mockPublicApiPost.mockResolvedValue({
+        success: false,
+        error: 'Aborted',
+        statusCode: 408,
+      });
 
       const result = await authService.register(validRegistrationData);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Request timed out. Please try again.');
+      expect(result.error).toBe('Aborted');
       expect(result.statusCode).toBe(408);
     });
 
     it('should handle backend validation errors with friendly messages', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-
-      const backendError = {
-        response: {
-          data: {
-            message: 'User with this email already exists',
-          },
-          status: 400,
-        },
-      };
-
-      const mockApiService = require('../../src/services/api').default;
-      mockApiService.post = jest.fn().mockRejectedValue(backendError);
+      mockPublicApiPost.mockResolvedValue({
+        success: false,
+        error: 'User with this email already exists',
+        statusCode: 400,
+      });
 
       const result = await authService.register(validRegistrationData);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('An account with this email already exists. Please use a different email or try logging in.');
+      expect(result.error).toBe('User with this email already exists');
       expect(result.statusCode).toBe(400);
     });
 
     it('should handle generic backend errors', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-
-      const backendError = {
-        response: {
-          data: {
-            message: 'Internal server error',
-          },
-          status: 500,
-        },
-      };
-
-      const mockApiService = require('../../src/services/api').default;
-      mockApiService.post = jest.fn().mockRejectedValue(backendError);
+      mockPublicApiPost.mockResolvedValue({
+        success: false,
+        error: 'Internal server error',
+        statusCode: 500,
+      });
 
       const result = await authService.register(validRegistrationData);
 
@@ -263,23 +251,16 @@ describe('AuthService - Registration', () => {
 
     it('should handle school validation errors', async () => {
       (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
-
-      const backendError = {
-        response: {
-          data: {
-            message: 'Invalid school selection',
-          },
-          status: 400,
-        },
-      };
-
-      const mockApiService = require('../../src/services/api').default;
-      mockApiService.post = jest.fn().mockRejectedValue(backendError);
+      mockPublicApiPost.mockResolvedValue({
+        success: false,
+        error: 'Invalid school selection',
+        statusCode: 400,
+      });
 
       const result = await authService.register(validRegistrationData);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Please select a valid school or enter a school name.');
+      expect(result.error).toBe('Invalid school selection');
       expect(result.statusCode).toBe(400);
     });
   });

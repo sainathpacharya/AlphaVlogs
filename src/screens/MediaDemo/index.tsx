@@ -8,6 +8,7 @@ import {
   HStack,
   Input,
   InputInput,
+  Tabs,
   Tab,
   TabList,
   TabTitle,
@@ -65,7 +66,7 @@ const MediaDemoScreen: React.FC = () => {
           Media Integration Demo
         </Text>
 
-        <Tab value={activeTab} onChange={setActiveTab}>
+        <Tabs value={activeTab} onChange={setActiveTab}>
           <TabList>
             <Tab>
               <TabTitle>YouTube</TabTitle>
@@ -346,7 +347,7 @@ const MediaDemoScreen: React.FC = () => {
               </VStack>
             </TabPanel>
           </TabPanels>
-        </Tab>
+        </Tabs>
       </VStack>
     </ScrollView>
   );

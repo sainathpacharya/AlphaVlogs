@@ -48,6 +48,7 @@ export * from './vstack';
 // Custom components
 export { default as Skeleton } from './_custom/Skeleton';
 export { SkeletonText } from './_custom/Skeleton/SkeletonText';
+export { Tabs } from './_custom/Tab/Tabs';
 export { default as Tab } from './_custom/Tab';
 export { TabList } from './_custom/Tab/TabList';
 export { TabTitle } from './_custom/Tab/TabTitle';
@@ -55,4 +56,7 @@ export { TabPanels } from './_custom/Tab/TabPanels';
 export { TabPanel } from './_custom/Tab/TabPanel';
 export { TranslationExample } from './TranslationExample';
 export { TranslationTest } from './TranslationTest';
+export { default as YouTubePlayer } from './YouTubePlayer';
+export { default as YouTubeUpload } from './YouTubeUpload';
+export { default as GifPlayer } from './GifPlayer';
 export { RippleDemo } from './ripple-demo';

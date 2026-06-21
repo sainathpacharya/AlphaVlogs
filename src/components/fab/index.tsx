@@ -453,6 +453,7 @@ export const Fab = ({
   rippleOpacity = 0.3,
   rippleDuration = 300,
   enableRipple = true,
+  disabled,
   ...props
 }: FabProps) => {
   if (enableRipple) {
@@ -461,14 +462,20 @@ export const Fab = ({
         rippleColor={rippleColor}
         rippleOpacity={rippleOpacity}
         rippleDuration={rippleDuration}
-        disabled={Boolean(props.disabled)}
+        disabled={disabled === true}
         {...props}>
-        <UIFab {...props}>{children}</UIFab>
+        <UIFab disabled={disabled} {...props}>
+          {children}
+        </UIFab>
       </RippleEffect>
     );
   }
 
-  return <UIFab {...props}>{children}</UIFab>;
+  return (
+    <UIFab disabled={disabled} {...props}>
+      {children}
+    </UIFab>
+  );
 };
 
 export const FabLabel = UIFab.Label;

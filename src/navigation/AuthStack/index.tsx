@@ -1,5 +1,6 @@
 import React, {useEffect} from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import type {NativeStackNavigationOptions} from '@react-navigation/native-stack';
 import {useStatusBarConfig} from '@/utils/colors';
 import apiService from '@/services/api';
 import WelcomeScreen from '../../screens/Welcome';
@@ -24,7 +25,7 @@ const AuthStack = () => {
         headerShown: false,
         statusBarStyle: navigationStatusBarStyle,
         statusBarBackgroundColor: backgroundColor,
-      }}>
+      } as NativeStackNavigationOptions}>
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={RegistrationScreen} />

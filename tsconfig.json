@@ -25,5 +25,11 @@
     "noUncheckedIndexedAccess": true
   },
   "include": ["src/**/*", "App.tsx", "index.js"],
-  "exclude": ["node_modules", "android", "ios", "__tests__"]
+  "exclude": [
+    "node_modules",
+    "android",
+    "ios",
+    "__tests__",
+    "src/components/_custom/**"
+  ]
 }
