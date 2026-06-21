@@ -11,7 +11,7 @@ end
 node_require('react-native/scripts/react_native_pods.rb')
 node_require('react-native-permissions/scripts/setup.rb')
 
-platform :ios, '13.4'
+platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
 linkage = ENV['USE_FRAMEWORKS']
@@ -47,6 +47,35 @@ target 'JackMarvelsApp' do
     # Pods for testing
   end
 
+  # Fix build scripts when the project path contains spaces (e.g. "React Native")
+  def fix_react_native_script_phases_for_spaces(installer)
+    installer.pods_project.targets.each do |target|
+      target.shell_script_build_phases.each do |phase|
+        script = phase.shell_script
+        next if script.nil? || !script.include?('WITH_ENVIRONMENT')
+
+        script = script.gsub(
+          'export RCT_SCRIPT_RN_DIR=$RCT_SCRIPT_POD_INSTALLATION_ROOT/../node_modules/react-native',
+          'export RCT_SCRIPT_RN_DIR="$RCT_SCRIPT_POD_INSTALLATION_ROOT/../node_modules/react-native"'
+        )
+        script = script.gsub(
+          'export RCT_SCRIPT_APP_PATH=$RCT_SCRIPT_POD_INSTALLATION_ROOT/..',
+          'export RCT_SCRIPT_APP_PATH="$RCT_SCRIPT_POD_INSTALLATION_ROOT/.."'
+        )
+        script = script.gsub(
+          'export RCT_SCRIPT_OUTPUT_DIR=$RCT_SCRIPT_POD_INSTALLATION_ROOT',
+          'export RCT_SCRIPT_OUTPUT_DIR="$RCT_SCRIPT_POD_INSTALLATION_ROOT"'
+        )
+        script = script.gsub(
+          '/bin/sh -c "$WITH_ENVIRONMENT $SCRIPT_PHASES_SCRIPT"',
+          '"$WITH_ENVIRONMENT" "$SCRIPT_PHASES_SCRIPT"'
+        )
+        phase.shell_script = script
+      end
+    end
+    installer.pods_project.save
+  end
+
   post_install do |installer|
     # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
     react_native_post_install(
@@ -55,12 +84,19 @@ target 'JackMarvelsApp' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
-    
+
+    fix_react_native_script_phases_for_spaces(installer)
+
     # Fix for Razorpay Swift protocol linking and other build issues
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
-        # Set minimum iOS deployment target to 13.4 for all pods (required by React Native 0.75.3)
-        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.4'
+        # Xcode 26+ workaround: fmt 11.x consteval fails with newer Apple Clang
+        if target.name == 'fmt'
+          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+        end
+
+        # Set minimum iOS deployment target for all pods
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
         
         # Ensure Swift interoperability is enabled
         config.build_settings['SWIFT_VERSION'] = '5.0' if config.build_settings['SWIFT_VERSION'].nil?
@@ -102,8 +138,8 @@ target 'JackMarvelsApp' do
             # Ensure Swift standard libraries are embedded (set to YES explicitly)
             config.build_settings['ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES'] = 'YES'
             
-            # Ensure minimum iOS deployment target is 13.4 (required by React Native 0.75.3)
-            config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.4'
+            # Ensure minimum iOS deployment target matches React Native requirements
+            config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
             
             # Clean up any malformed Razorpay framework entries in OTHER_LDFLAGS
             # The issue is that RazorpayCore and RazorpayStandard might be added as standalone arguments

@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, Dimensions} from 'react-native';
-import {SafeAreaView, StatusBar, VStack, Spinner, Text} from '@/components';
-import {MotiImage} from 'moti';
+import {SafeAreaView, VStack, Spinner, Text} from '@/components';
+import {AppLogoImage} from '@/components/AppLogoImage';
 import appLogo from '@/assets/png/appLogo.png';
 import {useThemeColors} from '@/utils/colors';
 
@@ -13,7 +13,6 @@ const LoadingScreen = () => {
     <SafeAreaView
       testID="loading-screen"
       style={{flex: 1, backgroundColor: colors.primaryBackground}}>
-      <StatusBar translucent={false} />
       <VStack
         testID="loading-container"
         h="$full"
@@ -22,32 +21,13 @@ const LoadingScreen = () => {
         justifyContent="center"
         alignItems="center"
         space="md">
-        <MotiImage
+        <AppLogoImage
           testID="loading-logo"
           source={appLogo}
-          from={{
-            opacity: 0,
-            scale: 0.5,
-            rotate: '-10deg',
-            translateY: -100,
-          }}
-          animate={{
-            opacity: 1,
-            scale: 1,
-            rotate: '0deg',
-            translateY: 0,
-          }}
-          transition={{
-            type: 'spring',
-            damping: 15,
-            stiffness: 40,
-            mass: 1.2,
-            delay: 300,
-          }}
+          animation="spring-in"
           style={{
             width: width * 0.8,
             height: height * 0.4,
-            resizeMode: 'contain',
           }}
         />
 

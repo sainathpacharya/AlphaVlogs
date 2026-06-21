@@ -2,7 +2,9 @@
  * @format
  */
 
+import './src/config/dev-logging';
 import 'react-native-gesture-handler';
+import 'react-native-reanimated';
 
 // Polyfill for Intl.PluralRules to fix i18next compatibility
 if (!global.Intl) {

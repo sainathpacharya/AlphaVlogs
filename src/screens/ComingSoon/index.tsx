@@ -1,8 +1,15 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {Dimensions, View} from 'react-native';
 import {SafeAreaView, StatusBar, VStack, Text} from '@/components';
-import {MotiImage, MotiView} from 'moti';
-import {Easing} from 'react-native-reanimated';
+import {AppLogoImage} from '@/components/AppLogoImage';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import appLogo from '@/assets/png/appLogo.png';
 import {useThemeColors} from '@/utils/colors';
 
@@ -11,8 +18,67 @@ const {width} = Dimensions.get('window');
 const LOGO_SIZE = width * 0.5;
 const GLOW_SIZE = LOGO_SIZE * 1.35;
 
+const AnimatedView = Animated.createAnimatedComponent(View);
+
 const ComingSoonScreen = () => {
   const colors = useThemeColors();
+  const entranceOpacity = useSharedValue(0);
+  const entranceScale = useSharedValue(0.6);
+  const glowScale = useSharedValue(0.95);
+  const glowOpacity = useSharedValue(0.15);
+  const textOpacity = useSharedValue(0);
+  const textTranslateY = useSharedValue(20);
+
+  useEffect(() => {
+    entranceOpacity.value = withTiming(1, {
+      duration: 700,
+      easing: Easing.out(Easing.cubic),
+    });
+    entranceScale.value = withTiming(1, {
+      duration: 700,
+      easing: Easing.out(Easing.cubic),
+    });
+    glowScale.value = withRepeat(
+      withTiming(1.1, {duration: 2500, easing: Easing.inOut(Easing.ease)}),
+      -1,
+      true,
+    );
+    glowOpacity.value = withRepeat(
+      withTiming(0.35, {duration: 2500, easing: Easing.inOut(Easing.ease)}),
+      -1,
+      true,
+    );
+    textOpacity.value = withDelay(
+      350,
+      withTiming(1, {duration: 600, easing: Easing.out(Easing.cubic)}),
+    );
+    textTranslateY.value = withDelay(
+      350,
+      withTiming(0, {duration: 600, easing: Easing.out(Easing.cubic)}),
+    );
+  }, [
+    entranceOpacity,
+    entranceScale,
+    glowOpacity,
+    glowScale,
+    textOpacity,
+    textTranslateY,
+  ]);
+
+  const entranceStyle = useAnimatedStyle(() => ({
+    opacity: entranceOpacity.value,
+    transform: [{scale: entranceScale.value}],
+  }));
+
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glowOpacity.value,
+    transform: [{scale: glowScale.value}],
+  }));
+
+  const textStyle = useAnimatedStyle(() => ({
+    opacity: textOpacity.value,
+    transform: [{translateY: textTranslateY.value}],
+  }));
 
   return (
     <SafeAreaView
@@ -25,119 +91,51 @@ const ComingSoonScreen = () => {
         justifyContent="center"
         alignItems="center"
         px="$5">
-        {/* Outer wrapper: entrance animation (scale + opacity) — runs once */}
-        <MotiView
-          from={{opacity: 0, scale: 0.6}}
-          animate={{opacity: 1, scale: 1}}
-          transition={{
-            type: 'timing',
-            duration: 700,
-            easing: Easing.out(Easing.cubic),
-          }}
-          style={{alignItems: 'center', justifyContent: 'center'}}>
-          {/* Very subtle pulsing glow behind logo — soft shadow, not a solid circle */}
-          <MotiView
-            style={{
-              position: 'absolute',
-              width: GLOW_SIZE,
-              height: GLOW_SIZE,
-              borderRadius: GLOW_SIZE / 2,
-              backgroundColor: colors.lightGray,
-            }}
-            from={{scale: 0.95, opacity: 0.15}}
-            animate={{scale: 1.1, opacity: 0.35}}
-            transition={{
-              type: 'timing',
-              duration: 2500,
-              easing: Easing.inOut(Easing.ease),
-              loop: true,
-              repeatReverse: true,
-            }}
+        <AnimatedView style={[{alignItems: 'center', justifyContent: 'center'}, entranceStyle]}>
+          <AnimatedView
+            style={[
+              {
+                position: 'absolute',
+                width: GLOW_SIZE,
+                height: GLOW_SIZE,
+                borderRadius: GLOW_SIZE / 2,
+                backgroundColor: colors.lightGray,
+              },
+              glowStyle,
+            ]}
           />
-          {/* Floating + breathing + subtle rotate logo */}
-          <MotiImage
+          <AppLogoImage
             testID="coming-soon-logo"
             source={appLogo}
+            animation="bounce"
             style={{
               width: LOGO_SIZE,
               height: LOGO_SIZE,
             }}
-            from={{
-              translateY: 0,
-              scale: 1,
-              rotate: '0deg',
-            }}
-            animate={{
-              translateY: [-8, 8],
-              scale: [1, 1.06],
-              rotate: ['-2deg', '2deg'],
-            }}
-            transition={{
-              type: 'timing',
-              duration: 2800,
-              easing: Easing.inOut(Easing.ease),
-              loop: true,
-              repeatReverse: true,
-            }}
           />
-        </MotiView>
+        </AnimatedView>
 
-        <MotiView
-          style={{marginTop: 48, alignItems: 'center'}}
-          from={{opacity: 0, translateY: 20}}
-          animate={{opacity: 1, translateY: 0}}
-          transition={{
-            type: 'timing',
-            duration: 600,
-            delay: 350,
-            easing: Easing.out(Easing.cubic),
-          }}>
-          {/* "Coming soon" with subtle breathing scale */}
-          <MotiView
-            from={{scale: 1}}
-            animate={{scale: [1, 1.03, 1]}}
-            transition={{
-              type: 'timing',
-              duration: 2200,
-              easing: Easing.inOut(Easing.ease),
-              loop: true,
-              repeatReverse: true,
-              delay: 600,
-            }}>
-            <Text
-              testID="coming-soon-text"
-              fontSize="$2xl"
-              fontWeight="$bold"
-              color={colors.primaryText}
-              textAlign="center">
-              Coming soon
-            </Text>
-          </MotiView>
-        </MotiView>
+        <AnimatedView style={[{marginTop: 48, alignItems: 'center'}, textStyle]}>
+          <Text
+            testID="coming-soon-text"
+            fontSize="$2xl"
+            fontWeight="$bold"
+            color={colors.primaryText}
+            textAlign="center">
+            Coming soon
+          </Text>
+        </AnimatedView>
 
-        {/* Decorative dots: staggered fade + scale */}
         <View style={{flexDirection: 'row', marginTop: 32, gap: 10}}>
-          {[0, 1, 2].map((i) => (
-            <MotiView
+          {[0, 1, 2].map(i => (
+            <View
               key={i}
               style={{
                 width: 8,
                 height: 8,
                 borderRadius: 4,
                 backgroundColor: colors.accentAction,
-              }}
-              from={{opacity: 0.2, scale: 0.5}}
-              animate={{
-                opacity: [0.3, 0.8, 0.3],
-                scale: [0.9, 1.2, 0.9],
-              }}
-              transition={{
-                type: 'timing',
-                duration: 1400,
-                easing: Easing.inOut(Easing.ease),
-                loop: true,
-                repeatReverse: true,
-                delay: i * 200,
+                opacity: 0.5 + i * 0.15,
               }}
             />
           ))}

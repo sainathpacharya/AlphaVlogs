@@ -1,5 +1,5 @@
-import React, {useState, useEffect} from 'react';
-import {View, StyleSheet, Alert, ScrollView, Dimensions} from 'react-native';
+import React, {useState, useEffect, useMemo, useCallback} from 'react';
+import {View, StyleSheet, Alert, Dimensions} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {Crown} from 'lucide-react-native';
 import {
@@ -12,10 +12,17 @@ import {
   Badge,
   Pressable,
 } from '@/components';
-import {SUBSCRIPTION, PAYMENT_METHODS} from '@/constants';
+import {SUBSCRIPTION} from '@/constants';
 import {useThemeColors} from '@/utils/colors';
 import {subscriptionService} from '@/services/subscription-service';
-import {useUserStore} from '@/stores';
+import {PaymentApiError} from '@/services/payment-service';
+import {canAccessPayment} from '@/utils/payment';
+import {devLog} from '@/utils/dev-log';
+import {getApiBaseUrl} from '@/constants';
+import {isMockMode} from '@/config/api-config';
+import {useUser, useUserStore} from '@/stores';
+import {useIsMounted} from '@/hooks';
+import {InfoScreenLayout} from '@/components/InfoScreenLayout';
 
 const {width} = Dimensions.get('window');
 
@@ -30,8 +37,21 @@ interface PaymentMethod {
 const SubscriptionScreen: React.FC = () => {
   const navigation = useNavigation();
   const colors = useThemeColors();
-  const {user} = useUserStore();
-  const styles = getStyles(colors);
+  const isMounted = useIsMounted();
+  const user = useUser();
+  const setUser = useUserStore(state => state.setUser);
+  const styles = useMemo(() => getStyles(colors), [
+    colors.primaryBackground,
+    colors.primaryText,
+    colors.mutedText,
+    colors.cardBackground,
+    colors.border,
+    colors.danger,
+    colors.accentAction,
+    colors.success,
+    colors.white,
+    colors.secondaryBackground,
+  ]);
   const [selectedPlan, setSelectedPlan] = useState<'free' | 'premium'>('free');
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<string>('');
@@ -44,25 +64,106 @@ const SubscriptionScreen: React.FC = () => {
   } | null>(null);
 
   useEffect(() => {
-    loadSubscriptionData();
-  }, []);
+    if (!user?.id) {
+      return undefined;
+    }
 
-  const loadSubscriptionData = async () => {
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        setIsLoading(true);
+        const subscription = await subscriptionService.getCurrentSubscription(user.id);
+        if (cancelled) {
+          return;
+        }
+        setCurrentSubscription(subscription);
+
+        if (subscription?.plan === 'premium') {
+          setSelectedPlan('premium');
+        }
+
+        const methods = await subscriptionService.getPaymentMethods();
+        if (cancelled) {
+          return;
+        }
+
+        const defaultMethods: PaymentMethod[] = [
+          {
+            id: 'razorpay',
+            type: 'razorpay',
+            name: 'Razorpay (UPI, Cards, Net Banking)',
+            isEnabled: true,
+            icon: '💳',
+          },
+        ];
+
+        const mockOnlyMethods: PaymentMethod[] = isMockMode()
+          ? [
+              {id: 'cash', type: 'cash', name: 'Cash', isEnabled: true},
+              {id: 'cheque', type: 'cheque', name: 'Cheque', isEnabled: true},
+            ]
+          : [];
+
+        const finalMethods =
+          methods.length > 0
+            ? methods.filter(
+                m =>
+                  m.type === 'razorpay' ||
+                  (isMockMode() && (m.type === 'cash' || m.type === 'cheque')),
+              )
+            : [...defaultMethods, ...mockOnlyMethods];
+        setPaymentMethods(finalMethods);
+
+        const razorpayMethod = (finalMethods as PaymentMethod[]).find(
+          m => m?.type === 'razorpay',
+        );
+        if (razorpayMethod) {
+          setSelectedPaymentMethod(razorpayMethod.id);
+        } else if (finalMethods.length > 0 && finalMethods[0]) {
+          setSelectedPaymentMethod(finalMethods[0].id);
+        }
+      } catch (error) {
+        if (__DEV__) {
+          console.error('Error loading subscription data:', error);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  const loadSubscriptionData = useCallback(async () => {
+    if (!user?.id) {
+      return;
+    }
     try {
-      setIsLoading(true);
+      if (isMounted.current) {
+        setIsLoading(true);
+      }
 
-      // Load current subscription (pass user id when available)
-      const subscription = await subscriptionService.getCurrentSubscription(user?.id);
+      const subscription = await subscriptionService.getCurrentSubscription(user.id);
+      if (!isMounted.current) {
+        return;
+      }
       setCurrentSubscription(subscription);
 
       if (subscription?.plan === 'premium') {
         setSelectedPlan('premium');
       }
 
-      // Load payment methods - prioritize Razorpay
       const methods = await subscriptionService.getPaymentMethods();
+      if (!isMounted.current) {
+        return;
+      }
 
-      // If no methods from API, use default Razorpay method
       const defaultMethods: PaymentMethod[] = [
         {
           id: 'razorpay',
@@ -73,12 +174,25 @@ const SubscriptionScreen: React.FC = () => {
         },
       ];
 
-      const finalMethods = methods.length > 0 ? methods : defaultMethods;
+      const mockOnlyMethods: PaymentMethod[] = isMockMode()
+        ? [
+            {id: 'cash', type: 'cash', name: 'Cash', isEnabled: true},
+            {id: 'cheque', type: 'cheque', name: 'Cheque', isEnabled: true},
+          ]
+        : [];
+
+      const finalMethods =
+        methods.length > 0
+          ? methods.filter(
+              m =>
+                m.type === 'razorpay' ||
+                (isMockMode() && (m.type === 'cash' || m.type === 'cheque')),
+            )
+          : [...defaultMethods, ...mockOnlyMethods];
       setPaymentMethods(finalMethods);
 
-      // Auto-select Razorpay if available
-      const razorpayMethod = (finalMethods as any[]).find(
-        (m: any) => m?.type === 'razorpay',
+      const razorpayMethod = (finalMethods as PaymentMethod[]).find(
+        m => m?.type === 'razorpay',
       );
       if (razorpayMethod) {
         setSelectedPaymentMethod(razorpayMethod.id);
@@ -90,13 +204,28 @@ const SubscriptionScreen: React.FC = () => {
         console.error('Error loading subscription data:', error);
       }
     } finally {
-      setIsLoading(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
     }
-  };
+  }, [user?.id, isMounted]);
 
   const handleSubscribe = async () => {
     if (selectedPlan === 'free') {
       Alert.alert('Free Plan', 'You are already on the free plan.');
+      return;
+    }
+
+    if (!canAccessPayment(user)) {
+      Alert.alert(
+        'Not available',
+        'Subscription payment is only available for student accounts.',
+      );
+      return;
+    }
+
+    if (!user) {
+      Alert.alert('Error', 'Please log in to subscribe.');
       return;
     }
 
@@ -106,55 +235,84 @@ const SubscriptionScreen: React.FC = () => {
     }
 
     try {
-      setIsLoading(true);
+      if (isMounted.current) {
+        setIsLoading(true);
+      }
 
       const paymentMethod = paymentMethods.find(
         m => m.id === selectedPaymentMethod,
       );
 
       if (!paymentMethod) {
-        Alert.alert('Error', 'Selected payment method not found.');
+        if (isMounted.current) {
+          Alert.alert('Error', 'Selected payment method not found.');
+        }
         return;
       }
 
-      const allowedMethods = ['razorpay', 'cash', 'cheque'] as const;
-      const paymentMethodType = allowedMethods.includes(
-        paymentMethod.type as (typeof allowedMethods)[number],
-      )
-        ? (paymentMethod.type as 'razorpay' | 'cash' | 'cheque')
-        : 'razorpay';
-
-      // Create subscription
-      const subscription = await subscriptionService.createSubscription({
-        plan: 'premium',
-        paymentMethod: paymentMethodType,
-        amount: SUBSCRIPTION.PRICING.PREMIUM_ANNUAL,
-        userId: user?.id ?? '',
-      });
-
-      let paymentResult;
-
-      // Handle Razorpay payment
       if (paymentMethod.type === 'razorpay') {
+        devLog('Subscription.handleSubscribe razorpay', {
+          apiBaseUrl: getApiBaseUrl(),
+          amountPaise: SUBSCRIPTION.PRICING.PREMIUM_ANNUAL_PAISE,
+          userId: user.id,
+        });
         try {
-          const razorpayResponse =
-            await subscriptionService.initiateRazorpayPayment(
-              SUBSCRIPTION.PRICING.PREMIUM_ANNUAL,
-              subscription.id,
-            );
+          const result = await subscriptionService.completeRazorpayCheckout(
+            user,
+            SUBSCRIPTION.PRICING.PREMIUM_ANNUAL_PAISE,
+          );
 
-          paymentResult = await subscriptionService.processPayment({
-            subscriptionId: subscription.id,
-            amount: SUBSCRIPTION.PRICING.PREMIUM_ANNUAL,
-            paymentMethod: selectedPaymentMethod,
-            paymentData: razorpayResponse,
-          });
+          if (!isMounted.current) {
+            return;
+          }
+
+          if (result.success) {
+            setUser({
+              ...user,
+              isSubscribed: true,
+              subscriptionStatus: 'active',
+            });
+
+            Alert.alert(
+              '✅ Subscription Successful',
+              `Welcome to Jack Marvels Premium! You now have access to all quizzes and premium features.\n\nPayment ID: ${result.paymentId}`,
+              [
+                {
+                  text: 'Continue',
+                  onPress: () => {
+                    loadSubscriptionData();
+                    navigation.goBack();
+                  },
+                },
+              ],
+            );
+          } else {
+            Alert.alert(
+              '❌ Payment Failed',
+              'Payment could not be verified. Please try again or contact support.',
+            );
+          }
         } catch (razorpayError: unknown) {
           if (__DEV__) {
             console.error('Razorpay payment error:', razorpayError);
           }
 
-          // Handle specific Razorpay errors
+          if (!isMounted.current) {
+            return;
+          }
+
+          if (razorpayError instanceof PaymentApiError) {
+            if (razorpayError.statusCode === 403) {
+              Alert.alert(
+                'Not authorized',
+                'Your account cannot access payment. Please contact support.',
+              );
+              return;
+            }
+            Alert.alert('Payment Error', razorpayError.message);
+            return;
+          }
+
           const message =
             razorpayError instanceof Error
               ? razorpayError.message
@@ -164,27 +322,47 @@ const SubscriptionScreen: React.FC = () => {
               'Payment Cancelled',
               'You cancelled the payment. You can try again anytime.',
             );
-            return;
           } else {
             Alert.alert(
               'Payment Error',
               message || 'Payment processing failed. Please try again.',
             );
-            return;
           }
         }
-      } else {
-        paymentResult = await subscriptionService.processPayment({
-          subscriptionId: subscription.id,
-          amount: SUBSCRIPTION.PRICING.PREMIUM_ANNUAL,
-          paymentMethod: selectedPaymentMethod,
-        });
+        return;
+      }
+
+      // Mock-only cash / cheque flow
+      const subscription = await subscriptionService.createSubscription({
+        plan: 'premium',
+        paymentMethod: paymentMethod.type as 'cash' | 'cheque',
+        amount: SUBSCRIPTION.PRICING.PREMIUM_ANNUAL,
+        userId: user.id,
+      });
+
+      if (!isMounted.current) {
+        return;
+      }
+
+      const paymentResult = await subscriptionService.processPayment({
+        subscriptionId: subscription.id,
+        amount: SUBSCRIPTION.PRICING.PREMIUM_ANNUAL,
+        paymentMethod: selectedPaymentMethod,
+      });
+
+      if (!isMounted.current) {
+        return;
       }
 
       if (paymentResult?.success) {
+        setUser({
+          ...user,
+          isSubscribed: true,
+          subscriptionStatus: 'active',
+        });
         Alert.alert(
           '✅ Subscription Successful',
-          `Welcome to Jack Marvels Premium! You now have access to all quizzes and premium features.\n\nTransaction ID: ${(paymentResult as { transactionId?: string }).transactionId ?? 'N/A'}`,
+          `Welcome to Jack Marvels Premium!\n\nTransaction ID: ${(paymentResult as { transactionId?: string }).transactionId ?? 'N/A'}`,
           [
             {
               text: 'Continue',
@@ -205,11 +383,15 @@ const SubscriptionScreen: React.FC = () => {
       if (__DEV__) {
         console.error('Error subscribing:', error);
       }
-      const message =
-        error instanceof Error ? error.message : 'Something went wrong. Please try again later.';
-      Alert.alert('❌ Subscription Error', message);
+      if (isMounted.current) {
+        const message =
+          error instanceof Error ? error.message : 'Something went wrong. Please try again later.';
+        Alert.alert('❌ Subscription Error', message);
+      }
     } finally {
-      setIsLoading(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -231,6 +413,9 @@ const SubscriptionScreen: React.FC = () => {
               const success = await subscriptionService.cancelSubscription(
                 currentSubscription.id,
               );
+              if (!isMounted.current) {
+                return;
+              }
               if (success) {
                 Alert.alert(
                   'Subscription Cancelled',
@@ -241,7 +426,9 @@ const SubscriptionScreen: React.FC = () => {
                 Alert.alert('Error', 'Failed to cancel subscription.');
               }
             } catch (error) {
-              Alert.alert('Error', 'Failed to cancel subscription.');
+              if (isMounted.current) {
+                Alert.alert('Error', 'Failed to cancel subscription.');
+              }
             }
           },
         },
@@ -369,36 +556,8 @@ const SubscriptionScreen: React.FC = () => {
   };
 
   return (
-    <ScrollView testID="subscription-screen" style={styles.container}>
-      {/* Custom Header with Back Button */}
-      <HStack
-        testID="subscription-header"
-        alignItems="center"
-        justifyContent="space-between"
-        p="$4"
-        pt="$12"
-        style={{backgroundColor: colors.primaryBackground}}>
-        <Pressable
-          testID="subscription-back-button"
-          onPress={() => navigation.goBack()}
-          p="$2"
-          borderRadius="$md"
-          style={{backgroundColor: 'rgba(255,255,255,0.1)'}}>
-          <Text
-            testID="subscription-back-arrow"
-            style={{color: colors.white, fontSize: 18}}>
-            ←
-          </Text>
-        </Pressable>
-        <Text
-          testID="subscription-title"
-          style={[styles.headerTitle, {flex: 1, textAlign: 'center'}]}>
-          Subscription
-        </Text>
-        <Box w="$10" />
-      </HStack>
-
-      <VStack testID="subscription-content" space="lg" p="$4">
+    <InfoScreenLayout testID="subscription-screen" title="Subscription">
+      <VStack testID="subscription-content" space="lg">
         {/* Header */}
         <VStack
           testID="subscription-header-section"
@@ -484,7 +643,7 @@ const SubscriptionScreen: React.FC = () => {
         )}
 
         {/* Subscribe Button */}
-        {selectedPlan === 'premium' && (
+        {selectedPlan === 'premium' && canAccessPayment(user) && (
           <Button
             testID="subscription-subscribe-button"
             onPress={handleSubscribe}
@@ -513,7 +672,7 @@ const SubscriptionScreen: React.FC = () => {
           </Text>
         </VStack>
       </VStack>
-    </ScrollView>
+    </InfoScreenLayout>
   );
 };
 

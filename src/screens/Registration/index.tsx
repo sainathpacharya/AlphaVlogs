@@ -20,7 +20,7 @@ import {
 } from '../../components';
 import {useToast} from '../../components/toast';
 import {useThemeColors} from '../../utils/colors';
-import {authService} from '../../services/auth-service';
+import {useIsMounted, useRegisterMutation} from '@/hooks';
 import {schoolsService, School} from '../../services/schools-service';
 import {
   validateRegistrationForm,
@@ -43,8 +43,7 @@ import {
   Landmark,
   Hash,
 } from 'lucide-react-native';
-import {MotiImage} from 'moti';
-import {Easing} from 'react-native-reanimated';
+import {AppLogoImage} from '../../components/AppLogoImage';
 import appLogo from '../../assets/png/appLogo.png';
 import {StatusBar} from '@/components/status-bar';
 
@@ -70,7 +69,8 @@ const RegistrationScreen = ({navigation}: any) => {
   const [touchedFields, setTouchedFields] = useState<Set<keyof typeof form>>(
     new Set(),
   );
-  const [isLoading, setIsLoading] = useState(false);
+  const registerMutation = useRegisterMutation();
+  const isLoading = registerMutation.isPending;
   const [showCustomSchool, setShowCustomSchool] = useState(false);
   const [schools, setSchools] = useState<School[]>([]);
   const [schoolsLoading, setSchoolsLoading] = useState(true);
@@ -78,13 +78,27 @@ const RegistrationScreen = ({navigation}: any) => {
   // Refs for input fields
   const inputRefs = useRef<Record<string, any>>({});
   const scrollViewRef = useRef<ScrollView>(null);
+  const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMounted = useIsMounted();
   const toast = useToast();
+
+  useEffect(() => {
+    return () => {
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Fetch schools on component mount
   useEffect(() => {
+    let cancelled = false;
+
     const fetchSchools = async () => {
       try {
-        setSchoolsLoading(true);
+        if (!cancelled) {
+          setSchoolsLoading(true);
+        }
         const response = await schoolsService.getSchools();
 
         if (response.success && response.data) {
@@ -94,8 +108,9 @@ const RegistrationScreen = ({navigation}: any) => {
           );
 
           if (hasOtherOption) {
-            // Use schools as-is if "Other" option already exists
-            setSchools(response.data.schools);
+            if (!cancelled) {
+              setSchools(response.data.schools);
+            }
           } else {
             // Add "Other" option if it doesn't exist
             const schoolsWithOther = [
@@ -118,11 +133,13 @@ const RegistrationScreen = ({navigation}: any) => {
                 updatedAt: '',
               },
             ];
-            setSchools(schoolsWithOther);
+            if (!cancelled) {
+              setSchools(schoolsWithOther);
+            }
           }
         } else {
           console.error('Failed to fetch schools:', response.message);
-          // Fallback to default schools
+          if (!cancelled) {
           setSchools([
             {
               id: 1,
@@ -227,10 +244,11 @@ const RegistrationScreen = ({navigation}: any) => {
               updatedAt: '',
             },
           ]);
+          }
         }
       } catch (error) {
         console.error('Error fetching schools:', error);
-        // Fallback to default schools on error
+        if (!cancelled) {
         setSchools([
           {
             id: 1,
@@ -267,12 +285,18 @@ const RegistrationScreen = ({navigation}: any) => {
             updatedAt: '',
           },
         ]);
+        }
       } finally {
-        setSchoolsLoading(false);
+        if (!cancelled) {
+          setSchoolsLoading(false);
+        }
       }
     };
 
     fetchSchools();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Real-time validation for individual fields
@@ -413,8 +437,10 @@ const RegistrationScreen = ({navigation}: any) => {
         firstErrorField !== 'schoolName'
       ) {
         // Scroll to the field first, then focus
-        setTimeout(() => {
-          inputRefs.current[firstErrorField]?.focus();
+        focusTimeoutRef.current = setTimeout(() => {
+          if (isMounted.current) {
+            inputRefs.current[firstErrorField]?.focus();
+          }
         }, 100);
       }
       return;
@@ -422,9 +448,12 @@ const RegistrationScreen = ({navigation}: any) => {
 
     // If form is valid, proceed with submission
     if (isFormValid) {
-      setIsLoading(true);
       try {
-        const response = await authService.register(form);
+        const response = await registerMutation.mutateAsync(form);
+
+        if (!isMounted.current) {
+          return;
+        }
 
         if (response.success) {
           toast.show({
@@ -437,7 +466,6 @@ const RegistrationScreen = ({navigation}: any) => {
               </Box>
             ),
           });
-          // Navigate to login screen
           navigation.navigate('Login');
         } else {
           toast.show({
@@ -463,8 +491,6 @@ const RegistrationScreen = ({navigation}: any) => {
             </Box>
           ),
         });
-      } finally {
-        setIsLoading(false);
       }
     }
   };
@@ -595,22 +621,14 @@ const RegistrationScreen = ({navigation}: any) => {
           space="lg"
           style={{overflow: 'visible'}}>
           {/* Logo */}
-          <MotiImage
+          <AppLogoImage
             testID="registration-logo"
             source={appLogo}
+            animation="bounce"
             style={{
               width: width,
               height: width * 0.2,
               marginBottom: 30,
-            }}
-            from={{translateY: 0}}
-            animate={{translateY: -10}}
-            transition={{
-              type: 'timing',
-              duration: 2000,
-              easing: Easing.inOut(Easing.ease),
-              loop: true,
-              repeatReverse: true,
             }}
           />
 

@@ -18,17 +18,15 @@ import {
   StatusBar,
   Box,
 } from '../../components';
-import {MotiImage} from 'moti';
-import {Easing} from 'react-native-reanimated';
+import {AppLogoImage} from '../../components/AppLogoImage';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import OTPTextInput from 'react-native-otp-textinput';
 import appLogo from '../../assets/png/appLogo.png';
 import {useThemeColors} from '../../utils/colors';
 import {Phone, XCircle} from 'lucide-react-native';
-import authService from '../../services/auth-service';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {STORAGE_KEYS} from '@/constants';
-import {useUserStore, useUserCachedStore} from '../../stores';
+import {useSendOtpMutation, useVerifyOtpMutation, useIsMounted} from '@/hooks';
+import {devLog} from '@/utils/dev-log';
+import {getApiBaseUrl} from '@/constants';
 
 const {width} = Dimensions.get('window');
 
@@ -36,33 +34,26 @@ const {width} = Dimensions.get('window');
 const LoginLogo = React.memo(function LoginLogo() {
   const logoSize = useMemo(() => width * 0.5, []);
   return (
-    <MotiImage
+    <AppLogoImage
       testID="login-logo"
       source={appLogo}
+      animation="bounce"
       style={{
         width: logoSize,
         height: logoSize,
         marginBottom: 30,
-      }}
-      from={{translateY: 0}}
-      animate={{translateY: -10}}
-      transition={{
-        type: 'timing',
-        duration: 2000,
-        easing: Easing.inOut(Easing.ease),
-        loop: true,
-        repeatReverse: true,
       }}
     />
   );
 });
 
 interface LoginScreenProps {
-  navigation: {navigate: (screen: string) => void};
-  setIsLoggedIn: (value: boolean) => void;
+  navigation: {
+    navigate: (screen: string, params?: Record<string, unknown>) => void;
+  };
 }
 
-const LoginScreen = ({navigation, setIsLoggedIn}: LoginScreenProps) => {
+const LoginScreen = ({navigation}: LoginScreenProps) => {
   const colors = useThemeColors();
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
@@ -72,16 +63,22 @@ const LoginScreen = ({navigation, setIsLoggedIn}: LoginScreenProps) => {
   const [otpTimer, setOtpTimer] = useState(0);
   const [canResendOtp, setCanResendOtp] = useState(false);
   const [isOtpSent, setIsOtpSent] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const sendOtpMutation = useSendOtpMutation();
+  const verifyOtpMutation = useVerifyOtpMutation();
+  const isMounted = useIsMounted();
+  const isLoading = sendOtpMutation.isPending || verifyOtpMutation.isPending;
   const otpRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
 
-  const otpTextStyle = {
-    fontSize: 18,
-    fontWeight: '600' as const,
-    backgroundColor: colors.transparent,
-    color: colors.inputText,
-  };
+  const otpTextStyle = useMemo(
+    () => ({
+      fontSize: 18,
+      fontWeight: '600' as const,
+      backgroundColor: colors.transparent,
+      color: colors.inputText,
+    }),
+    [colors.transparent, colors.inputText],
+  );
 
   const isMobileValid = /^[6-9]\d{9}$/.test(mobile);
 
@@ -90,6 +87,7 @@ const LoginScreen = ({navigation, setIsLoggedIn}: LoginScreenProps) => {
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
+        timerRef.current = null;
       }
     };
   }, []);
@@ -109,54 +107,67 @@ const LoginScreen = ({navigation, setIsLoggedIn}: LoginScreenProps) => {
     setOtpTimer(60);
     setCanResendOtp(false);
     timerRef.current = setInterval(() => {
+      if (!isMounted.current) {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        return;
+      }
       setOtpTimer(prev => {
         if (prev <= 1) {
           if (timerRef.current) {
             clearInterval(timerRef.current);
             timerRef.current = null;
           }
-          setCanResendOtp(true);
+          if (isMounted.current) {
+            setCanResendOtp(true);
+          }
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-  }, []);
+  }, [isMounted]);
 
   const handleResendOtp = async () => {
-    if (canResendOtp) {
-      try {
-        setIsLoading(true);
-        setOtp('');
-        if (errors.otp) {
-          setErrors(prev => ({...prev, otp: ''}));
-        }
-        if (otpRef.current) {
-          otpRef.current.clear();
-        }
+    if (!canResendOtp) {
+      return;
+    }
 
-        const response = await authService.sendOTP({mobile, type: 'login'});
-        if (response.success) {
-          Alert.alert(
-            '✅ OTP Resent Successfully',
-            `New OTP has been sent to +91 ${mobile}. Please check your messages.`,
-            [{text: 'OK', style: 'default'}],
-          );
-          startOtpTimer();
-          setIsOtpSent(true);
-        } else {
-          Alert.alert(
-            '❌ Failed to Resend OTP',
-            response.error || 'Please try again.',
-          );
-        }
-      } catch (error) {
+    setOtp('');
+    if (errors.otp) {
+      setErrors(prev => ({...prev, otp: ''}));
+    }
+    if (otpRef.current) {
+      otpRef.current.clear();
+    }
+
+    try {
+      const response = await sendOtpMutation.mutateAsync({mobile, type: 'login'});
+      if (!isMounted.current) {
+        return;
+      }
+      if (response.success) {
+        Alert.alert(
+          '✅ OTP Resent Successfully',
+          `New OTP has been sent to +91 ${mobile}. Please check your messages.`,
+          [{text: 'OK', style: 'default'}],
+        );
+        startOtpTimer();
+        setIsOtpSent(true);
+      } else {
+        Alert.alert(
+          '❌ Failed to Resend OTP',
+          response.error || 'Please try again.',
+        );
+      }
+    } catch {
+      if (isMounted.current) {
         Alert.alert(
           '❌ Network Error',
           'Unable to resend OTP. Please try again.',
         );
-      } finally {
-        setIsLoading(false);
       }
     }
   };
@@ -191,9 +202,13 @@ const LoginScreen = ({navigation, setIsLoggedIn}: LoginScreenProps) => {
       return;
     }
 
+    devLog('Login.handleSendOtp tapped', { mobile, apiBaseUrl: getApiBaseUrl() });
+
     try {
-      setIsLoading(true);
-      const response = await authService.sendOTP({mobile, type: 'login'});
+      const response = await sendOtpMutation.mutateAsync({mobile, type: 'login'});
+      if (!isMounted.current) {
+        return;
+      }
       if (response.success) {
         setIsOtpSent(true);
         startOtpTimer();
@@ -205,12 +220,12 @@ const LoginScreen = ({navigation, setIsLoggedIn}: LoginScreenProps) => {
         );
       }
     } catch {
-      Alert.alert(
-        '❌ Network Error',
-        'Unable to send OTP. Please try again.',
-      );
-    } finally {
-      setIsLoading(false);
+      if (isMounted.current) {
+        Alert.alert(
+          '❌ Network Error',
+          'Unable to send OTP. Please try again.',
+        );
+      }
     }
   };
 
@@ -225,51 +240,53 @@ const LoginScreen = ({navigation, setIsLoggedIn}: LoginScreenProps) => {
     }
 
     try {
-      setIsLoading(true);
-      const response = await authService.verifyOTP({mobile, otp});
+      const response = await verifyOtpMutation.mutateAsync({mobile, otp});
+      if (!isMounted.current) {
+        return;
+      }
       if (response.success && response.data) {
-        const user = response.data?.user;
-        const tokens = response.data?.tokens;
-        if (tokens) {
-          await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKENS, JSON.stringify(tokens));
-          await useUserCachedStore.getState().setTokens(tokens);
+        if (response.data.selectionRequired && response.data.profiles?.length) {
+          navigation.navigate('ProfileSelection', {
+            mobile,
+            profiles: response.data.profiles,
+          });
+          return;
         }
+
+        const user = response.data.user;
         if (user) {
-          await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
-        }
-        const {setUser, setAuthenticated} = useUserStore.getState();
-        setUser(user || null);
-        setAuthenticated(true);
-        Alert.alert(
-          '✅ Login Successful',
-          `Welcome ${user?.firstName || 'User'}!`,
-          [
-            {
-              text: 'Continue',
-              style: 'default',
-              onPress: () => {
-                setShowConfetti(true);
-                setTimeout(() => setIsLoggedIn(true), 800);
+          Alert.alert(
+            '✅ Login Successful',
+            `Welcome ${user.firstName || 'User'}!`,
+            [
+              {
+                text: 'Continue',
+                style: 'default',
+                onPress: () => setShowConfetti(true),
               },
-            },
-          ],
-        );
+            ],
+          );
+          return;
+        }
+
+        Alert.alert('❌ Verification Failed', 'Unexpected response from server.');
       } else {
         Alert.alert('❌ Verification Failed', response.error || 'Please request a new OTP.');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      if (!isMounted.current) {
+        return;
+      }
       const errorMessage =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Please check your connection and try again.';
+        error instanceof Error
+          ? error.message
+          : 'Please check your connection and try again.';
       Alert.alert('❌ Error', errorMessage);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleRegister = () => {
-    navigation.navigate('ComingSoon');
+    navigation.navigate('Signup');
   };
 
   const handleOtpChange = (text: string) => {

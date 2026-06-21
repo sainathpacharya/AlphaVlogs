@@ -1,0 +1,195 @@
+name: Android Production — Build & Play Store Internal
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Semantic version (e.g. 1.0.0). Used when not triggered by a version tag.'
+        required: false
+        type: string
+  push:
+    tags:
+      - 'v*.*.*'
+
+concurrency:
+  group: android-production-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PACKAGE_NAME: com.nsnr.aplhavlogs
+  PLAY_STORE_TRACK: internal
+
+jobs:
+  build-and-publish:
+    name: Android Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: android-production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts
+
+      - name: Run ESLint
+        run: yarn lint --max-warnings=0
+
+      - name: Run TypeScript validation
+        run: yarn type-check
+
+      - name: Run Jest tests
+        run: yarn test:ci
+
+      - name: Validate required secrets
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          missing=0
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEY_ALIAS ANDROID_STORE_PASSWORD ANDROID_KEY_PASSWORD GOOGLE_PLAY_SERVICE_ACCOUNT_JSON; do
+            eval "value=\$$name"
+            if [ -z "$value" ]; then
+              echo "Missing required secret: $name"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+          echo "All required secrets are present"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            android/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Decode release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
+          if [ ! -s android/app/release.keystore ]; then
+            echo "Failed to decode release keystore"
+            exit 1
+          fi
+          printf '%s\n' \
+            "storeFile=release.keystore" \
+            "storePassword=${ANDROID_STORE_PASSWORD}" \
+            "keyAlias=${ANDROID_KEY_ALIAS}" \
+            "keyPassword=${ANDROID_KEY_PASSWORD}" \
+            > android/app/keystore.properties
+          echo "Release keystore configured for alias: ${ANDROID_KEY_ALIAS}"
+
+      - name: Calculate Play Store version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION_NAME="${GITHUB_REF_NAME#v}"
+            echo "Version from tag: $VERSION_NAME"
+          elif [ -n "${{ github.event.inputs.version_name }}" ]; then
+            VERSION_NAME="${{ github.event.inputs.version_name }}"
+            echo "Version from workflow input: $VERSION_NAME"
+          else
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+            if [ -n "$LATEST_TAG" ] && [[ "$LATEST_TAG" == v* ]]; then
+              VERSION_NAME="${LATEST_TAG#v}"
+              echo "Version from latest tag: $VERSION_NAME"
+            else
+              echo "Manual dispatch requires version_name input or an existing git tag (v*.*.*)"
+              exit 1
+            fi
+          fi
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NAME"
+          MAJOR=${MAJOR:-1}
+          MINOR=${MINOR:-0}
+          PATCH=${PATCH:-0}
+          VERSION_CODE=$((MAJOR * 1000000 + MINOR * 1000 + PATCH))
+
+          if [ "$VERSION_CODE" -le 0 ]; then
+            echo "Invalid version code: $VERSION_CODE"
+            exit 1
+          fi
+
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "Version name: $VERSION_NAME"
+          echo "Version code: $VERSION_CODE"
+
+      - name: Build signed production AAB
+        run: |
+          cd android
+          echo "Building signed AAB — package: ${{ env.PACKAGE_NAME }}"
+          ./gradlew bundleProductionRelease \
+            -PversionName="${{ steps.version.outputs.version_name }}" \
+            -PversionCode="${{ steps.version.outputs.version_code }}" \
+            --no-daemon
+
+          AAB_PATH="app/build/outputs/bundle/production/release/app-production-release.aab"
+          if [ ! -f "$AAB_PATH" ]; then
+            echo "AAB not found at $AAB_PATH"
+            exit 1
+          fi
+          echo "AAB built: $(du -h "$AAB_PATH" | cut -f1)"
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-production-aab
+          path: android/app/build/outputs/bundle/production/release/app-production-release.aab
+          retention-days: 90
+
+      - name: Deploy to Google Play (Internal Testing)
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ env.PACKAGE_NAME }}
+          releaseFiles: android/app/build/outputs/bundle/production/release/app-production-release.aab
+          track: ${{ env.PLAY_STORE_TRACK }}
+          status: completed
+          changesNotSentForReview: false
+
+      - name: Build summary
+        run: |
+          {
+            echo "## Android Production — Build Summary"
+            echo "- **Package:** \`${{ env.PACKAGE_NAME }}\`"
+            echo "- **Version name:** \`${{ steps.version.outputs.version_name }}\`"
+            echo "- **Version code:** \`${{ steps.version.outputs.version_code }}\`"
+            echo "- **Play Store track:** \`${{ env.PLAY_STORE_TRACK }}\` (not production)"
+            echo "- **Commit:** \`${{ github.sha }}\`"
+            echo "- **Tag:** \`${{ github.ref_name }}\`"
+            echo "- **Artifact:** \`android-production-aab\`"
+          } >> "$GITHUB_STEP_SUMMARY"

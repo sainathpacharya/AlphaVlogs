@@ -1,8 +1,8 @@
 import React, {useEffect} from 'react';
 import {Dimensions} from 'react-native';
 import {SafeAreaView, StatusBar, VStack} from '../../components';
+import {AppLogoImage} from '../../components/AppLogoImage';
 import appLogo from '../../assets/png/appLogo.png';
-import {MotiImage} from 'moti';
 import {useThemeColors} from '../../utils/colors';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -40,32 +40,13 @@ const WelcomeScreen = () => {
         style={{backgroundColor: colors.white}}
         justifyContent="center"
         alignItems="center">
-        <MotiImage
+        <AppLogoImage
           testID="welcome-logo"
           source={appLogo}
-          from={{
-            opacity: 0,
-            scale: 0.5,
-            rotate: '-10deg',
-            translateY: -100,
-          }}
-          animate={{
-            opacity: 1,
-            scale: 1,
-            rotate: '0deg',
-            translateY: 0,
-          }}
-          transition={{
-            type: 'spring',
-            damping: 15,
-            stiffness: 40,
-            mass: 1.2,
-            delay: 300,
-          }}
+          animation="spring-in"
           style={{
             width: width * 0.69,
             height: height * 0.3,
-            resizeMode: 'cover',
           }}
         />
       </VStack>

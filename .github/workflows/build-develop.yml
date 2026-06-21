@@ -22,8 +22,8 @@ on:
           - aab
 
 env:
-  PACKAGE_NAME_DEVELOP: com.jackmarvelsapp.dev
-  BUNDLE_ID_DEVELOP: com.jackmarvelsapp.dev
+  PACKAGE_NAME_DEVELOP: com.nsnr.aplhavlogs.dev
+  BUNDLE_ID_DEVELOP: com.nsnr.aplhavlogs.dev
 
 jobs:
   build-android:
@@ -202,7 +202,7 @@ jobs:
           fi
 
           echo "📤 Uploading APK to Firebase App Distribution using Firebase CLI..."
-          echo "Package: com.jackmarvelsapp.dev"
+          echo "Package: com.nsnr.aplhavlogs.dev"
 
           # Get the develop app ID from secret, or use the default from google-services.json
           # Note: Both production and develop builds upload to the SAME Firebase project
@@ -212,7 +212,7 @@ jobs:
 
           # Default to the app ID from google-services.json if secret is not set
           if [ -z "$DEVELOP_APP_ID" ]; then
-            DEVELOP_APP_ID="1:452248149004:android:7293af8d9628f9d8af2229"
+            DEVELOP_APP_ID="1:452248149004:android:2062c0a9b5826798af2229"
             echo "ℹ️ Using default develop app ID from google-services.json"
           fi
 
@@ -242,7 +242,7 @@ jobs:
               echo ""
               echo "📝 To fix this:"
               echo "   1. Go to: https://console.firebase.google.com/project/alpha-vlogs-cf60a/appdistribution"
-              echo "   2. Select the app: com.jackmarvelsapp.dev"
+              echo "   2. Select the app: com.nsnr.aplhavlogs.dev"
               echo "   3. Go to 'Testers & Groups' tab"
               echo "   4. Create a group named 'testers' or add testers directly"
               echo "   5. The build is already uploaded and available in the Releases tab"
@@ -283,14 +283,14 @@ jobs:
           fi
 
           echo "📤 Uploading AAB to Firebase App Distribution using Firebase CLI..."
-          echo "Package: com.jackmarvelsapp.dev"
+          echo "Package: com.nsnr.aplhavlogs.dev"
 
           # Get the develop app ID from secret, or use the default from google-services.json
           DEVELOP_APP_ID="${{ secrets.FIREBASE_DEVELOP_APP_ID }}"
 
           # Default to the app ID from google-services.json if secret is not set
           if [ -z "$DEVELOP_APP_ID" ]; then
-            DEVELOP_APP_ID="1:452248149004:android:7293af8d9628f9d8af2229"
+            DEVELOP_APP_ID="1:452248149004:android:2062c0a9b5826798af2229"
             echo "ℹ️ Using default develop app ID from google-services.json"
           fi
 
@@ -320,7 +320,7 @@ jobs:
               echo ""
               echo "📝 To fix this:"
               echo "   1. Go to: https://console.firebase.google.com/project/alpha-vlogs-cf60a/appdistribution"
-              echo "   2. Select the app: com.jackmarvelsapp.dev"
+              echo "   2. Select the app: com.nsnr.aplhavlogs.dev"
               echo "   3. Go to 'Testers & Groups' tab"
               echo "   4. Create a group named 'testers' or add testers directly"
               echo "   5. The build is already uploaded and available in the Releases tab"
@@ -598,7 +598,7 @@ jobs:
 
           # Default to the develop app ID if secret is not set
           if [ -z "$IOS_DEVELOP_APP_ID" ]; then
-            IOS_DEVELOP_APP_ID="1:452248149004:ios:4d605dcccaca75e8af2229"
+            IOS_DEVELOP_APP_ID="1:452248149004:ios:406e170c19e53736af2229"
             echo "ℹ️ Using default iOS develop app ID from GoogleService-Info.plist"
           fi
 
@@ -633,7 +633,7 @@ jobs:
               echo ""
               echo "📝 To fix this:"
               echo "   1. Go to: https://console.firebase.google.com/project/alpha-vlogs-cf60a/appdistribution"
-              echo "   2. Select the iOS app: com.jackmarvelsapp"
+              echo "   2. Select the iOS app: com.nsnr.aplhavlogs.dev"
               echo "   3. Go to 'Testers & Groups' tab"
               echo "   4. Create a group named 'testers' or add testers directly"
               echo "   5. The build is already uploaded and available in the Releases tab"

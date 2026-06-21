@@ -32,12 +32,14 @@ import {
   Icon,
   ChevronDownIcon,
 } from '@/components';
+import {useIsMounted} from '@/hooks';
 import {useThemeColors} from '@/utils/colors';
 import {gifService, GifData} from '@/services/gif-service';
 import GifPlayerComponent from '@/components/GifPlayer';
 
 const GifPlayerScreen: React.FC = () => {
   const colors = useThemeColors();
+  const isMounted = useIsMounted();
   const [activeTab, setActiveTab] = useState(0);
   const [gifs, setGifs] = useState<GifData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,21 +55,29 @@ const GifPlayerScreen: React.FC = () => {
   }, []);
 
   const loadGifs = async () => {
-    setIsLoading(true);
+    if (isMounted.current) {
+      setIsLoading(true);
+    }
     try {
       const gifData = await gifService.getGifs(selectedCategory);
-      setGifs(gifData);
+      if (isMounted.current) {
+        setGifs(gifData);
+      }
     } catch (error) {
       console.error('Error loading GIFs:', error);
     } finally {
-      setIsLoading(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
     }
   };
 
   const loadCategories = async () => {
     try {
       const categoryData = await gifService.getCategories();
-      setCategories(categoryData);
+      if (isMounted.current) {
+        setCategories(categoryData);
+      }
     } catch (error) {
       console.error('Error loading categories:', error);
     }
@@ -79,34 +89,50 @@ const GifPlayerScreen: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
+    if (isMounted.current) {
+      setIsLoading(true);
+    }
     try {
       const searchResults = await gifService.searchGifs(searchQuery.trim());
-      setGifs(searchResults.gifs);
+      if (isMounted.current) {
+        setGifs(searchResults.gifs);
+      }
     } catch (error) {
       console.error('Error searching GIFs:', error);
     } finally {
-      setIsLoading(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
     }
   };
 
   const handleCategoryChange = async (category: string) => {
-    setSelectedCategory(category);
-    setIsLoading(true);
+    if (isMounted.current) {
+      setSelectedCategory(category);
+      setIsLoading(true);
+    }
     try {
       const gifData = await gifService.getGifs(category);
-      setGifs(gifData);
+      if (isMounted.current) {
+        setGifs(gifData);
+      }
     } catch (error) {
       console.error('Error loading GIFs by category:', error);
     } finally {
-      setIsLoading(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
     }
   };
 
   const handleRefresh = async () => {
-    setIsRefreshing(true);
+    if (isMounted.current) {
+      setIsRefreshing(true);
+    }
     await loadGifs();
-    setIsRefreshing(false);
+    if (isMounted.current) {
+      setIsRefreshing(false);
+    }
   };
 
   const handleGifSelect = (gif: GifData) => {
@@ -358,14 +384,20 @@ const GifPlayerScreen: React.FC = () => {
                 <VStack space="md">
                   <Button
                     onPress={async () => {
-                      setIsLoading(true);
+                      if (isMounted.current) {
+                        setIsLoading(true);
+                      }
                       try {
                         const trendingGifs = await gifService.getTrendingGifs();
-                        setGifs(trendingGifs);
+                        if (isMounted.current) {
+                          setGifs(trendingGifs);
+                        }
                       } catch (error) {
                         console.error('Error loading trending GIFs:', error);
                       } finally {
-                        setIsLoading(false);
+                        if (isMounted.current) {
+                          setIsLoading(false);
+                        }
                       }
                     }}
                     isDisabled={isLoading}>

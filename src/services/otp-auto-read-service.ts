@@ -1,5 +1,4 @@
 import { Platform } from 'react-native';
-import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 
 export interface OTPAutoReadConfig {
   enableAutoRead: boolean;
@@ -21,37 +20,13 @@ class OTPAutoReadService {
   private smsListener?: any;
 
   /**
-   * Request SMS permissions for Android
+   * SMS Retriever API does not require READ_SMS / RECEIVE_SMS (Play policy compliant).
    */
   async requestSMSPermission(): Promise<boolean> {
     if (Platform.OS !== 'android') {
       return true;
     }
-
-    try {
-      const permission = PERMISSIONS.ANDROID.RECEIVE_SMS;
-      const result = await check(permission);
-
-      switch (result) {
-        case RESULTS.UNAVAILABLE:
-          console.log('SMS permission not available on this device');
-          return false;
-        case RESULTS.DENIED:
-          const requestResult = await request(permission);
-          return requestResult === RESULTS.GRANTED;
-        case RESULTS.LIMITED:
-        case RESULTS.GRANTED:
-          return true;
-        case RESULTS.BLOCKED:
-          console.log('SMS permission is blocked');
-          return false;
-        default:
-          return false;
-      }
-    } catch (error) {
-      console.error('Error requesting SMS permission:', error);
-      return false;
-    }
+    return this.isSupported();
   }
 
   /**
@@ -67,13 +42,6 @@ class OTPAutoReadService {
     }
 
     try {
-      // Request permissions first
-      const hasPermission = await this.requestSMSPermission();
-      if (!hasPermission) {
-        return { success: false, error: 'SMS permission denied' };
-      }
-
-      // Check if SMS retriever is supported (Android only)
       if (Platform.OS === 'android') {
         const isSupported = await this.isSupported();
         if (!isSupported) {
@@ -162,14 +130,16 @@ class OTPAutoReadService {
       this.timeoutId = undefined;
     }
 
-    if (this.isListening && Platform.OS === 'android' && SmsRetriever) {
+    if (Platform.OS === 'android' && SmsRetriever) {
       try {
         SmsRetriever.removeSmsListener();
       } catch (error) {
         console.error('Error removing SMS listener:', error);
       }
-      this.isListening = false;
     }
+
+    this.isListening = false;
+    this.smsListener = undefined;
   }
 
   /**

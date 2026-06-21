@@ -34,7 +34,7 @@ export class MockAuthService {
   async sendOTP(data: { mobile: string; type: string }) {
     await this.delay();
 
-    if (data.mobile === '9876543210' || data.mobile === '8765432109') {
+    if (data.mobile === '9876543210' || data.mobile === '8765432109' || data.mobile === '9123456789') {
       // Generate SMS hash for Android auto-read
       const smsHash = 'ABCD1234'; // Mock hash for demo
       const otpMessage = `Jack Marvels: Your OTP is 123456. Valid for 3 minutes. Do not share this code with anyone. ${smsHash}`;
@@ -54,9 +54,41 @@ export class MockAuthService {
   async verifyOTP(data: { mobile: string; otp: string }) {
     await this.delay();
 
+    if (data.mobile === '9123456789' && data.otp === '123456') {
+      return this.createResponse({
+        otpVerified: true,
+        selectionRequired: true,
+        profiles: [
+          {
+            studentId: 101,
+            firstName: 'Rahul',
+            lastName: 'Kumar',
+            className: '5',
+            schoolName: 'ABC School',
+            verified: true,
+            isSubscribed: false,
+          },
+          {
+            studentId: 102,
+            firstName: 'Priya',
+            lastName: 'Kumar',
+            className: '8',
+            schoolName: 'ABC School',
+            verified: true,
+            isSubscribed: true,
+          },
+        ],
+        user: null,
+        tokens: null,
+      });
+    }
+
     if (data.mobile === '9876543210' && data.otp === '123456') {
       const user = this.store.findUserById('user_001');
       return this.createResponse({
+        otpVerified: true,
+        selectionRequired: false,
+        profiles: null,
         user,
         tokens: {
           accessToken: 'mock_access_token_123',
@@ -69,6 +101,9 @@ export class MockAuthService {
     if (data.mobile === '8765432109' && data.otp === '123456') {
       const user = this.store.findUserById('user_002');
       return this.createResponse({
+        otpVerified: true,
+        selectionRequired: false,
+        profiles: null,
         user,
         tokens: {
           accessToken: 'mock_access_token_456',
@@ -79,6 +114,76 @@ export class MockAuthService {
     }
 
     return this.createErrorResponse('Invalid mobile number or OTP', 401);
+  }
+
+  private buildLoginPayload(userId: string) {
+    const user = this.store.findUserById(userId);
+    return {
+      user,
+      tokens: {
+        accessToken: `mock_access_token_${userId}`,
+        refreshToken: `mock_refresh_token_${userId}`,
+        expiresIn: 3600,
+      },
+    };
+  }
+
+  async selectProfile(data: { studentId: number; mobile: string }) {
+    await this.delay();
+
+    if (data.mobile !== '9123456789') {
+      return this.createErrorResponse('OTP verification required before profile selection', 400);
+    }
+
+    if (data.studentId === 101) {
+      return this.createResponse(this.buildLoginPayload('user_001'));
+    }
+
+    if (data.studentId === 102) {
+      return this.createResponse(this.buildLoginPayload('user_002'));
+    }
+
+    return this.createErrorResponse('Invalid student profile selection', 400);
+  }
+
+  async listProfiles() {
+    await this.delay();
+    return this.createResponse({
+      profiles: [
+        {
+          studentId: 101,
+          firstName: 'Rahul',
+          lastName: 'Kumar',
+          className: '5',
+          schoolName: 'ABC School',
+          verified: true,
+          isSubscribed: false,
+        },
+        {
+          studentId: 102,
+          firstName: 'Priya',
+          lastName: 'Kumar',
+          className: '8',
+          schoolName: 'ABC School',
+          verified: true,
+          isSubscribed: true,
+        },
+      ],
+    });
+  }
+
+  async switchProfile(data: { studentId: number }) {
+    await this.delay();
+
+    if (data.studentId === 101) {
+      return this.createResponse(this.buildLoginPayload('user_001'));
+    }
+
+    if (data.studentId === 102) {
+      return this.createResponse(this.buildLoginPayload('user_002'));
+    }
+
+    return this.createErrorResponse('Profile not available.', 403);
   }
 
   async login(data: { mobile: string; otp: string }) {
@@ -161,6 +266,11 @@ export class MockAuthService {
   async logout() {
     await this.delay();
     return this.createResponse({ message: 'Logged out successfully' });
+  }
+
+  async deleteAccount() {
+    await this.delay();
+    return this.createResponse({ message: 'Account deleted successfully' });
   }
 
   async updateProfile(userId: string, updates: Partial<User>) {

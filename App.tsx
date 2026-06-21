@@ -6,17 +6,16 @@
  */
 
 import React, {useEffect} from 'react';
-import {useColorScheme} from 'react-native';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {GluestackUIProvider} from '@/components';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {I18nextProvider} from 'react-i18next';
 import Navigation from '@/navigation';
 import {useNetwork} from '@/hooks/useNetwork';
+import apiService from '@/services/api';
 import {initializeSecureStorage} from '@/stores/user-cached-store';
 import {useUserStore, useUserCachedStore} from '@/stores';
 import {useShallow} from 'zustand/react/shallow';
-import {LogBox} from 'react-native';
 import {i18next} from '@/services/i18n-service';
 import {subscribeSslPinningErrors} from '@/config/ssl-pinning';
 
@@ -24,23 +23,23 @@ import {subscribeSslPinningErrors} from '@/config/ssl-pinning';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 2 * 60 * 1000, // 2 minutes
+      staleTime: 2 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
       retry: 2,
       refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
     },
     mutations: {
-      retry: 1,
+      retry: 0,
     },
   },
 });
 
-// Select only what we need; useShallow so store updates (e.g. networkStatus) don't re-render the whole app
 const useAppContentStore = () =>
   useUserStore(
-    useShallow((state) => ({
+    useShallow(state => ({
       setAuthenticated: state.setAuthenticated,
       setUser: state.setUser,
-      setTheme: state.setTheme,
       isAuthenticated: state.isAuthenticated,
       user: state.user,
     })),
@@ -54,7 +53,7 @@ const useAppContentCachedStore = () =>
   );
 
 const AppContent = React.memo(() => {
-  const {setAuthenticated, setUser, setTheme, isAuthenticated, user} =
+  const {setAuthenticated, setUser, isAuthenticated, user} =
     useAppContentStore();
   const {tokens, userData} = useAppContentCachedStore();
 
@@ -65,13 +64,20 @@ const AppContent = React.memo(() => {
 
   // Initialize app state
   useEffect(() => {
-    LogBox.ignoreAllLogs(true);
+    let cancelled = false;
+
     const initializeApp = async () => {
       try {
-        // Initialize secure storage
-        await initializeSecureStorage();
+        if (!isAuthenticated) {
+          await apiService.clearStoredAuth();
+        } else {
+          await initializeSecureStorage();
+        }
 
-        // Check if user is authenticated from persistent store
+        if (cancelled) {
+          return;
+        }
+
         if (isAuthenticated && user) {
           // User is already authenticated from persistent store
         } else if (tokens?.accessToken && userData) {
@@ -86,14 +92,11 @@ const AppContent = React.memo(() => {
     };
 
     initializeApp();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
-
-  // Keep store theme in sync with device appearance
-  const colorScheme = useColorScheme();
-  useEffect(() => {
-    setTheme(colorScheme === 'dark' ? 'dark' : 'light');
-  }, [colorScheme, setTheme]);
 
   return <Navigation />;
 });

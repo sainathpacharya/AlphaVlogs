@@ -1,6 +1,7 @@
 export type AppStackParamList = {
     Dashboard: undefined;
     Profile: undefined;
+    SwitchProfile: undefined;
     Quiz: undefined;
     Results: undefined;
     Subscription: undefined;

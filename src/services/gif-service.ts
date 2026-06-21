@@ -1,6 +1,7 @@
 import { apiService } from './api';
 import { API_ENDPOINTS } from '@/constants';
 import { MockWrapperService } from './mock-wrapper';
+import { simulateUploadProgress } from '@/utils/simulate-progress';
 
 export interface GifData {
   id: string;
@@ -213,17 +214,8 @@ class GifService {
   private async mockGifUpload(data: GifUploadRequest): Promise<GifUploadResponse> {
     // Simulate upload progress
     if (data.onProgress) {
-      const simulateProgress = () => {
-        let progress = 0;
-        const interval = setInterval(() => {
-          progress += 10;
-          data.onProgress!(progress);
-          if (progress >= 100) {
-            clearInterval(interval);
-          }
-        }, 200);
-      };
-      simulateProgress();
+      const {promise} = simulateUploadProgress(data.onProgress);
+      await promise;
     }
 
     // Simulate network delay

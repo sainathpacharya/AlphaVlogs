@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
 import { AuthTokens, User, SecureStorageKeys } from '@/types';
+import { purgeAuthTokensFromDevice } from '@/utils/auth-storage';
 
 interface CachedData {
   events: any[];
@@ -68,7 +69,7 @@ export const useUserCachedStore = create<UserCachedStore>()(
           );
         } else {
           // Remove tokens from Keychain
-          await Keychain.resetInternetCredentials('auth_tokens');
+          await Keychain.resetInternetCredentials({ server: 'auth_tokens' });
         }
         set({ tokens });
       },
@@ -98,10 +99,8 @@ export const useUserCachedStore = create<UserCachedStore>()(
       },
 
       clearAll: async () => {
-        // Clear secure storage
-        await Keychain.resetInternetCredentials('auth_tokens');
+        await purgeAuthTokensFromDevice();
 
-        // Clear regular storage
         set({
           tokens: null,
           userData: null,
@@ -117,6 +116,11 @@ export const useUserCachedStore = create<UserCachedStore>()(
         userData: state.userData,
         settings: state.settings,
         cachedData: state.cachedData,
+      }),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...(persistedState as Partial<UserCachedStore>),
+        tokens: null,
       }),
     }
   )

@@ -2,10 +2,18 @@ import { authService } from '../../src/services/auth-service';
 import { MockWrapperService } from '../../src/services/mock-wrapper';
 import { apiLogger } from '../../src/utils/api-logger';
 import apiService from '../../src/services/api';
+import * as publicApiRequest from '../../src/utils/public-api-request';
 
 jest.mock('../../src/services/mock-wrapper');
 jest.mock('../../src/utils/api-logger');
 jest.mock('../../src/services/api');
+jest.mock('../../src/utils/dev-log', () => ({
+  devLog: jest.fn(),
+}));
+jest.mock('../../src/utils/public-api-request', () => ({
+  publicApiPost: jest.fn(),
+  PUBLIC_API_CLIENT_VERSION: 'test',
+}));
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(),
   getItem: jest.fn(),
@@ -40,6 +48,9 @@ jest.mock('../../src/constants', () => ({
 }));
 
 const mockApiService = apiService as jest.Mocked<typeof apiService>;
+const mockPublicApiPost = publicApiRequest.publicApiPost as jest.MockedFunction<
+  typeof publicApiRequest.publicApiPost
+>;
 const mockMockWrapperService = MockWrapperService as jest.Mocked<typeof MockWrapperService>;
 const mockApiLogger = apiLogger as jest.Mocked<typeof apiLogger>;
 
@@ -75,7 +86,7 @@ describe('AuthService', () => {
 
     it('should POST 10-digit mobile to student send-otp', async () => {
       mockMockWrapperService.isMockMode.mockReturnValue(false);
-      mockApiService.post.mockResolvedValue({
+      mockPublicApiPost.mockResolvedValue({
         success: true,
         data: {
           message: 'OTP sent successfully',
@@ -87,9 +98,11 @@ describe('AuthService', () => {
 
       const result = await authService.sendOTP(mockData);
 
-      expect(mockApiService.post).toHaveBeenCalledWith('/api/students/send-otp', {
-        mobile: '9876543210',
-      });
+      expect(mockApiService.clearStoredAuth).toHaveBeenCalled();
+      expect(mockPublicApiPost).toHaveBeenCalledWith(
+        '/api/students/send-otp',
+        { mobile: '9876543210' },
+      );
       expect(result.success).toBe(true);
       expect(result.data?.expiresIn).toBe(300);
     });
@@ -99,14 +112,14 @@ describe('AuthService', () => {
 
       const result = await authService.sendOTP({ mobile: '5876543210', type: 'login' });
 
-      expect(mockApiService.post).not.toHaveBeenCalled();
+      expect(mockPublicApiPost).not.toHaveBeenCalled();
       expect(result.success).toBe(false);
       expect(result.error).toMatch(/6–9/);
     });
 
     it('should map unregistered mobile error', async () => {
       mockMockWrapperService.isMockMode.mockReturnValue(false);
-      mockApiService.post.mockResolvedValue({
+      mockPublicApiPost.mockResolvedValue({
         success: false,
         error: 'Mobile number not registered with any student',
         statusCode: 400,
@@ -143,31 +156,70 @@ describe('AuthService', () => {
 
     it('should POST mobile and otp to student verify-otp', async () => {
       mockMockWrapperService.isMockMode.mockReturnValue(false);
-      mockApiService.post.mockResolvedValue({
+      mockPublicApiPost.mockResolvedValue({
         success: true,
         data: {
-          accessToken: 'access',
-          refreshToken: 'refresh',
-          user: { id: 1, firstName: 'Test', role: 'STUDENT' },
+          otpVerified: true,
+          selectionRequired: false,
+          profiles: null,
+          user: { id: 'user_101', firstName: 'Test', role: 'STUDENT', mobile: '9876543210' },
+          tokens: { accessToken: 'access', refreshToken: 'refresh', expiresIn: 3600 },
         },
         statusCode: 200,
       });
 
       const result = await authService.verifyOTP(mockData);
 
-      expect(mockApiService.post).toHaveBeenCalledWith('/api/students/verify-otp', {
-        mobile: '9876543210',
-        otp: '123456',
-      });
+      expect(mockPublicApiPost).toHaveBeenCalledWith(
+        '/api/students/verify-otp',
+        {
+          mobile: '9876543210',
+          otp: '123456',
+        },
+      );
       expect(result.success).toBe(true);
-      expect(result.data?.tokens.accessToken).toBe('access');
+      expect(result.data?.selectionRequired).toBe(false);
+      expect(result.data?.tokens?.accessToken).toBe('access');
+    });
+
+    it('should return profiles when selection is required', async () => {
+      mockMockWrapperService.isMockMode.mockReturnValue(false);
+      mockPublicApiPost.mockResolvedValue({
+        success: true,
+        data: {
+          otpVerified: true,
+          selectionRequired: true,
+          profiles: [
+            {
+              studentId: 101,
+              firstName: 'Rahul',
+              lastName: 'Kumar',
+              className: '5',
+              schoolName: 'ABC School',
+              verified: true,
+              isSubscribed: false,
+            },
+          ],
+          user: null,
+          tokens: null,
+        },
+        statusCode: 200,
+      });
+
+      const result = await authService.verifyOTP(mockData);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.selectionRequired).toBe(true);
+      expect(result.data?.profiles).toHaveLength(1);
+      expect(result.data?.tokens).toBeUndefined();
     });
 
     it('should fetch profile when verify response has tokens only', async () => {
       mockMockWrapperService.isMockMode.mockReturnValue(false);
-      mockApiService.post.mockResolvedValue({
+      mockPublicApiPost.mockResolvedValue({
         success: true,
         data: {
+          selectionRequired: false,
           tokens: { accessToken: 'access', refreshToken: 'refresh', expiresIn: 900 },
         },
         statusCode: 200,

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
 import otpAutoReadService, { OTPAutoReadConfig, OTPAutoReadResult } from '@/services/otp-auto-read-service';
 
@@ -30,15 +30,30 @@ export const useOTPAutoRead = (options: UseOTPAutoReadOptions = {}): UseOTPAutoR
 
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   // Check if SMS auto-read is supported
   useEffect(() => {
+    let cancelled = false;
+
     const checkSupport = async () => {
       const supported = await otpAutoReadService.isSupported();
-      setIsSupported(supported);
+      if (!cancelled && isMounted.current) {
+        setIsSupported(supported);
+      }
     };
 
     checkSupport();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Start listening for OTP
@@ -48,7 +63,9 @@ export const useOTPAutoRead = (options: UseOTPAutoReadOptions = {}): UseOTPAutoR
     }
 
     try {
-      setIsListening(true);
+      if (isMounted.current) {
+        setIsListening(true);
+      }
 
       const config: OTPAutoReadConfig = {
         enableAutoRead: true,
@@ -57,22 +74,32 @@ export const useOTPAutoRead = (options: UseOTPAutoReadOptions = {}): UseOTPAutoR
 
       const result = await otpAutoReadService.startListening(config);
 
+      if (!isMounted.current) {
+        return;
+      }
+
       if (result.success && result.otp) {
         onOTPReceived?.(result.otp);
       } else if (result.error) {
         onError?.(result.error);
       }
     } catch (error) {
-      onError?.(error instanceof Error ? error.message : 'Failed to start OTP listener');
+      if (isMounted.current) {
+        onError?.(error instanceof Error ? error.message : 'Failed to start OTP listener');
+      }
     } finally {
-      setIsListening(false);
+      if (isMounted.current) {
+        setIsListening(false);
+      }
     }
   }, [enableAutoRead, isSupported, timeout, onOTPReceived, onError]);
 
   // Stop listening for OTP
   const stopListening = useCallback(() => {
     otpAutoReadService.stopListening();
-    setIsListening(false);
+    if (isMounted.current) {
+      setIsListening(false);
+    }
   }, []);
 
   // Extract OTP from message manually

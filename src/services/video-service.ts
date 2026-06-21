@@ -3,6 +3,7 @@ import { VideoSubmission } from '@/types';
 import { VIDEO_UPLOAD } from '@/constants';
 import { API_ENDPOINTS } from '@/constants';
 import { MockWrapperService } from './mock-wrapper';
+import { simulateUploadProgress } from '@/utils/simulate-progress';
 
 export interface VideoUploadRequest {
   eventId: string;
@@ -22,17 +23,8 @@ class VideoService {
 
         // Simulate upload progress
         if (data.onProgress) {
-          const simulateProgress = () => {
-            let progress = 0;
-            const interval = setInterval(() => {
-              progress += 10;
-              data.onProgress!(progress);
-              if (progress >= 100) {
-                clearInterval(interval);
-              }
-            }, 200);
-          };
-          simulateProgress();
+          const {promise} = simulateUploadProgress(data.onProgress);
+          await promise;
         }
 
         // Get current user ID (you might need to adjust this based on your auth state)

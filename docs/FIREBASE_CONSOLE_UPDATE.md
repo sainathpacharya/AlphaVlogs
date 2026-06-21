@@ -117,7 +117,22 @@ keytool -list -v -keystore android/app/your-release.keystore -alias your-key-ali
 
 ---
 
-## 6. If something doesn’t work
+## 6. Known configuration checks (Phase 0)
+
+After aligning bundle IDs in Xcode and workflows, verify in **Project settings → Your apps**:
+
+| Check | Expected |
+|-------|----------|
+| Android production package | `com.nsnr.aplhavlogs` → app ID `1:452248149004:android:fda0cc05fefccedbaf2229` |
+| Android develop package | `com.nsnr.aplhavlogs.dev` → app ID `1:452248149004:android:2062c0a9b5826798af2229` |
+| iOS production bundle ID | `com.nsnr.aplhavlogs` → app ID in `GoogleService-Info.plist` |
+| iOS develop bundle ID | `com.nsnr.aplhavlogs.dev` → app ID in `GoogleService-Info-Develop.plist` |
+
+**Important:** Production and develop iOS apps must be **separate** Firebase app registrations. Each plist’s `GOOGLE_APP_ID` must match its bundle ID’s Firebase app. If both plists share the same `GOOGLE_APP_ID`, re-download `GoogleService-Info-Develop.plist` from the develop iOS app in Firebase Console.
+
+---
+
+## 7. If something doesn’t work
 
 - **“App not authorized” / invalid package:** The package or bundle ID in the app doesn’t match any app in Firebase. Re-check IDs in Project settings and in your `build.gradle` / Xcode.
 - **Wrong or missing config:** Ensure you replaced **both** Android `google-services.json` and **both** iOS plists with the files from the **new** Firebase app registrations.

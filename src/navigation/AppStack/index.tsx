@@ -4,6 +4,7 @@ import {useStatusBarConfig} from '@/utils/colors';
 import {AppStackParamList} from './types';
 import DashboardScreen from '../../screens/Dashboard';
 import ProfileScreen from '../../screens/Profile';
+import SwitchProfileScreen from '../../screens/SwitchProfile';
 import QuizScreen from '../../screens/Quiz';
 import ResultsScreen from '../../screens/Results';
 import SubscriptionScreen from '../../screens/Subscription';
@@ -30,6 +31,7 @@ const AppStackScreen = () => {
       }}>
       <AppStack.Screen name="Dashboard" component={DashboardScreen} />
       <AppStack.Screen name="Profile" component={ProfileScreen} />
+      <AppStack.Screen name="SwitchProfile" component={SwitchProfileScreen} />
       <AppStack.Screen name="Quiz" component={QuizScreen} />
       <AppStack.Screen name="Results" component={ResultsScreen} />
       <AppStack.Screen name="Subscription" component={SubscriptionScreen} />

@@ -19,6 +19,7 @@ import {
   Skeleton,
   SkeletonText,
 } from '@/components';
+import {useIsMounted} from '@/hooks';
 import {useThemeColors} from '@/utils/colors';
 import {youtubeService, YouTubeVideo} from '@/services/youtube-service';
 import YouTubePlayerComponent from '@/components/YouTubePlayer';
@@ -26,6 +27,7 @@ import YouTubeUploadComponent from '@/components/YouTubeUpload';
 
 const YouTubeScreen: React.FC = () => {
   const colors = useThemeColors();
+  const isMounted = useIsMounted();
   const [activeTab, setActiveTab] = useState(0);
   const [videos, setVideos] = useState<YouTubeVideo[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,14 +40,20 @@ const YouTubeScreen: React.FC = () => {
   }, []);
 
   const loadVideos = async () => {
-    setIsLoading(true);
+    if (isMounted.current) {
+      setIsLoading(true);
+    }
     try {
       const videoData = await youtubeService.getVideos();
-      setVideos(videoData);
+      if (isMounted.current) {
+        setVideos(videoData);
+      }
     } catch (error) {
       console.error('Error loading videos:', error);
     } finally {
-      setIsLoading(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -55,23 +63,33 @@ const YouTubeScreen: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
+    if (isMounted.current) {
+      setIsLoading(true);
+    }
     try {
       const searchResults = await youtubeService.searchVideos(
         searchQuery.trim(),
       );
-      setVideos(searchResults);
+      if (isMounted.current) {
+        setVideos(searchResults);
+      }
     } catch (error) {
       console.error('Error searching videos:', error);
     } finally {
-      setIsLoading(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
     }
   };
 
   const handleRefresh = async () => {
-    setIsRefreshing(true);
+    if (isMounted.current) {
+      setIsRefreshing(true);
+    }
     await loadVideos();
-    setIsRefreshing(false);
+    if (isMounted.current) {
+      setIsRefreshing(false);
+    }
   };
 
   const handleVideoSelect = (video: YouTubeVideo) => {

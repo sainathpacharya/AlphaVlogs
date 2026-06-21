@@ -7,6 +7,14 @@ import {
   isSubscribedFromUser,
   parseSubscriptionPayload,
 } from '@/utils/subscription';
+import { buildPaymentReceipt } from '@/utils/payment';
+import { paymentService, PaymentApiError } from './payment-service';
+
+export interface RazorpayCheckoutResult {
+  success: boolean;
+  orderId: string;
+  paymentId: string;
+}
 
 export interface UpdateSubscriptionRequest {
   plan: 'premium';
@@ -120,30 +128,66 @@ class SubscriptionService {
     }
   }
 
-  // Initiate Razorpay payment
-  async initiateRazorpayPayment(amount: number, subscriptionId: string): Promise<any> {
+  /** Full Razorpay checkout: create-order → native checkout → verify-payment. */
+  async completeRazorpayCheckout(
+    user: User,
+    amountPaise: number,
+  ): Promise<RazorpayCheckoutResult> {
+    const receipt = buildPaymentReceipt(user.id);
+
     try {
-      const { razorpayService } = require('./razorpay-service');
-      return await razorpayService.initiatePayment({
-        description: 'Subscription Payment',
-        amount,
+      const order = await paymentService.createOrder({
+        amount: amountPaise,
         currency: 'INR',
-        name: 'Alpha Vlogs Subscription',
-        prefill: {
-          email: '',
-          contact: '',
-          name: '',
-        },
-        theme: {
-          color: '#0A84FF',
-        },
+        receipt,
       });
+
+      let checkoutResponse;
+
+      if (MockWrapperService.isMockMode()) {
+        checkoutResponse = {
+          razorpay_payment_id: `pay_mock_${Date.now()}`,
+          razorpay_order_id: order.order_id,
+          razorpay_signature: 'mock_signature',
+        };
+      } else {
+        const { razorpayService } = require('./razorpay-service');
+        checkoutResponse = await razorpayService.openCheckout({
+          key: order.key_id,
+          order_id: order.order_id,
+          amount: order.amount,
+          currency: order.currency,
+          name: 'Jack Marvels',
+          description: 'Annual Premium Subscription',
+          prefill: {
+            email: user.email || undefined,
+            contact: user.mobile?.replace(/\D/g, '').slice(-10) || undefined,
+            name: `${user.firstName} ${user.lastName || ''}`.trim() || undefined,
+          },
+        });
+      }
+
+      const verified = await paymentService.verifyPayment(checkoutResponse);
+
+      return {
+        success: verified.verified,
+        orderId: verified.orderId,
+        paymentId: verified.paymentId,
+      };
     } catch (error) {
+      if (error instanceof PaymentApiError) {
+        throw error;
+      }
       if (__DEV__) {
-        console.error('Error initiating Razorpay payment:', error);
+        console.error('Error completing Razorpay checkout:', error);
       }
       throw error;
     }
+  }
+
+  // Legacy alias — prefer completeRazorpayCheckout
+  async initiateRazorpayPayment(amount: number, _subscriptionId: string): Promise<any> {
+    throw new Error('Use completeRazorpayCheckout instead');
   }
 
   // Process payment (paymentData optional for Razorpay verification)

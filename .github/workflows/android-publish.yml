@@ -20,7 +20,7 @@ on:
 env:
   # ⚠️ IMPORTANT: This package name must match your app in Google Play Console
   # The service account you configure will determine which Play Store account/app it publishes to
-  PACKAGE_NAME: com.jackmarvelsapp
+  PACKAGE_NAME: com.nsnr.aplhavlogs
 
 jobs:
   build-and-publish:

@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Network Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -10,8 +11,6 @@
     <!-- Storage Permissions -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
-
     <!-- Notification Permissions -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -21,13 +20,13 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- Device Information -->
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- Razorpay SDK merges READ_PHONE_STATE; not required for our app -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" tools:node="remove" />
 
-    <!-- SMS Permissions for OTP Auto-read -->
-    <uses-permission android:name="android.permission.RECEIVE_SMS" />
-    <uses-permission android:name="android.permission.READ_SMS" />
-
+    <!-- Razorpay / Play Services merge AD_ID; app does not serve ads -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" tools:node="remove" />
 
 
     <application
@@ -39,7 +38,8 @@
       android:theme="@style/AppTheme"
       android:supportsRtl="true"
       android:requestLegacyExternalStorage="true"
-      android:usesCleartextTraffic="true">
+      android:usesCleartextTraffic="true"
+      android:enableOnBackInvokedCallback="true">
       <activity
         android:name=".MainActivity"
         android:label="@string/app_name"
@@ -68,5 +68,12 @@
       <service
         android:name=".services.NotificationService"
         android:exported="false" />
+
+      <!-- Razorpay core SDK registers DeeplinkActivity with the app package as URL host.
+           Play Console cannot verify that host (it is not a real domain). Standard checkout
+           uses CheckoutActivity, so this activity is removed from the merged manifest. -->
+      <activity
+        android:name="com.razorpay.DeeplinkActivity"
+        tools:node="remove" />
     </application>
 </manifest>

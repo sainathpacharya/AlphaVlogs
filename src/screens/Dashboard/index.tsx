@@ -1,7 +1,6 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {Alert, FlatList, ListRenderItem, Platform, StyleSheet} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import Animated from 'react-native-reanimated';
 import {
   Box,
   Text,
@@ -11,68 +10,86 @@ import {
   LoadingSpinner,
   UserAvatar,
 } from '../../components';
-import {DashboardEventCard, DashboardEventCardItem} from '../../components/DashboardEventCard';
+import {
+  DashboardEventCard,
+  DashboardEventCardItem,
+  DashboardEventRow,
+} from '../../components/DashboardEventCard';
 import {useNavigation} from '@react-navigation/native';
 import {useTranslation} from '../../hooks/useTranslation';
+import {useEventsQuery} from '../../hooks';
 import {useThemeColors} from '../../utils/colors';
-import {useUserStore} from '../../stores';
-import {eventsService} from '../../services/events-service';
-import {resolveDashboardEventId} from '../../utils/event-icons';
-import {resolveEventGifUrl} from '../../utils/event-media';
+import {useUser} from '../../stores';
 import {subscriptionService} from '../../services/subscription-service';
+import {canAccessPayment} from '../../utils/payment';
+import {isSubscribedFromUser} from '../../utils/subscription';
+import {DIMENSIONS} from '../../utils/styles';
 
 const SUBSCRIBERS_ONLY_MESSAGE =
   'This feature is only for subscribed students only.';
 
-const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<DashboardEventCardItem>);
+const EVENT_ROW_HEIGHT = DIMENSIONS.cardHeight + DIMENSIONS.margin.md;
+
+const DashboardEmptyList = React.memo(function DashboardEmptyList({
+  message,
+  color,
+}: {
+  message: string;
+  color: string;
+}) {
+  return (
+    <VStack flex={1} alignItems="center" justifyContent="center" py="$8" px="$4">
+      <Text style={{color, textAlign: 'center', fontSize: 15}}>{message}</Text>
+    </VStack>
+  );
+});
 
 const DashboardScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
-  const {user} = useUserStore();
-  const [events, setEvents] = useState<DashboardEventCardItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [eventsError, setEventsError] = useState<string | null>(null);
+  const user = useUser();
   const {t} = useTranslation();
+  const {
+    data: events = [],
+    isLoading,
+    isError,
+    error,
+  } = useEventsQuery();
+  const [isSubscribed, setIsSubscribed] = useState(
+    () => isSubscribedFromUser(user) || user?.isSubscribed === true,
+  );
+
+  const eventsError = isError
+    ? error instanceof Error
+      ? error.message
+      : 'Unable to load events. Please try again later.'
+    : null;
 
   const handleEventPress = useCallback(
-    async (event: DashboardEventCardItem) => {
-      try {
-        const subscribed = await subscriptionService.isStudentSubscribed(user);
-        if (subscribed) {
-          navigation.navigate('VideoUpload', {
-            eventId: event.id,
-            eventTitle: event.title,
-            iconId: event.iconId,
-            eventGifUrl: event.gifUrl ?? undefined,
-          });
-          return;
-        }
-
-        Alert.alert('Subscription required', SUBSCRIBERS_ONLY_MESSAGE, [
-          {
-            text: 'Subscribe',
-            onPress: () => navigation.navigate('Subscription'),
-          },
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('ComingSoon'),
-          },
-        ]);
-      } catch (error) {
-        if (__DEV__) {
-          console.error('Subscription check failed:', error);
-        }
-        Alert.alert('Subscription required', SUBSCRIBERS_ONLY_MESSAGE, [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('ComingSoon'),
-          },
-        ]);
+    (event: DashboardEventCardItem) => {
+      if (isSubscribed) {
+        navigation.navigate('VideoUpload', {
+          eventId: event.id,
+          eventTitle: event.title,
+          iconId: event.iconId,
+          eventGifUrl: event.gifUrl ?? undefined,
+        });
+        return;
       }
+
+      Alert.alert('Subscription required', SUBSCRIBERS_ONLY_MESSAGE, [
+        {
+          text: 'Subscribe',
+          onPress: () => navigation.navigate('Subscription'),
+        },
+        {
+          text: 'OK',
+          onPress: () => navigation.navigate('ComingSoon'),
+        },
+      ]);
     },
-    [navigation, user],
+    [navigation, isSubscribed],
   );
 
   const handleSubscriptionPress = useCallback(() => {
@@ -84,52 +101,31 @@ const DashboardScreen: React.FC = () => {
   }, [navigation]);
 
   useEffect(() => {
-    const loadEvents = async () => {
+    let cancelled = false;
+
+    const checkSubscription = async () => {
+      if (!canAccessPayment(user)) {
+        return;
+      }
       try {
-        setLoading(true);
-        setEventsError(null);
-
-        const response = await eventsService.getEvents();
-        const list = response.data?.data;
-
-        if (response.success && Array.isArray(list) && list.length > 0) {
-          setEvents(
-            list.map((event) => ({
-              id: String(event.id),
-              iconId: resolveDashboardEventId({
-                id: event.id,
-                title: event.title,
-              }),
-              title: event.title,
-              gifUrl: resolveEventGifUrl(event.eventGif),
-            })),
-          );
-        } else if (response.success && Array.isArray(list) && list.length === 0) {
-          setEvents([]);
-          setEventsError('No events available for your account.');
-        } else {
-          setEvents([]);
-          setEventsError(
-            response.error ||
-              response.message ||
-              'Failed to load events. Please log in again.',
-          );
+        const subscribed = await subscriptionService.isStudentSubscribed(user);
+        if (!cancelled) {
+          setIsSubscribed(subscribed);
         }
-      } catch (error) {
-        if (__DEV__) {
-          console.error('Error loading events:', error);
+      } catch {
+        if (!cancelled) {
+          setIsSubscribed(isSubscribedFromUser(user));
         }
-        setEvents([]);
-        setEventsError('Unable to load events. Pull to refresh or try again later.');
-      } finally {
-        setLoading(false);
       }
     };
 
-    loadEvents();
-  }, []);
+    checkSubscription();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
-  const getGreeting = () => {
+  const greeting = useMemo(() => {
     const hour = new Date().getHours();
     if (hour < 12) {
       return 'Good Morning';
@@ -138,26 +134,52 @@ const DashboardScreen: React.FC = () => {
       return 'Good Afternoon';
     }
     return 'Good Evening';
-  };
+  }, []);
 
-  const getUserName = () => {
+  const userName = useMemo(() => {
     if (user?.firstName) {
       return `${user.firstName} ${user.lastName || ''}`.trim();
     }
     return 'User';
-  };
+  }, [user?.firstName, user?.lastName]);
 
   const renderItem = useCallback<ListRenderItem<DashboardEventCardItem>>(
     ({item, index}) => (
-      <DashboardEventCard
+      <DashboardEventRow
         item={item}
         index={index}
-        onPress={() => handleEventPress(item)}
+        onPressItem={handleEventPress}
         colors={colors}
       />
     ),
     [handleEventPress, colors],
   );
+
+  const listContentStyle = useMemo(
+    () => ({
+      paddingBottom: insets.bottom + 24,
+      paddingHorizontal: 8,
+      flexGrow: 1 as const,
+    }),
+    [insets.bottom],
+  );
+
+  const columnWrapperStyle = useMemo(
+    () => (events.length > 0 ? {justifyContent: 'space-between' as const} : undefined),
+    [events.length],
+  );
+
+  const getItemLayout = useCallback(
+    (_: ArrayLike<DashboardEventCardItem> | null | undefined, index: number) => ({
+      length: EVENT_ROW_HEIGHT,
+      offset: EVENT_ROW_HEIGHT * Math.floor(index / 2),
+      index,
+    }),
+    [],
+  );
+
+  const emptyMessage = eventsError || 'No events available right now.';
+  const showInitialLoading = isLoading && events.length === 0;
 
   return (
     <VStack
@@ -182,7 +204,7 @@ const DashboardScreen: React.FC = () => {
               fontSize: 15,
               fontWeight: '500',
             }}>
-            {getGreeting()}
+            {greeting}
           </Text>
           <Text
             testID="dashboard-user-name"
@@ -192,7 +214,7 @@ const DashboardScreen: React.FC = () => {
               fontWeight: '700',
               letterSpacing: -0.3,
             }}>
-            {getUserName()}!
+            {userName}!
           </Text>
         </VStack>
         <Pressable
@@ -203,69 +225,71 @@ const DashboardScreen: React.FC = () => {
         </Pressable>
       </HStack>
 
-      <Box
-        testID="dashboard-subscription-banner"
-        mx="$4"
-        mb="$3"
-        style={{
-          backgroundColor: colors.cardBackground,
-          padding: 14,
-          borderRadius: 14,
-          borderWidth: StyleSheet.hairlineWidth,
-          borderColor: colors.border,
-          ...Platform.select({
-            ios: {
-              shadowColor: '#000',
-              shadowOffset: {width: 0, height: 2},
-              shadowOpacity: 0.06,
-              shadowRadius: 8,
-            },
-            android: {elevation: 2},
-          }),
-        }}>
-        <HStack space="md" alignItems="center" justifyContent="space-between">
-          <VStack testID="dashboard-subscription-content" flex={1}>
-            <Text
-              testID="dashboard-subscription-title"
+      {canAccessPayment(user) && !isSubscribed && (
+        <Box
+          testID="dashboard-subscription-banner"
+          mx="$4"
+          mb="$3"
+          style={{
+            backgroundColor: colors.cardBackground,
+            padding: 14,
+            borderRadius: 14,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.border,
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: {width: 0, height: 2},
+                shadowOpacity: 0.06,
+                shadowRadius: 8,
+              },
+              android: {elevation: 2},
+            }),
+          }}>
+          <HStack space="md" alignItems="center" justifyContent="space-between">
+            <VStack testID="dashboard-subscription-content" flex={1}>
+              <Text
+                testID="dashboard-subscription-title"
+                style={{
+                  color: colors.primaryText,
+                  fontSize: 16,
+                  fontWeight: '700',
+                }}>
+                {t('dashboard.unlockPremium')}
+              </Text>
+              <Text
+                testID="dashboard-subscription-description"
+                style={{color: colors.mutedText, fontSize: 13, marginTop: 2}}>
+                {t('dashboard.accessAllQuizzes')}
+              </Text>
+            </VStack>
+            <Pressable
+              testID="dashboard-subscription-button"
+              onPress={handleSubscriptionPress}
               style={{
-                color: colors.primaryText,
-                fontSize: 16,
-                fontWeight: '700',
+                backgroundColor: colors.subscriptionCta ?? '#EA580C',
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 8,
+                alignSelf: 'center',
+                flexShrink: 0,
+                marginLeft: 8,
               }}>
-              {t('dashboard.unlockPremium')}
-            </Text>
-            <Text
-              testID="dashboard-subscription-description"
-              style={{color: colors.mutedText, fontSize: 13, marginTop: 2}}>
-              {t('dashboard.accessAllQuizzes')}
-            </Text>
-          </VStack>
-          <Pressable
-            testID="dashboard-subscription-button"
-            onPress={handleSubscriptionPress}
-            style={{
-              backgroundColor: colors.subscriptionCta ?? '#EA580C',
-              paddingHorizontal: 10,
-              paddingVertical: 6,
-              borderRadius: 8,
-              alignSelf: 'center',
-              flexShrink: 0,
-              marginLeft: 8,
-            }}>
-            <Text
-              testID="dashboard-subscription-button-text"
-              style={{
-                color: colors.subscriptionCtaText ?? colors.white,
-                fontWeight: '700',
-                fontSize: 12,
-              }}>
-              {t('dashboard.subscribe')}
-            </Text>
-          </Pressable>
-        </HStack>
-      </Box>
+              <Text
+                testID="dashboard-subscription-button-text"
+                style={{
+                  color: colors.subscriptionCtaText ?? colors.white,
+                  fontWeight: '700',
+                  fontSize: 12,
+                }}>
+                {t('dashboard.subscribe')}
+              </Text>
+            </Pressable>
+          </HStack>
+        </Box>
+      )}
 
-      {loading ? (
+      {showInitialLoading ? (
         <VStack
           testID="dashboard-loading"
           flex={1}
@@ -283,29 +307,22 @@ const DashboardScreen: React.FC = () => {
           </Text>
         </VStack>
       ) : (
-        <AnimatedFlatList
+        <FlatList
           testID="dashboard-events-list"
           data={events}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item.id}
           numColumns={2}
           style={{flex: 1}}
           initialNumToRender={8}
-          maxToRenderPerBatch={8}
-          windowSize={7}
-          removeClippedSubviews={Platform.OS === 'ios'}
-          contentContainerStyle={{
-            paddingBottom: insets.bottom + 24,
-            paddingHorizontal: 8,
-            flexGrow: 1,
-          }}
-          columnWrapperStyle={events.length > 0 ? {justifyContent: 'space-between'} : undefined}
+          maxToRenderPerBatch={6}
+          windowSize={5}
+          removeClippedSubviews
+          getItemLayout={getItemLayout}
+          contentContainerStyle={listContentStyle}
+          columnWrapperStyle={columnWrapperStyle}
           ListEmptyComponent={
-            <VStack flex={1} alignItems="center" justifyContent="center" py="$8" px="$4">
-              <Text style={{color: colors.mutedText, textAlign: 'center', fontSize: 15}}>
-                {eventsError || 'No events available right now.'}
-              </Text>
-            </VStack>
+            <DashboardEmptyList message={emptyMessage} color={colors.mutedText} />
           }
         />
       )}

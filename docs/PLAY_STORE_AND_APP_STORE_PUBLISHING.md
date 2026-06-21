@@ -233,7 +233,7 @@ Your `android/app/build.gradle` already supports `-PversionCode` and `-PversionN
 - **Using debug keystore for production:** Ensure `keystore.properties` exists and points to your release keystore; otherwise the build may fall back to debug (see `build.gradle`). Never upload debug-signed AAB to production.
 - **Losing the release keystore:** Backup `release.keystore` and passwords; without them you cannot update the app.
 - **Reusing or decreasing versionCode:** Each new AAB must have a strictly higher `versionCode` than the one currently in the track.
-- **Wrong applicationId:** Store listing and AAB must match. Production uses `com.snsr.alphavlogs` (no `.dev`).
+- **Wrong applicationId:** Store listing and AAB must match. Production uses `com.nsnr.aplhavlogs` (no `.dev`).
 - **Missing store listing:** Production won’t go live until required assets and policy sections are complete.
 - **Skipping internal testing:** Test install and opening the app (e.g. Coming Soon screen) on internal testing before production.
 - **Not enabling Google Play App Signing:** Let Google manage the app signing key; you only manage the upload key.
@@ -247,7 +247,7 @@ Do this **after** (or in parallel with) Play Store, when you’re ready for iOS.
 ### 1. Apple Developer Program
 
 - Enroll at [developer.apple.com](https://developer.apple.com) ($99/year).
-- Create an **App ID** (Bundle ID): `com.jackmarvelsapp` (already used in your Xcode project).
+- Create an **App ID** (Bundle ID): `com.nsnr.aplhavlogs` (already used in your Xcode project).
 
 ### 2. App Store Connect
 
@@ -278,7 +278,7 @@ Do this **after** (or in parallel with) Play Store, when you’re ready for iOS.
 
 ### 7. Checklist – App Store
 
-- [ ] Apple Developer account and App ID `com.jackmarvelsapp`
+- [ ] Apple Developer account and App ID `com.nsnr.aplhavlogs`
 - [ ] App created in App Store Connect
 - [ ] Distribution certificate and App Store provisioning profile
 - [ ] Archive built with Release configuration, uploaded to App Store Connect

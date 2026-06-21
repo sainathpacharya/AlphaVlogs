@@ -1,4 +1,3 @@
-import { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { API_CONFIG } from '@/config/api-config';
 
 export interface ApiLogData {
@@ -6,53 +5,71 @@ export interface ApiLogData {
   url: string;
   baseURL?: string;
   fullUrl: string;
-  headers?: Record<string, any>;
-  params?: any;
-  data?: any;
+  headers?: Record<string, unknown>;
+  params?: unknown;
+  data?: unknown;
   status?: number;
   statusText?: string;
-  responseData?: any;
-  error?: any;
+  responseData?: unknown;
+  error?: unknown;
   duration?: number;
   timestamp: string;
 }
+
+export type ApiLogRequest = Pick<
+  ApiLogData,
+  'method' | 'url' | 'baseURL' | 'fullUrl' | 'headers' | 'params' | 'data'
+>;
+
+export type ApiLogResponse = Pick<
+  ApiLogData,
+  'method' | 'url' | 'status' | 'statusText' | 'responseData'
+> & {
+  data?: unknown;
+};
+
+export type ApiLogError = Pick<
+  ApiLogData,
+  'method' | 'url' | 'status' | 'statusText'
+> & {
+  message?: string;
+  data?: unknown;
+};
 
 class ApiLogger {
   private isEnabled: boolean;
 
   constructor() {
-    // Enable logging in development or when explicitly configured
-    this.isEnabled = __DEV__ || API_CONFIG.DEV.LOG_API_CALLS;
+    this.isEnabled = __DEV__ && API_CONFIG.DEV.LOG_API_CALLS;
   }
 
   private formatTimestamp(): string {
     return new Date().toISOString();
   }
 
-  private formatDuration(startTime: any, endTime: Date): number {
-    const start = startTime instanceof Date ? startTime.getTime() : startTime;
-    const end = endTime.getTime();
-    return end - start;
+  private formatDuration(startTime: Date, endTime: Date): number {
+    return endTime.getTime() - startTime.getTime();
   }
 
-  private sanitizeData(data: any): any {
-    if (!data) {return data;}
+  private sanitizeData(data: unknown): unknown {
+    if (!data) {
+      return data;
+    }
 
-    // Create a deep copy to avoid modifying original data
     const sanitized = JSON.parse(JSON.stringify(data));
-
-    // Remove sensitive information
     const sensitiveKeys = ['password', 'token', 'authorization', 'secret', 'key', 'otp'];
 
-    const sanitizeObject = (obj: any): any => {
-      if (typeof obj !== 'object' || obj === null) {return obj;}
+    const sanitizeObject = (obj: unknown): unknown => {
+      if (typeof obj !== 'object' || obj === null) {
+        return obj;
+      }
 
       if (Array.isArray(obj)) {
         return obj.map(sanitizeObject);
       }
 
-      const result: any = {};
-      for (const [key, value] of Object.entries(obj)) {
+      const result: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
         const lowerKey = key.toLowerCase();
         if (sensitiveKeys.some(sensitive => lowerKey.includes(sensitive))) {
           result[key] = '[REDACTED]';
@@ -66,99 +83,82 @@ class ApiLogger {
     return sanitizeObject(sanitized);
   }
 
-  private logRequest(config: AxiosRequestConfig, startTime: Date): void {
-    if (!this.isEnabled) {return;}
+  private logRequest(config: ApiLogRequest, startTime: Date): void {
+    if (!this.isEnabled) {
+      return;
+    }
 
-    const logData: Partial<ApiLogData> = {
-      method: config.method?.toUpperCase() || 'UNKNOWN',
-      url: config.url || '',
-      baseURL: config.baseURL,
-      fullUrl: `${config.baseURL || ''}${config.url || ''}`,
-      headers: this.sanitizeData(config.headers),
-      params: this.sanitizeData(config.params),
-      data: this.sanitizeData(config.data),
-      timestamp: this.formatTimestamp(),
-    };
+    console.group(`🚀 API Request: ${config.method} ${config.url}`);
+    console.log('📅 Timestamp:', this.formatTimestamp());
+    console.log('🌐 Full URL:', config.fullUrl);
+    console.log('📋 Headers:', this.sanitizeData(config.headers));
+    if (config.params) {
+      console.log('🔍 Query Params:', this.sanitizeData(config.params));
+    }
+    if (config.data) {
+      console.log('📦 Request Body:', this.sanitizeData(config.data));
+    }
+    console.groupEnd();
+    void startTime;
+  }
 
-    console.group(`🚀 API Request: ${logData.method} ${logData.url}`);
-    console.log('📅 Timestamp:', logData.timestamp);
-    console.log('🌐 Full URL:', logData.fullUrl);
-    console.log('📋 Headers:', logData.headers);
-    if (logData.params) {console.log('🔍 Query Params:', logData.params);}
-    if (logData.data) {console.log('📦 Request Body:', logData.data);}
+  private logResponse(response: ApiLogResponse, startTime: Date): void {
+    if (!this.isEnabled) {
+      return;
+    }
+
+    const endTime = new Date();
+    const duration = this.formatDuration(startTime, endTime);
+    const statusEmoji =
+      response.status && response.status >= 200 && response.status < 300 ? '✅' : '⚠️';
+
+    console.group(`${statusEmoji} API Response: ${response.method} ${response.url}`);
+    console.log('📅 Timestamp:', this.formatTimestamp());
+    console.log('⏱️ Duration:', `${duration}ms`);
+    console.log('📊 Status:', `${response.status} ${response.statusText ?? ''}`);
+    console.log('📦 Response Data:', this.sanitizeData(response.data ?? response.responseData));
     console.groupEnd();
   }
 
-  private logResponse(response: AxiosResponse, startTime: Date): void {
-    if (!this.isEnabled) {return;}
+  private logError(error: ApiLogError, startTime: Date): void {
+    if (!this.isEnabled) {
+      return;
+    }
 
     const endTime = new Date();
     const duration = this.formatDuration(startTime, endTime);
 
-    const logData: Partial<ApiLogData> = {
-      method: response.config.method?.toUpperCase() || 'UNKNOWN',
-      url: response.config.url || '',
-      status: response.status,
-      statusText: response.statusText,
-      responseData: this.sanitizeData(response.data),
-      duration,
-      timestamp: this.formatTimestamp(),
-    };
-
-    const statusEmoji = logData.status && logData.status >= 200 && logData.status < 300 ? '✅' : '⚠️';
-
-    console.group(`${statusEmoji} API Response: ${logData.method} ${logData.url}`);
-    console.log('📅 Timestamp:', logData.timestamp);
-    console.log('⏱️ Duration:', `${logData.duration}ms`);
-    console.log('📊 Status:', `${logData.status} ${logData.statusText}`);
-    console.log('📦 Response Data:', logData.responseData);
+    console.group(`❌ API Error: ${error.method} ${error.url}`);
+    console.log('📅 Timestamp:', this.formatTimestamp());
+    console.log('⏱️ Duration:', `${duration}ms`);
+    console.log('📊 Status:', `${error.status ?? ''} ${error.statusText ?? ''}`);
+    console.log('🚨 Error Details:', this.sanitizeData(error));
     console.groupEnd();
+    void duration;
   }
 
-  private logError(error: AxiosError, startTime: Date): void {
-    if (!this.isEnabled) {return;}
-
-    const endTime = new Date();
-    const duration = this.formatDuration(startTime, endTime);
-
-    const logData: Partial<ApiLogData> = {
-      method: error.config?.method?.toUpperCase() || 'UNKNOWN',
-      url: error.config?.url || '',
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      error: {
-        message: error.message,
-        code: error.code,
-        response: this.sanitizeData(error.response?.data),
-      },
-      duration,
-      timestamp: this.formatTimestamp(),
-    };
-
-    console.group(`❌ API Error: ${logData.method} ${logData.url}`);
-    console.log('📅 Timestamp:', logData.timestamp);
-    console.log('⏱️ Duration:', `${logData.duration}ms`);
-    console.log('📊 Status:', `${logData.status} ${logData.statusText}`);
-    console.log('🚨 Error Details:', logData.error);
-    console.groupEnd();
-  }
-
-  // Public methods for logging
-  logRequestStart(config: AxiosRequestConfig, startTime: Date): void {
+  logRequestStart(config: ApiLogRequest, startTime: Date): void {
     this.logRequest(config, startTime);
   }
 
-  logRequestSuccess(response: AxiosResponse, startTime: Date): void {
+  logRequestSuccess(response: ApiLogResponse, startTime: Date): void {
     this.logResponse(response, startTime);
   }
 
-  logRequestError(error: AxiosError, startTime: Date): void {
+  logRequestError(error: ApiLogError, startTime: Date): void {
     this.logError(error, startTime);
   }
 
-  // Method for logging service-level operations
-  logServiceCall(serviceName: string, methodName: string, params?: any, result?: any, error?: any): void {
-    if (!this.isEnabled) {return;}
+  logServiceCall(
+    serviceName: string,
+    methodName: string,
+    params?: unknown,
+    result?: unknown,
+    error?: unknown,
+  ): void {
+    if (!this.isEnabled) {
+      return;
+    }
 
     const timestamp = this.formatTimestamp();
 
@@ -177,9 +177,10 @@ class ApiLogger {
     }
   }
 
-  // Method for logging mock API calls
-  logMockCall(serviceName: string, methodName: string, params?: any, result?: any): void {
-    if (!this.isEnabled) {return;}
+  logMockCall(serviceName: string, methodName: string, params?: unknown, result?: unknown): void {
+    if (!this.isEnabled) {
+      return;
+    }
 
     const timestamp = this.formatTimestamp();
 
@@ -190,8 +191,7 @@ class ApiLogger {
     console.groupEnd();
   }
 
-  // Redact sensitive data
-  redactSensitiveData(data: any): any {
+  redactSensitiveData(data: unknown): unknown {
     if (!data || typeof data !== 'object') {
       return data;
     }
@@ -200,7 +200,7 @@ class ApiLogger {
       return data.map(item => this.redactSensitiveData(item));
     }
 
-    const redacted = { ...data };
+    const redacted = { ...(data as Record<string, unknown>) };
     const sensitiveFields = ['password', 'token', 'apiKey', 'authorization', 'secret', 'key'];
 
     for (const field of sensitiveFields) {
@@ -209,7 +209,6 @@ class ApiLogger {
       }
     }
 
-    // Recursively redact nested objects
     for (const key in redacted) {
       if (redacted[key] && typeof redacted[key] === 'object') {
         redacted[key] = this.redactSensitiveData(redacted[key]);
@@ -219,7 +218,6 @@ class ApiLogger {
     return redacted;
   }
 
-  // Enable/disable logging
   setEnabled(enabled: boolean): void {
     this.isEnabled = enabled;
   }

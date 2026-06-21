@@ -254,7 +254,7 @@ android {
     // or: ./gradlew app:appDistributionUploadProductionRelease
     firebaseAppDistribution {
         // Default app ID (for production builds with package: com.nsnr.aplhavlogs)
-        appId = "1:452248149004:android:183407f46643d288af2229"
+        appId = "1:452248149004:android:fda0cc05fefccedbaf2229"
         groups = ["testers"]
         releaseNotes = "Alpha Vlogs build"
         

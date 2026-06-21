@@ -1,154 +1,32 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
 import NetInfo from '@react-native-community/netinfo';
 import { getApiBaseUrl, API_ENDPOINTS, API, STORAGE_KEYS } from '@/constants';
 import { ApiResponse, AuthTokens } from '@/types';
-import { apiLogger } from '@/utils/api-logger';
+import { apiLogger, ApiLogRequest, ApiLogResponse, ApiLogError } from '@/utils/api-logger';
 import { normalizeAuthTokens, parseApiErrorMessage } from '@/utils/api-response';
+import { purgeAuthTokensFromDevice } from '@/utils/auth-storage';
 
-type ApiRequestConfig = AxiosRequestConfig & {
+export type ApiRequestConfig = {
   skipAuth?: boolean;
   _retry?: boolean;
+  headers?: Record<string, string>;
+  params?: Record<string, string | number | boolean | undefined | null>;
+};
+
+type InternalRequestConfig = ApiRequestConfig & {
+  method: string;
+  url: string;
+  body?: unknown;
 };
 
 class ApiService {
-  private api: AxiosInstance;
   private isRefreshing = false;
   private failedQueue: Array<{
-    resolve: (value?: any) => void;
-    reject: (error?: any) => void;
+    resolve: (value?: string) => void;
+    reject: (error?: unknown) => void;
   }> = [];
-
-  constructor() {
-    this.api = axios.create({
-      baseURL: getApiBaseUrl(),
-      timeout: API.TIMEOUT,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    this.setupInterceptors();
-  }
-
-  private setupInterceptors() {
-    // Request interceptor
-    this.api.interceptors.request.use(
-      async (config) => {
-        // Check network connectivity (only block when explicitly offline)
-        const netInfo = await NetInfo.fetch();
-        if (netInfo.isConnected === false || netInfo.isInternetReachable === false) {
-          throw new Error('No internet connection');
-        }
-
-        // Add auth token to requests (never on /api/auth/refresh — backend JWT filter rejects stale Bearer tokens)
-        const requestConfig = config as ApiRequestConfig;
-        if (!requestConfig.skipAuth && !this.isRefreshRequest(config)) {
-          const tokens = await this.getStoredTokens();
-          if (tokens?.accessToken) {
-            config.headers.Authorization = `Bearer ${tokens.accessToken}`;
-          }
-        } else {
-          delete config.headers.Authorization;
-        }
-
-        // Add request timestamp for caching and logging
-        const startTime = new Date();
-        (config as any).metadata = { startTime };
-
-        // Log the request
-        apiLogger.logRequestStart(config, startTime);
-
-        return config;
-      }
-    );
-
-    // Response interceptor
-    this.api.interceptors.response.use(
-      (response: AxiosResponse) => {
-        // Log successful response
-        const startTime = (response.config as any).metadata?.startTime;
-        if (startTime) {
-          apiLogger.logRequestSuccess(response, startTime);
-        }
-
-        return response;
-      },
-      async (error: AxiosError) => {
-        // Log the error
-        const startTime = (error.config as any)?.metadata?.startTime;
-        if (startTime) {
-          apiLogger.logRequestError(error, startTime);
-        }
-
-        const originalRequest = error.config as ApiRequestConfig;
-
-        if (
-          error.response?.status === 401 &&
-          !originalRequest._retry &&
-          !this.isRefreshRequest(originalRequest)
-        ) {
-          if (this.isRefreshing) {
-            // Wait for the token refresh to complete
-            return new Promise((resolve, reject) => {
-              this.failedQueue.push({ resolve, reject });
-            })
-              .then((token) => {
-                originalRequest.headers!.Authorization = `Bearer ${token}`;
-                return this.api(originalRequest);
-              })
-              .catch((err) => {
-                return Promise.reject(err);
-              });
-          }
-
-          originalRequest._retry = true;
-          this.isRefreshing = true;
-
-          try {
-            const tokens = await this.getStoredTokens();
-            if (tokens?.refreshToken) {
-              const response = await this.refreshToken(tokens.refreshToken);
-              const body = response.data as unknown;
-              const newTokens =
-                normalizeAuthTokens(body) ??
-                normalizeAuthTokens(
-                  body && typeof body === 'object'
-                    ? (body as Record<string, unknown>).data
-                    : null,
-                );
-              if (!newTokens) {
-                throw new Error('Invalid refresh response from server');
-              }
-
-              await this.storeTokens(newTokens);
-
-              // Retry failed requests
-              this.failedQueue.forEach(({ resolve }) => {
-                resolve(newTokens.accessToken);
-              });
-              this.failedQueue = [];
-
-              originalRequest.headers!.Authorization = `Bearer ${newTokens.accessToken}`;
-              return this.api(originalRequest);
-            }
-          } catch (refreshError) {
-            // Token refresh failed, clear auth and redirect to login
-            await this.clearAuth();
-            this.failedQueue.forEach(({ reject }) => {
-              reject(refreshError);
-            });
-            this.failedQueue = [];
-          } finally {
-            this.isRefreshing = false;
-          }
-        }
-
-        return Promise.reject(error);
-      }
-    );
-  }
 
   private async getStoredTokens(): Promise<AuthTokens | null> {
     try {
@@ -161,10 +39,9 @@ class ApiService {
       }
 
       const credentials = await Keychain.getInternetCredentials('auth_tokens');
-      if (credentials?.password) {
+      if (credentials !== false && credentials.password) {
         const parsed = normalizeAuthTokens(JSON.parse(credentials.password));
         if (parsed) {
-          await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKENS, JSON.stringify(parsed));
           return parsed;
         }
       }
@@ -190,8 +67,7 @@ class ApiService {
 
   private async clearAuth(): Promise<void> {
     try {
-      await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKENS);
-      await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
+      await purgeAuthTokensFromDevice();
     } catch (error) {
       if (__DEV__) {
         console.error('Error clearing auth:', error);
@@ -199,115 +75,530 @@ class ApiService {
     }
   }
 
-  private isRefreshRequest(config?: AxiosRequestConfig): boolean {
-    const url = config?.url ?? '';
+  private isRefreshRequest(url: string): boolean {
     return url === API_ENDPOINTS.AUTH.REFRESH || url.endsWith(API_ENDPOINTS.AUTH.REFRESH);
   }
 
-  private async refreshToken(refreshToken: string): Promise<AxiosResponse<AuthTokens>> {
-    return this.api.post(
-      API_ENDPOINTS.AUTH.REFRESH,
-      { refreshToken },
-      { skipAuth: true } as ApiRequestConfig,
-    );
+  /** Login/register endpoints must never send stored Bearer tokens (stale iOS Keychain). */
+  private isPublicAuthPath(path: string): boolean {
+    const publicPaths = [
+      API_ENDPOINTS.STUDENTS.SEND_OTP,
+      API_ENDPOINTS.STUDENTS.VERIFY_OTP,
+      API_ENDPOINTS.STUDENTS.SELECT_PROFILE,
+      API_ENDPOINTS.AUTH.SEND_OTP,
+      API_ENDPOINTS.AUTH.VERIFY_OTP,
+      API_ENDPOINTS.AUTH.REGISTER,
+    ];
+    return publicPaths.some(p => path === p || path.endsWith(p));
   }
 
-  // Generic request methods
-  async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+  private shouldSkipAuth(path: string, config: ApiRequestConfig): boolean {
+    return config.skipAuth === true || this.isPublicAuthPath(path);
+  }
+
+  /** Clear tokens from AsyncStorage, Keychain, and in-memory store (call before login OTP). */
+  async clearStoredAuth(): Promise<void> {
+    await this.clearAuth();
     try {
-      const response = await this.api.get<ApiResponse<T>>(url, config);
-      return response.data;
+      const { useUserCachedStore } = await import('@/stores/user-cached-store');
+      useUserCachedStore.setState({ tokens: null, userData: null });
     } catch (error) {
-      return this.handleError(error);
+      if (__DEV__) {
+        console.error('Error clearing cached auth store:', error);
+      }
     }
   }
 
-  async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    try {
-      const response = await this.api.post<ApiResponse<T>>(url, data, config);
-      return response.data;
-    } catch (error) {
-      return this.handleError(error);
+  private async buildRequestHeaders(
+    path: string,
+    config: ApiRequestConfig,
+  ): Promise<Record<string, string>> {
+    const skipAuth = this.shouldSkipAuth(path, config);
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Client-Platform': Platform.OS,
+    };
+
+    if (config.headers) {
+      for (const [key, value] of Object.entries(config.headers)) {
+        if (skipAuth && key.toLowerCase() === 'authorization') {
+          continue;
+        }
+        headers[key] = value;
+      }
     }
+
+    if (!skipAuth && !this.isRefreshRequest(path)) {
+      const tokens = await this.getStoredTokens();
+      if (tokens?.accessToken) {
+        headers.Authorization = `Bearer ${tokens.accessToken}`;
+      }
+    }
+
+    return headers;
   }
 
-  async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    try {
-      const response = await this.api.put<ApiResponse<T>>(url, data, config);
-      return response.data;
-    } catch (error) {
-      return this.handleError(error);
+  private buildUrl(path: string, params?: ApiRequestConfig['params']): string {
+    const baseUrl = getApiBaseUrl().replace(/\/$/, '');
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const url = new URL(`${baseUrl}${normalizedPath}`);
+
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          url.searchParams.set(key, String(value));
+        }
+      });
     }
+
+    return url.toString();
   }
 
-  async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    try {
-      const response = await this.api.delete<ApiResponse<T>>(url, config);
-      return response.data;
-    } catch (error) {
-      return this.handleError(error);
+  private async parseResponseBody(response: Response): Promise<unknown> {
+    const contentType = response.headers.get('content-type') ?? '';
+    if (contentType.includes('application/json')) {
+      return response.json();
     }
+    const text = await response.text();
+    return text || null;
   }
 
-  async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    try {
-      const response = await this.api.patch<ApiResponse<T>>(url, data, config);
-      return response.data;
-    } catch (error) {
-      return this.handleError(error);
+  private async refreshAccessToken(refreshToken: string): Promise<AuthTokens> {
+    const response = await this.executeFetch(API_ENDPOINTS.AUTH.REFRESH, {
+      method: 'POST',
+      url: API_ENDPOINTS.AUTH.REFRESH,
+      body: { refreshToken },
+      skipAuth: true,
+    });
+
+    const body = response.data;
+    const newTokens =
+      normalizeAuthTokens(body) ??
+      normalizeAuthTokens(
+        body && typeof body === 'object' ? (body as Record<string, unknown>).data : null,
+      );
+
+    if (!newTokens) {
+      throw new Error('Invalid refresh response from server');
     }
+
+    await this.storeTokens(newTokens);
+    return newTokens;
   }
 
-  private handleError(error: any): ApiResponse {
-    if (error.response) {
-      const data = error.response.data;
-      const errorMessage =
-        (typeof data === 'string' ? data : parseApiErrorMessage(data)) ||
-        error.response.statusText ||
-        'An error occurred';
+  private async executeFetch<T>(
+    path: string,
+    config: InternalRequestConfig,
+  ): Promise<{ ok: boolean; status: number; statusText: string; data: ApiResponse<T> | unknown }> {
+    const netInfo = await NetInfo.fetch();
+    if (netInfo.isConnected === false || netInfo.isInternetReachable === false) {
+      throw new Error('No internet connection');
+    }
+
+    const url = this.buildUrl(path, config.params);
+    const startTime = new Date();
+    const skipAuth = this.shouldSkipAuth(path, config);
+    const headers = await this.buildRequestHeaders(path, config);
+
+    if (skipAuth) {
+      delete headers.Authorization;
+      delete headers.authorization;
+    }
+
+    if (__DEV__) {
+      console.log(`[API] ${config.method} ${path}`, {
+        baseUrl: getApiBaseUrl(),
+        skipAuth,
+        hasAuthHeader: Boolean(headers.Authorization ?? headers.authorization),
+      });
+    }
+
+    const logRequest: ApiLogRequest = {
+      method: config.method,
+      url: path,
+      baseURL: getApiBaseUrl(),
+      fullUrl: url,
+      headers,
+      data: config.body,
+    };
+    apiLogger.logRequestStart(logRequest, startTime);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API.TIMEOUT);
+
+    try {
+      const response = await fetch(url, {
+        method: config.method,
+        headers,
+        body:
+          config.body !== undefined && config.body !== null
+            ? JSON.stringify(config.body)
+            : undefined,
+        credentials: 'omit',
+        signal: controller.signal,
+      });
+
+      const data = await this.parseResponseBody(response);
+
+      if (response.ok) {
+        apiLogger.logRequestSuccess(
+          {
+            method: config.method,
+            url: path,
+            status: response.status,
+            statusText: response.statusText,
+            data,
+          } satisfies ApiLogResponse,
+          startTime,
+        );
+      } else {
+        apiLogger.logRequestError(
+          {
+            method: config.method,
+            url: path,
+            status: response.status,
+            statusText: response.statusText,
+            message: parseApiErrorMessage(data) || response.statusText,
+            data,
+          } satisfies ApiLogError,
+          startTime,
+        );
+      }
 
       return {
-        success: false,
-        error: errorMessage,
-        statusCode: error.response.status,
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        data,
       };
-    } else if (error.request) {
-      // Network error
-      return {
-        success: false,
-        error: 'Network error. Please check your connection.',
-        statusCode: 0,
-      };
-    } else {
-      // Other error
+    } catch (error) {
+      apiLogger.logRequestError(
+        {
+          method: config.method,
+          url: path,
+          message: error instanceof Error ? error.message : 'Network request failed',
+        } satisfies ApiLogError,
+        startTime,
+      );
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  private async request<T>(path: string, config: InternalRequestConfig): Promise<ApiResponse<T>> {
+    try {
+      const skipAuth = this.shouldSkipAuth(path, config);
+      let result = await this.executeFetch<T>(path, config);
+
+      if (
+        result.status === 401 &&
+        !config._retry &&
+        !skipAuth &&
+        !this.isRefreshRequest(path)
+      ) {
+        if (this.isRefreshing) {
+          const token = await new Promise<string>((resolve, reject) => {
+            this.failedQueue.push({
+              resolve: (value?: string) => {
+                if (value) {
+                  resolve(value);
+                }
+              },
+              reject,
+            });
+          });
+          const retryResult = await this.executeFetch<T>(path, {
+            ...config,
+            _retry: true,
+            headers: {
+              ...config.headers,
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          result = retryResult;
+        } else {
+          this.isRefreshing = true;
+          try {
+            const tokens = await this.getStoredTokens();
+            if (tokens?.refreshToken) {
+              const newTokens = await this.refreshAccessToken(tokens.refreshToken);
+              this.failedQueue.forEach(({ resolve }) => resolve(newTokens.accessToken));
+              this.failedQueue = [];
+
+              const retryResult = await this.executeFetch<T>(path, {
+                ...config,
+                _retry: true,
+                headers: {
+                  ...config.headers,
+                  Authorization: `Bearer ${newTokens.accessToken}`,
+                },
+              });
+              result = retryResult;
+            }
+          } catch (refreshError) {
+            await this.clearAuth();
+            this.failedQueue.forEach(({ reject }) => reject(refreshError));
+            this.failedQueue = [];
+            return this.handleFetchFailure(refreshError);
+          } finally {
+            this.isRefreshing = false;
+          }
+        }
+      }
+
+      if (result.ok) {
+        return result.data as ApiResponse<T>;
+      }
+
+      return this.handleHttpError(result.status, result.statusText, result.data);
+    } catch (error) {
+      return this.handleFetchFailure(error);
+    }
+  }
+
+  private handleHttpError(status: number, statusText: string, data: unknown): ApiResponse {
+    const errorMessage =
+      (typeof data === 'string' ? data : parseApiErrorMessage(data)) ||
+      statusText ||
+      'An error occurred';
+
+    return {
+      success: false,
+      error: errorMessage,
+      statusCode: status,
+    };
+  }
+
+  private handleFetchFailure(error: unknown): ApiResponse {
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        return {
+          success: false,
+          error: 'Request timed out. Please try again.',
+          statusCode: 408,
+        };
+      }
+      if (error.message === 'No internet connection') {
+        return {
+          success: false,
+          error: 'Network error. Please check your connection.',
+          statusCode: 0,
+        };
+      }
       return {
         success: false,
         error: error.message || 'An unknown error occurred.',
         statusCode: 0,
       };
     }
+
+    return {
+      success: false,
+      error: 'An unknown error occurred.',
+      statusCode: 0,
+    };
   }
 
-  // Upload file
-  async uploadFile<T = any>(url: string, file: any, onProgress?: (progress: number) => void): Promise<ApiResponse<T>> {
-    const formData = new FormData();
-    formData.append('file', file);
+  async get<T = unknown>(url: string, config?: ApiRequestConfig): Promise<ApiResponse<T>> {
+    return this.request<T>(url, { ...config, method: 'GET', url });
+  }
+
+  async post<T = unknown>(
+    url: string,
+    data?: unknown,
+    config?: ApiRequestConfig,
+  ): Promise<ApiResponse<T>> {
+    return this.request<T>(url, { ...config, method: 'POST', url, body: data });
+  }
+
+  /**
+   * Pre-login POST — never reads Keychain/AsyncStorage tokens or retries with Bearer auth.
+   * Use for OTP, register, and other public auth endpoints.
+   */
+  async postPublic<T = unknown>(path: string, data?: unknown): Promise<ApiResponse<T>> {
+    const netInfo = await NetInfo.fetch();
+    if (netInfo.isConnected === false || netInfo.isInternetReachable === false) {
+      return {
+        success: false,
+        error: 'Network error. Please check your connection.',
+        statusCode: 0,
+      };
+    }
+
+    const url = this.buildUrl(path);
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Client-Platform': Platform.OS,
+    };
+    const startTime = new Date();
+
+    if (__DEV__) {
+      console.log('[API:public] POST', url, { body: data });
+    }
+
+    apiLogger.logRequestStart(
+      {
+        method: 'POST',
+        url: path,
+        baseURL: getApiBaseUrl(),
+        fullUrl: url,
+        headers,
+        data,
+      },
+      startTime,
+    );
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API.TIMEOUT);
 
     try {
-      const response = await this.api.post<ApiResponse<T>>(url, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        onUploadProgress: (progressEvent) => {
-          if (onProgress && progressEvent.total) {
-            const progress = (progressEvent.loaded / progressEvent.total) * 100;
-            onProgress(progress);
-          }
-        },
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: data !== undefined && data !== null ? JSON.stringify(data) : undefined,
+        signal: controller.signal,
       });
-      return response.data;
+
+      const parsed = await this.parseResponseBody(response);
+
+      if (__DEV__) {
+        console.log('[API:public] response', response.status, parsed);
+      }
+
+      if (response.ok) {
+        apiLogger.logRequestSuccess(
+          {
+            method: 'POST',
+            url: path,
+            status: response.status,
+            statusText: response.statusText,
+            data: parsed,
+          },
+          startTime,
+        );
+
+        if (parsed && typeof parsed === 'object' && 'success' in (parsed as object)) {
+          return parsed as ApiResponse<T>;
+        }
+        return { success: true, data: parsed as T, statusCode: response.status };
+      }
+
+      apiLogger.logRequestError(
+        {
+          method: 'POST',
+          url: path,
+          status: response.status,
+          statusText: response.statusText,
+          message: parseApiErrorMessage(parsed) || response.statusText,
+          data: parsed,
+        },
+        startTime,
+      );
+
+      return this.handleHttpError(response.status, response.statusText, parsed);
     } catch (error) {
-      return this.handleError(error);
+      apiLogger.logRequestError(
+        {
+          method: 'POST',
+          url: path,
+          message: error instanceof Error ? error.message : 'Network request failed',
+        },
+        startTime,
+      );
+      return this.handleFetchFailure(error);
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  async put<T = unknown>(
+    url: string,
+    data?: unknown,
+    config?: ApiRequestConfig,
+  ): Promise<ApiResponse<T>> {
+    return this.request<T>(url, { ...config, method: 'PUT', url, body: data });
+  }
+
+  async delete<T = unknown>(url: string, config?: ApiRequestConfig): Promise<ApiResponse<T>> {
+    return this.request<T>(url, { ...config, method: 'DELETE', url });
+  }
+
+  async patch<T = unknown>(
+    url: string,
+    data?: unknown,
+    config?: ApiRequestConfig,
+  ): Promise<ApiResponse<T>> {
+    return this.request<T>(url, { ...config, method: 'PATCH', url, body: data });
+  }
+
+  async uploadFile<T = unknown>(
+    url: string,
+    file: unknown,
+    onProgress?: (progress: number) => void,
+  ): Promise<ApiResponse<T>> {
+    void onProgress;
+
+    const netInfo = await NetInfo.fetch();
+    if (netInfo.isConnected === false || netInfo.isInternetReachable === false) {
+      return {
+        success: false,
+        error: 'Network error. Please check your connection.',
+        statusCode: 0,
+      };
+    }
+
+    const fullUrl = this.buildUrl(url);
+    const startTime = new Date();
+    const formData = new FormData();
+    formData.append('file', file as unknown as Blob);
+
+    const headers: Record<string, string> = {
+      'X-Client-Platform': Platform.OS,
+    };
+
+    const tokens = await this.getStoredTokens();
+    if (tokens?.accessToken) {
+      headers.Authorization = `Bearer ${tokens.accessToken}`;
+    }
+
+    apiLogger.logRequestStart(
+      {
+        method: 'POST',
+        url,
+        baseURL: getApiBaseUrl(),
+        fullUrl,
+        headers,
+        data: '[FormData]',
+      },
+      startTime,
+    );
+
+    try {
+      const response = await fetch(fullUrl, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+      const data = await this.parseResponseBody(response);
+
+      if (response.ok) {
+        apiLogger.logRequestSuccess(
+          {
+            method: 'POST',
+            url,
+            status: response.status,
+            statusText: response.statusText,
+            data,
+          },
+          startTime,
+        );
+        return data as ApiResponse<T>;
+      }
+
+      return this.handleHttpError(response.status, response.statusText, data);
+    } catch (error) {
+      return this.handleFetchFailure(error);
     }
   }
 }

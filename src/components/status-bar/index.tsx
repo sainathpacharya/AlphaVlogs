@@ -13,6 +13,9 @@ export type AppStatusBarProps = StatusBarProps & {
 
 /**
  * Status bar that follows device light/dark mode unless overridden via props.
+ * On iOS, native-stack screen options control the status bar (Info.plist must use
+ * UIViewControllerBasedStatusBarAppearance = YES). React Native's StatusBar API
+ * conflicts with that and is Android-only here.
  */
 export const StatusBar: React.FC<AppStatusBarProps> = ({
   barStyle: barStyleProp,
@@ -24,6 +27,10 @@ export const StatusBar: React.FC<AppStatusBarProps> = ({
   const resolvedBarStyle = barStyleProp ?? barStyle;
   const resolvedBackground = backgroundColorProp ?? backgroundColor;
 
+  if (Platform.OS === 'ios') {
+    return null;
+  }
+
   return (
     <>
       <RNStatusBar
@@ -32,7 +39,7 @@ export const StatusBar: React.FC<AppStatusBarProps> = ({
         translucent={translucent}
         {...rest}
       />
-      {Platform.OS === 'android' && !translucent && (
+      {!translucent && (
         <View
           style={{
             height: RNStatusBar.currentHeight ?? 24,

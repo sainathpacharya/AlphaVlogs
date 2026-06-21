@@ -1,6 +1,7 @@
 #import "AppDelegate.h"
 
 #import <React/RCTBundleURLProvider.h>
+#import <ReactAppDependencyProvider/RCTAppDependencyProvider.h>
 
 // Firebase import - only include if Firebase SDK is installed
 #if __has_include(<Firebase.h>)
@@ -17,6 +18,7 @@
   #endif
   
   self.moduleName = @"AlphaVlogs";
+  self.dependencyProvider = [RCTAppDependencyProvider new];
   // You can add your custom initial props in the dictionary below.
   // They will be passed down to the ViewController used by React Native.
   self.initialProps = @{};

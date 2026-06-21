@@ -22,8 +22,8 @@ on:
           - aab
 
 env:
-  PACKAGE_NAME_PRODUCTION: com.jackmarvelsapp
-  BUNDLE_ID_PRODUCTION: com.jackmarvelsapp
+  PACKAGE_NAME_PRODUCTION: com.nsnr.aplhavlogs
+  BUNDLE_ID_PRODUCTION: com.nsnr.aplhavlogs
 
 jobs:
   build-android:
@@ -423,8 +423,8 @@ jobs:
           export GOOGLE_APPLICATION_CREDENTIALS="$SERVICE_ACCOUNT_FILE"
 
           # iOS App ID for production (from GoogleService-Info.plist)
-          # This is for bundle ID: com.jackmarvelsapp
-          IOS_APP_ID="1:452248149004:ios:3f3fbc0a54e0f0fbaf2229"
+          # This is for bundle ID: com.nsnr.aplhavlogs
+          IOS_APP_ID="1:452248149004:ios:406e170c19e53736af2229"
 
           # Find IPA file
           IPA_PATH="ios/build/export/JackMarvelsApp.ipa"
@@ -455,7 +455,7 @@ jobs:
               echo ""
               echo "📝 To fix this:"
               echo "   1. Go to: https://console.firebase.google.com/project/alpha-vlogs-cf60a/appdistribution"
-              echo "   2. Select the iOS app: com.jackmarvelsapp"
+              echo "   2. Select the iOS app: com.nsnr.aplhavlogs"
               echo "   3. Go to 'Testers & Groups' tab"
               echo "   4. Create a group named 'testers' or add testers directly"
               echo "   5. The build is already uploaded and available in the Releases tab"

@@ -1,27 +1,41 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
 import { permissionsService, PermissionResult, PermissionStatus } from '../services/permissions-service';
 
 export const usePermissions = () => {
   const [permissions, setPermissions] = useState<PermissionResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const isMounted = useRef(true);
 
-  // Load permissions on mount
   useEffect(() => {
-    loadPermissions();
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   const loadPermissions = useCallback(async () => {
     try {
-      setLoading(true);
+      if (isMounted.current) {
+        setLoading(true);
+      }
       const result = await permissionsService.checkMultiplePermissions();
-      setPermissions(result);
+      if (isMounted.current) {
+        setPermissions(result);
+      }
     } catch (error) {
       console.error('Error loading permissions:', error);
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+      }
     }
   }, []);
+
+  // Load permissions on mount
+  useEffect(() => {
+    loadPermissions();
+  }, [loadPermissions]);
 
   const refreshPermissions = useCallback(async () => {
     await loadPermissions();

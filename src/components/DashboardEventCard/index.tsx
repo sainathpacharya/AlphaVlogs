@@ -24,6 +24,31 @@ export interface DashboardEventCardProps {
   colors: Record<string, string>;
 }
 
+export interface DashboardEventRowProps {
+  item: DashboardEventCardItem;
+  index: number;
+  onPressItem: (event: DashboardEventCardItem) => void;
+  colors: Record<string, string>;
+}
+
+export const DashboardEventRow = React.memo(function DashboardEventRow({
+  item,
+  index,
+  onPressItem,
+  colors,
+}: DashboardEventRowProps) {
+  const onPress = React.useCallback(() => onPressItem(item), [onPressItem, item]);
+
+  return (
+    <DashboardEventCard
+      item={item}
+      index={index}
+      onPress={onPress}
+      colors={colors}
+    />
+  );
+});
+
 const CARD_WIDTH = DIMENSIONS.cardWidth;
 const CARD_HEIGHT = DIMENSIONS.cardHeight;
 const MEDIA_HEIGHT = DIMENSIONS.cardMediaHeight;
@@ -31,12 +56,18 @@ const MEDIA_PADDING = 8;
 
 export const DashboardEventCard: React.FC<DashboardEventCardProps> = React.memo(
   ({item, index, onPress, colors}) => {
-    const animated = useSharedValue(0);
+    const animated = useSharedValue(index < 8 ? 0 : 1);
     const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
     const EventIcon = getEventIcon(item.iconId);
     const mediaBg = colors.accentBackground ?? '#E8F4FD';
 
     React.useEffect(() => {
+      if (index >= 8) {
+        animated.value = 1;
+        return undefined;
+      }
+
+      animated.value = 0;
       timeoutRef.current = setTimeout(() => {
         animated.value = withSpring(1, {damping: 12, stiffness: 100});
       }, index * 60);
@@ -45,7 +76,7 @@ export const DashboardEventCard: React.FC<DashboardEventCardProps> = React.memo(
           clearTimeout(timeoutRef.current);
         }
       };
-    }, [index, animated]);
+    }, [item.id, index, animated]);
 
     const animatedStyle = useAnimatedStyle(() => ({
       opacity: animated.value,
@@ -56,7 +87,7 @@ export const DashboardEventCard: React.FC<DashboardEventCardProps> = React.memo(
     const gifHeight = MEDIA_HEIGHT - MEDIA_PADDING * 2;
 
     return (
-      <Animated.View style={[styles.cardWrap, animatedStyle]}>
+      <Animated.View collapsable={false} style={[styles.cardWrap, animatedStyle]}>
         <RNPressable
           testID={`dashboard-event-card-${item.id}`}
           onPress={onPress}

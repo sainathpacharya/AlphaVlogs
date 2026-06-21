@@ -27,6 +27,35 @@ export interface AuthTokens {
   expiresIn: number;
 }
 
+/** Sibling student profile returned after OTP or from GET /profiles. */
+export interface StudentProfile {
+  studentId: number;
+  firstName: string;
+  lastName: string;
+  className: string;
+  schoolName: string;
+  verified: boolean;
+  isSubscribed: boolean;
+}
+
+export interface LoginResponse {
+  user: User;
+  tokens: AuthTokens;
+}
+
+/** POST /verify-otp response — single login or profile selection branch. */
+export interface VerifyOTPResponse {
+  otpVerified?: boolean;
+  selectionRequired: boolean;
+  profiles: StudentProfile[] | null;
+  user?: User;
+  tokens?: AuthTokens;
+}
+
+export interface StudentProfilesResponse {
+  profiles: StudentProfile[];
+}
+
 export interface OTPResponse {
   message: string;
   mobile: string;

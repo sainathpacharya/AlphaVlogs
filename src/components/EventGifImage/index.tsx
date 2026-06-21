@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {ActivityIndicator, StyleSheet, View} from 'react-native';
 import FastImage from 'react-native-fast-image';
 import type {LucideIcon} from 'lucide-react-native';
@@ -14,10 +14,7 @@ export interface EventGifImageProps {
   testID?: string;
 }
 
-/**
- * Remote event GIF with disk cache (react-native-fast-image / Glide / SDWebImage).
- */
-export const EventGifImage: React.FC<EventGifImageProps> = ({
+const EventGifImageComponent: React.FC<EventGifImageProps> = ({
   gifUrl,
   FallbackIcon,
   width,
@@ -29,6 +26,11 @@ export const EventGifImage: React.FC<EventGifImageProps> = ({
 }) => {
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(Boolean(gifUrl));
+
+  useEffect(() => {
+    setFailed(false);
+    setLoading(Boolean(gifUrl));
+  }, [gifUrl]);
 
   const handleError = useCallback(() => {
     setFailed(true);
@@ -83,6 +85,8 @@ export const EventGifImage: React.FC<EventGifImageProps> = ({
     </View>
   );
 };
+
+export const EventGifImage = React.memo(EventGifImageComponent);
 
 const styles = StyleSheet.create({
   fallback: {

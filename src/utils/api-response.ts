@@ -12,6 +12,9 @@ export function parseApiErrorMessage(payload: unknown): string | undefined {
   if (typeof record.error === 'string' && record.error.trim()) {
     return record.error.trim();
   }
+  if (typeof record.data === 'string' && record.data.trim()) {
+    return record.data.trim();
+  }
   if (record.error && typeof record.error === 'object') {
     const nested = record.error as Record<string, unknown>;
     if (typeof nested.message === 'string' && nested.message.trim()) {

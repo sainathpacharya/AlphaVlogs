@@ -15,7 +15,7 @@ export const API_CONFIG = {
   },
 
   // Set to true to use REAL.BASE_URL even in __DEV__ builds (local LAN otherwise).
-  USE_PRODUCTION_API: true,
+  USE_PRODUCTION_API: false,
 
   // Real API settings (production)
   REAL: {
@@ -25,12 +25,18 @@ export const API_CONFIG = {
     RETRY_DELAY: 1000, // milliseconds
   },
 
-  // Local backend (Spring Boot default port 8080). Update LAN_HOST when your Mac IP changes.
+  // LAN IP of the machine running the backend (Spring Boot default port 8080).
+  // Set LAN_HOST to that machine's IP — not your dev Mac, and not 10.0.2.2.
   DEV: {
-    LAN_HOST: '192.168.29.26',
+    LAN_HOST: '192.168.29.192', // 192.168.1.9 | 192.168.29.192
+    // true only when Spring Boot runs on the same machine as the emulator/simulator
+    USE_LOCAL_BACKEND: false,
     PORT: 8080,
+    /** API + service console groups in Metro (dev builds only). */
     LOG_API_CALLS: true,
     LOG_MOCK_DATA: true,
+    /** JS console.log/warn enabled in __DEV__; stripped in release via dev-logging.ts */
+    ENABLE_CONSOLE_LOGS: true,
     ENABLE_MOCK_ERRORS: false,
     MOCK_ERROR_RATE: 0.1,
   },
@@ -44,10 +50,14 @@ export const API_CONFIG = {
   },
 };
 
-/** Dev base URL by client: emulator/simulator vs physical device on same Wi‑Fi. */
+/** Dev base URL — LAN_HOST for remote backend; loopback aliases when USE_LOCAL_BACKEND. */
 export const getDevApiBaseUrl = (): string => {
-  const { LAN_HOST, PORT } = API_CONFIG.DEV;
+  const { LAN_HOST, PORT, USE_LOCAL_BACKEND } = API_CONFIG.DEV;
   const origin = (host: string) => `http://${host}:${PORT}`;
+
+  if (!USE_LOCAL_BACKEND) {
+    return origin(LAN_HOST);
+  }
 
   if (Platform.OS === 'android') {
     return DeviceInfo.isEmulatorSync() ? origin('10.0.2.2') : origin(LAN_HOST);
@@ -80,8 +90,19 @@ export const isFeatureEnabled = (feature: keyof typeof API_CONFIG.FEATURES) => {
 };
 
 export const isDevFeatureEnabled = (feature: keyof typeof API_CONFIG.DEV) => {
-  const { LOG_API_CALLS, LOG_MOCK_DATA, ENABLE_MOCK_ERRORS, MOCK_ERROR_RATE } =
-    API_CONFIG.DEV;
-  const flags = { LOG_API_CALLS, LOG_MOCK_DATA, ENABLE_MOCK_ERRORS, MOCK_ERROR_RATE };
+  const {
+    LOG_API_CALLS,
+    LOG_MOCK_DATA,
+    ENABLE_MOCK_ERRORS,
+    MOCK_ERROR_RATE,
+    ENABLE_CONSOLE_LOGS,
+  } = API_CONFIG.DEV;
+  const flags = {
+    LOG_API_CALLS,
+    LOG_MOCK_DATA,
+    ENABLE_MOCK_ERRORS,
+    MOCK_ERROR_RATE,
+    ENABLE_CONSOLE_LOGS,
+  };
   return flags[feature as keyof typeof flags];
 };

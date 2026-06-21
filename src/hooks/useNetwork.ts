@@ -4,33 +4,35 @@ import { useUserStore } from '@/stores';
 import { NetworkStatus } from '@/types';
 
 export const useNetwork = () => {
-  const { setNetworkStatus, networkStatus } = useUserStore();
-  const [currentStatus, setCurrentStatus] = useState<NetworkStatus>(networkStatus);
+  const setNetworkStatus = useUserStore(state => state.setNetworkStatus);
+  const [currentStatus, setCurrentStatus] = useState<NetworkStatus>({
+    isConnected: true,
+    isInternetReachable: true,
+    type: 'unknown',
+  });
 
   useEffect(() => {
-    // Initial network state
     const getInitialNetworkState = async () => {
       const state = await NetInfo.fetch();
-      const networkStatus: NetworkStatus = {
+      const status: NetworkStatus = {
         isConnected: state.isConnected ?? false,
         isInternetReachable: state.isInternetReachable ?? false,
         type: state.type,
       };
-      setNetworkStatus(networkStatus);
-      setCurrentStatus(networkStatus);
+      setNetworkStatus(status);
+      setCurrentStatus(status);
     };
 
     getInitialNetworkState();
 
-    // Subscribe to network state changes
     const unsubscribe = NetInfo.addEventListener((state: NetInfoState) => {
-      const networkStatus: NetworkStatus = {
+      const status: NetworkStatus = {
         isConnected: state.isConnected ?? false,
         isInternetReachable: state.isInternetReachable ?? false,
         type: state.type,
       };
-      setNetworkStatus(networkStatus);
-      setCurrentStatus(networkStatus);
+      setNetworkStatus(status);
+      setCurrentStatus(status);
     });
 
     return () => {
@@ -38,5 +40,5 @@ export const useNetwork = () => {
     };
   }, [setNetworkStatus]);
 
-  return currentStatus; // Return the current network status
+  return currentStatus;
 };

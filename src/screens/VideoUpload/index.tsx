@@ -18,21 +18,10 @@ import {commonStyles, screenStyles} from '@/utils/styles';
 import {useThemeColors} from '@/utils/colors';
 import {videoService} from '@/services/video-service';
 import {usePermissions} from '@/hooks/usePermissions';
+import {useIsMounted} from '@/hooks';
 import {EventGifImage} from '@/components/EventGifImage';
 import {getEventIcon} from '@/utils/event-icons';
 
-interface VideoUploadScreenProps {
-  route: {
-    params: {
-      eventId: string;
-      eventTitle: string;
-      iconId?: string;
-      eventGifUrl?: string;
-    };
-  };
-}
-
-// Navigation-compatible component
 interface VideoUploadNavProps {
   route: {
     params: {
@@ -48,6 +37,7 @@ interface VideoUploadNavProps {
 const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
   const navigation = useNavigation();
   const colors = useThemeColors();
+  const isMounted = useIsMounted();
   const {eventId, eventTitle, iconId, eventGifUrl} = route?.params || {
     eventId: '',
     eventTitle: '',
@@ -59,17 +49,26 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
   const [guidelines, setGuidelines] = useState<any>(null);
 
   useEffect(() => {
-    loadGuidelines();
-  }, []);
+    let cancelled = false;
 
-  const loadGuidelines = async () => {
-    try {
-      const guidelinesData = await videoService.getUploadGuidelines();
-      setGuidelines(guidelinesData);
-    } catch (error) {
-      console.error('Error loading guidelines:', error);
-    }
-  };
+    const loadGuidelines = async () => {
+      try {
+        const guidelinesData = await videoService.getUploadGuidelines();
+        if (!cancelled) {
+          setGuidelines(guidelinesData);
+        }
+      } catch (error) {
+        if (__DEV__) {
+          console.error('Error loading guidelines:', error);
+        }
+      }
+    };
+
+    loadGuidelines();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const {requestVideoUploadPermissions} = usePermissions();
 
@@ -93,11 +92,13 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
 
     try {
       const result = await launchImageLibrary(options);
+      if (!isMounted.current) {
+        return;
+      }
 
       if (result.assets && result.assets[0]) {
         const video = result.assets[0];
 
-        // Validate video
         if (
           video.duration &&
           video.duration < VIDEO_UPLOAD.MIN_DURATION * 1000
@@ -123,6 +124,9 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
         setSelectedVideo(video);
       }
     } catch (error) {
+      if (!isMounted.current) {
+        return;
+      }
       console.error('Error selecting video:', error);
       Alert.alert('Error', 'Failed to select video. Please try again.');
     }
@@ -148,9 +152,15 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
         eventId,
         videoFile,
         onProgress: progress => {
-          setUploadProgress(progress);
+          if (isMounted.current) {
+            setUploadProgress(progress);
+          }
         },
       });
+
+      if (!isMounted.current) {
+        return;
+      }
 
       Alert.alert(
         'Upload Successful',
@@ -165,11 +175,16 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
         ],
       );
     } catch (error) {
+      if (!isMounted.current) {
+        return;
+      }
       console.error('Error uploading video:', error);
       Alert.alert('Upload Failed', 'Failed to upload video. Please try again.');
     } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
+      if (isMounted.current) {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }
     }
   };
 
@@ -186,7 +201,6 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
         commonStyles.container,
         {backgroundColor: colors.primaryBackground},
       ]}>
-      {/* Custom Header with Back Button - use theme colors so visible on light/dark */}
       <HStack
         alignItems="center"
         justifyContent="space-between"
@@ -221,7 +235,6 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
 
       <ScrollView style={{flex: 1}}>
         <VStack space="lg" p="$4">
-          {/* Header - same event icon as Dashboard */}
           <VStack space="sm" alignItems="center">
             <EventGifImage
               gifUrl={eventGifUrl ?? null}
@@ -240,7 +253,6 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
             </Text>
           </VStack>
 
-          {/* Guidelines */}
           {guidelines && (
             <Box style={screenStyles.videoUpload.guidelinesCard}>
               <Text style={screenStyles.videoUpload.guidelinesTitle as any}>
@@ -273,7 +285,6 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
             </Box>
           )}
 
-          {/* Video Selection */}
           <VStack space="md">
             <Text style={commonStyles.textHeading}>
               {i18n.t('videoUpload.selectVideo')}
@@ -299,7 +310,6 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
             </Pressable>
           </VStack>
 
-          {/* Selected Video */}
           {selectedVideo && (
             <Box style={screenStyles.videoUpload.selectedVideoCard}>
               <Text style={screenStyles.videoUpload.selectedVideoTitle as any}>
@@ -316,7 +326,6 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
             </Box>
           )}
 
-          {/* Upload Progress */}
           {isUploading && (
             <Box style={commonStyles.progressContainer}>
               <Text style={commonStyles.progressTitle}>
@@ -329,7 +338,6 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
             </Box>
           )}
 
-          {/* Upload Button */}
           {selectedVideo && !isUploading && (
             <Button
               onPress={handleUploadVideo}
@@ -338,7 +346,6 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
             </Button>
           )}
 
-          {/* Warning */}
           <Box style={commonStyles.warningCard}>
             <Text style={commonStyles.warningTitle}>
               {i18n.t('videoUpload.important')}

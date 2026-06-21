@@ -18,8 +18,12 @@ export const API_ENDPOINTS = {
   STUDENTS: {
     SEND_OTP: '/api/students/send-otp',
     VERIFY_OTP: '/api/students/verify-otp',
+    SELECT_PROFILE: '/api/students/select-profile',
+    PROFILES: '/api/students/profiles',
+    SWITCH_PROFILE: '/api/students/switch-profile',
     EVENTS: '/api/students/events',
     SUBSCRIPTION: '/api/students/subscription',
+    DELETE_ACCOUNT: '/api/students/account',
   },
   AUTH: {
     SEND_OTP: '/api/auth/send-otp',
@@ -59,6 +63,10 @@ export const API_ENDPOINTS = {
   },
   SUBSCRIPTION: {
     UPDATE: '/subscription/update',
+  },
+  PAYMENT: {
+    CREATE_ORDER: '/api/create-order',
+    VERIFY_PAYMENT: '/api/verify-payment',
   },
 } as const;
 
@@ -217,7 +225,10 @@ export const SUBSCRIPTION = {
     PREMIUM: 'premium',
   },
   PRICING: {
+    /** Display amount in rupees (₹). */
     PREMIUM_ANNUAL: 100,
+    /** Amount sent to POST /api/create-order (paise). ₹100 = 10000. */
+    PREMIUM_ANNUAL_PAISE: 10000,
   },
   FEATURES: {
     FREE: ['Basic quiz access', 'Event browsing'],

@@ -1,0 +1,193 @@
+name: iOS Production — Build & TestFlight
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*.*.*'
+
+concurrency:
+  group: ios-production-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  BUNDLE_ID: com.nsnr.aplhavlogs
+
+jobs:
+  build-and-publish:
+    name: iOS Production
+    runs-on: macos-latest
+    timeout-minutes: 60
+    environment: ios-production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts
+
+      - name: Run ESLint
+        run: yarn lint --max-warnings=0
+
+      - name: Run TypeScript validation
+        run: yarn type-check
+
+      - name: Run Jest tests
+        run: yarn test:ci
+
+      - name: Validate required secrets
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
+          APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
+          APPLE_PRIVATE_KEY: ${{ secrets.APPLE_PRIVATE_KEY }}
+        run: |
+          missing=0
+          for name in APPLE_CERTIFICATE_BASE64 APPLE_CERTIFICATE_PASSWORD APPLE_PROVISIONING_PROFILE_BASE64 APPLE_TEAM_ID APPLE_KEY_ID APPLE_ISSUER_ID APPLE_PRIVATE_KEY; do
+            eval "value=\$$name"
+            if [ -z "$value" ]; then
+              echo "Missing required secret: $name"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+          echo "All required secrets are present"
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.4'
+
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install --repo-update
+
+      - name: Import certificates and provisioning profile
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'github-actions' }}
+        run: |
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > certificate.p12
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+          echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > profile.mobileprovision
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          PROFILE_UUID=$(grep -aA1 UUID profile.mobileprovision | grep -o "[-A-Z0-9]\{36\}")
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/"$PROFILE_UUID".mobileprovision
+
+          rm certificate.p12 profile.mobileprovision
+          echo "PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
+          echo "Provisioning profile imported: $PROFILE_UUID"
+
+      - name: Archive signed IPA
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CODE_SIGN_IDENTITY: ${{ secrets.APPLE_CODE_SIGN_IDENTITY || 'Apple Distribution' }}
+          PROVISIONING_PROFILE_SPECIFIER: ${{ secrets.APPLE_PROVISIONING_PROFILE_SPECIFIER }}
+        run: |
+          cd ios
+          PROFILE_ARG=()
+          if [ -n "$PROVISIONING_PROFILE_SPECIFIER" ]; then
+            PROFILE_ARG=(PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_SPECIFIER")
+          elif [ -n "$PROFILE_UUID" ]; then
+            PROFILE_ARG=(PROVISIONING_PROFILE="$PROFILE_UUID")
+          fi
+
+          xcodebuild clean archive \
+            -workspace JackMarvelsApp.xcworkspace \
+            -scheme JackMarvelsApp \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/build/AlphaVlogs-production.xcarchive" \
+            PRODUCT_BUNDLE_IDENTIFIER="${{ env.BUNDLE_ID }}" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \
+            CODE_SIGNING_REQUIRED=YES \
+            CODE_SIGNING_ALLOWED=YES \
+            "${PROFILE_ARG[@]}"
+
+          if [ ! -d "$PWD/build/AlphaVlogs-production.xcarchive" ]; then
+            echo "Archive not created"
+            exit 1
+          fi
+
+      - name: Export App Store IPA
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cd ios
+          cat > ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>teamID</key>
+            <string>${APPLE_TEAM_ID}</string>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild -exportArchive \
+            -archivePath "$PWD/build/AlphaVlogs-production.xcarchive" \
+            -exportPath "$PWD/build/export" \
+            -exportOptionsPlist ExportOptions.plist
+
+          IPA_PATH="$PWD/build/export/JackMarvelsApp.ipa"
+          if [ ! -f "$IPA_PATH" ]; then
+            echo "IPA not found at $IPA_PATH"
+            exit 1
+          fi
+          echo "IPA exported: $(du -h "$IPA_PATH" | cut -f1)"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-production-ipa
+          path: ios/build/export/JackMarvelsApp.ipa
+          retention-days: 90
+
+      - name: Upload to TestFlight
+        uses: apple-actions/upload-testflight-build@v1
+        with:
+          app-path: ios/build/export/JackMarvelsApp.ipa
+          issuer-id: ${{ secrets.APPLE_ISSUER_ID }}
+          api-key-id: ${{ secrets.APPLE_KEY_ID }}
+          api-private-key: ${{ secrets.APPLE_PRIVATE_KEY }}
+
+      - name: Build summary
+        run: |
+          {
+            echo "## iOS Production — Build Summary"
+            echo "- **Bundle ID:** \`${{ env.BUNDLE_ID }}\`"
+            echo "- **Destination:** TestFlight only (not App Store production release)"
+            echo "- **Commit:** \`${{ github.sha }}\`"
+            echo "- **Tag:** \`${{ github.ref_name }}\`"
+            echo "- **Artifact:** \`ios-production-ipa\`"
+            echo "- **App Store Connect:** [TestFlight](https://appstoreconnect.apple.com)"
+          } >> "$GITHUB_STEP_SUMMARY"

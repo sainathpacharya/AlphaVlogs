@@ -46,6 +46,18 @@ class MockApiService {
     return mockAuthService.verifyOTP(data);
   }
 
+  async selectProfile(data: { studentId: number; mobile: string }) {
+    return mockAuthService.selectProfile(data);
+  }
+
+  async listProfiles() {
+    return mockAuthService.listProfiles();
+  }
+
+  async switchProfile(data: { studentId: number }) {
+    return mockAuthService.switchProfile(data);
+  }
+
   async login(data: { mobile: string; otp: string }) {
     return mockAuthService.login(data);
   }
@@ -60,6 +72,10 @@ class MockApiService {
 
   async logout() {
     return mockAuthService.logout();
+  }
+
+  async deleteAccount() {
+    return mockAuthService.deleteAccount();
   }
 
   // DASHBOARD API

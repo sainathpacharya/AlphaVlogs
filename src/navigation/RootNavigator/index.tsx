@@ -1,7 +1,7 @@
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {useStatusBarConfig} from '@/utils/colors';
-import {useUserStore} from '@/stores';
+import {useIsAuthenticated, useIsLoading} from '@/stores';
 import {RootStackParamList} from '@/types';
 import LoadingScreen from '@/screens/Loading';
 import {AuthStack} from '../AuthStack';
@@ -10,17 +10,9 @@ import {AppStackScreen} from '../AppStack';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const RootNavigator = () => {
-  const {isLoading, isAuthenticated} = useUserStore();
+  const isLoading = useIsLoading();
+  const isAuthenticated = useIsAuthenticated();
   const {navigationStatusBarStyle, backgroundColor} = useStatusBarConfig();
-
-  // Show loading screen while checking authentication state
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
-
-  // If user is authenticated, show app stack
-  // If not authenticated, show auth stack
-  // The persistent store will automatically restore the user's login state
 
   return (
     <Stack.Navigator
@@ -29,7 +21,9 @@ const RootNavigator = () => {
         statusBarStyle: navigationStatusBarStyle,
         statusBarBackgroundColor: backgroundColor,
       }}>
-      {isAuthenticated ? (
+      {isLoading ? (
+        <Stack.Screen name="Loading" component={LoadingScreen} />
+      ) : isAuthenticated ? (
         <Stack.Screen name="App" component={AppStackScreen} />
       ) : (
         <Stack.Screen name="Auth" component={AuthStack} />
