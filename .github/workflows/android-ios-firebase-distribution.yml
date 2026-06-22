@@ -1,4 +1,4 @@
-name: Dev Firebase Distribution
+name: Android and iOS Firebase Distribution
 
 on:
   push:
@@ -12,7 +12,7 @@ on:
         type: string
 
 concurrency:
-  group: dev-firebase-${{ github.ref }}
+  group: android-ios-firebase-${{ github.ref }}
   cancel-in-progress: true
 
 env:

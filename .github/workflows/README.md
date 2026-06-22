@@ -7,7 +7,7 @@ Platform-specific and environment-specific workflows for independent validation.
 | File | Trigger | Purpose |
 | ---- | ------- | ------- |
 | `ci.yml` | PR / push to `main`, `develop` | Lint, type-check, test (non-deploying) |
-| `dev-firebase-distribution.yml` | push → `develop`, manual | **Dev Firebase Distribution** — Android + iOS → Firebase |
+| `android-ios-firebase-distribution.yml` | push → `develop`, manual | **Android and iOS Firebase Distribution** |
 | `android-production.yml` | tag `v*.*.*`, manual | Signed AAB → Play **Internal Testing** |
 | `ios-production.yml` | tag `v*.*.*`, manual | Signed IPA → **TestFlight** |
 
@@ -23,5 +23,5 @@ Full setup, secrets, validation, and rollback: **[docs/GITHUB_ACTIONS_SETUP.md](
 ## Quick validation
 
 1. Configure secrets per `docs/GITHUB_ACTIONS_SETUP.md`
-2. Run `dev-firebase-distribution.yml` on `develop` (builds Android and iOS in parallel)
+2. Run **Android and iOS Firebase Distribution** on `develop` (builds both platforms in parallel)
 3. Tag `v1.0.0` to exercise production workflows when ready

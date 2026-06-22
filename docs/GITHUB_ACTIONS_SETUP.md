@@ -4,7 +4,7 @@ Alpha Vlogs uses **three deploy workflows** plus CI. Dev Android and iOS share o
 
 | Workflow | File | Trigger | Deploy target |
 | -------- | ---- | ------- | ------------- |
-| Dev (Android + iOS) | `dev-firebase-distribution.yml` | `push` → `develop`, manual | Firebase App Distribution (both platforms) |
+| Dev (Android + iOS) | `android-ios-firebase-distribution.yml` | `push` → `develop`, manual | Firebase App Distribution (both platforms) |
 | Android Production | `android-production.yml` | tag `v*.*.*`, manual | Play Console **Internal Testing** |
 | iOS Production | `ios-production.yml` | tag `v*.*.*`, manual | **TestFlight only** |
 
@@ -23,9 +23,9 @@ Create four environments under **Settings → Environments**:
 
 | Environment | Used by | Protection rules (recommended) |
 | ----------- | ------- | ------------------------------ |
-| `android-development` | `dev-firebase-distribution.yml` (Android job) | Optional: require reviewer for manual dispatch |
+| `android-development` | `android-ios-firebase-distribution.yml` (Android job) | Optional: require reviewer for manual dispatch |
 | `android-production` | `android-production.yml` | Required reviewers; restrict to `main` / tags |
-| `ios-development` | `dev-firebase-distribution.yml` (iOS job) | Optional reviewer |
+| `ios-development` | `android-ios-firebase-distribution.yml` (iOS job) | Optional reviewer |
 | `ios-production` | `ios-production.yml` | Required reviewers; restrict to tags |
 
 Store environment-specific secrets in each environment when possible (e.g. production keystore only in `android-production`).
@@ -40,9 +40,9 @@ Repository-level secrets are also supported if you prefer a single secret store.
 
 | Secret | Workflows | Description |
 | ------ | --------- | ----------- |
-| `FIREBASE_SERVICE_ACCOUNT_JSON` | `dev-firebase-distribution` | Full JSON for a Firebase/Google service account with **Firebase App Distribution Admin** |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | `android-ios-firebase-distribution` | Full JSON for a Firebase/Google service account with **Firebase App Distribution Admin** |
 
-### Android Dev — `dev-firebase-distribution.yml` (Android job)
+### Android Dev — `android-ios-firebase-distribution.yml` (Android job)
 
 | Secret | Required | Notes |
 | ------ | -------- | ----- |
@@ -82,7 +82,7 @@ base64 -i release.keystore | pbcopy   # macOS — paste into ANDROID_KEYSTORE_BA
 4. Download JSON → paste entire contents into `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`
 5. Ensure the app listing uses package **`com.nsnr.aplhavlogs`**
 
-### iOS Dev — `dev-firebase-distribution.yml` (iOS job)
+### iOS Dev — `android-ios-firebase-distribution.yml` (iOS job)
 
 | Secret | Required | Notes |
 | ------ | -------- | ----- |
@@ -194,7 +194,7 @@ The service account needs:
 
 ### Dev (Android + iOS)
 
-1. Actions → **Dev Firebase Distribution** → **Run workflow** (branch: `develop`)
+1. Actions → **Android and iOS Firebase Distribution** → **Run workflow** (branch: `develop`)
 2. Confirm lint, type-check, and tests pass in the **Validate** job
 3. Download artifacts `android-dev-apk`, `android-dev-aab`, and `ios-dev-ipa`
 4. Verify Android package: `aapt dump badging app-develop-release.apk | grep package`
