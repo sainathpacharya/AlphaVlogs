@@ -109,7 +109,7 @@ jobs:
             -PversionCode="$VERSION_CODE" \
             --no-daemon
 
-          AAB_PATH="app/build/outputs/bundle/develop/release/app-develop-release.aab"
+          AAB_PATH="app/build/outputs/bundle/developRelease/app-develop-release.aab"
           if [ ! -f "$AAB_PATH" ]; then
             echo "AAB not found at $AAB_PATH"
             exit 1
@@ -127,7 +127,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-dev-aab
-          path: android/app/build/outputs/bundle/develop/release/app-develop-release.aab
+          path: android/app/build/outputs/bundle/developRelease/app-develop-release.aab
           retention-days: 30
 
       - name: Validate Firebase credentials

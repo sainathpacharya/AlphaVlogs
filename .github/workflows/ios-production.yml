@@ -22,10 +22,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '18'
           cache: 'yarn'
@@ -134,6 +134,7 @@ jobs:
           fi
 
       - name: Export App Store IPA
+        id: export_ipa
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
@@ -158,24 +159,26 @@ jobs:
             -exportPath "$PWD/build/export" \
             -exportOptionsPlist ExportOptions.plist
 
-          IPA_PATH="$PWD/build/export/JackMarvelsApp.ipa"
-          if [ ! -f "$IPA_PATH" ]; then
-            echo "IPA not found at $IPA_PATH"
+          IPA_PATH="$(find "$PWD/build/export" -maxdepth 1 -name '*.ipa' -print -quit)"
+          if [ -z "$IPA_PATH" ] || [ ! -f "$IPA_PATH" ]; then
+            echo "IPA not found in $PWD/build/export"
+            find "$PWD/build/export" -type f -print
             exit 1
           fi
-          echo "IPA exported: $(du -h "$IPA_PATH" | cut -f1)"
+          echo "ipa_path=$IPA_PATH" >> "$GITHUB_OUTPUT"
+          echo "IPA exported: $(du -h "$IPA_PATH" | cut -f1) ($IPA_PATH)"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
           name: ios-production-ipa
-          path: ios/build/export/JackMarvelsApp.ipa
+          path: ${{ steps.export_ipa.outputs.ipa_path }}
           retention-days: 90
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
         with:
-          app-path: ios/build/export/JackMarvelsApp.ipa
+          app-path: ${{ steps.export_ipa.outputs.ipa_path }}
           issuer-id: ${{ secrets.APPLE_ISSUER_ID }}
           api-key-id: ${{ secrets.APPLE_KEY_ID }}
           api-private-key: ${{ secrets.APPLE_PRIVATE_KEY }}

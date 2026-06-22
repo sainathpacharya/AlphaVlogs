@@ -157,7 +157,7 @@ jobs:
             -PversionCode="${{ steps.version.outputs.version_code }}" \
             --no-daemon
 
-          AAB_PATH="app/build/outputs/bundle/production/release/app-production-release.aab"
+          AAB_PATH="app/build/outputs/bundle/productionRelease/app-production-release.aab"
           if [ ! -f "$AAB_PATH" ]; then
             echo "AAB not found at $AAB_PATH"
             exit 1
@@ -168,7 +168,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-production-aab
-          path: android/app/build/outputs/bundle/production/release/app-production-release.aab
+          path: android/app/build/outputs/bundle/productionRelease/app-production-release.aab
           retention-days: 90
 
       - name: Deploy to Google Play (Internal Testing)
@@ -176,7 +176,7 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: ${{ env.PACKAGE_NAME }}
-          releaseFiles: android/app/build/outputs/bundle/production/release/app-production-release.aab
+          releaseFiles: android/app/build/outputs/bundle/productionRelease/app-production-release.aab
           track: ${{ env.PLAY_STORE_TRACK }}
           status: completed
           changesNotSentForReview: false
