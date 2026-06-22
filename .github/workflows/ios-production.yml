@@ -106,6 +106,7 @@ jobs:
           echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
           security cms -D -i "$PROFILE_PATH" > "$PROFILE_PLIST"
           PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST")
           if [ -z "$PROFILE_UUID" ]; then
             echo "Failed to extract provisioning profile UUID"
             exit 1
@@ -117,22 +118,15 @@ jobs:
           rm -f "$CERTIFICATE_PATH" "$PROFILE_PATH" "$PROFILE_PLIST"
           security find-identity -v -p codesigning "$KEYCHAIN_PATH"
           echo "PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
-          echo "Provisioning profile imported: $PROFILE_UUID"
+          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+          echo "Provisioning profile imported: $PROFILE_NAME ($PROFILE_UUID)"
 
       - name: Archive signed IPA
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           CODE_SIGN_IDENTITY: ${{ secrets.APPLE_CODE_SIGN_IDENTITY || 'Apple Distribution' }}
-          PROVISIONING_PROFILE_SPECIFIER: ${{ secrets.APPLE_PROVISIONING_PROFILE_SPECIFIER }}
         run: |
           cd ios
-          PROFILE_ARG=()
-          if [ -n "$PROVISIONING_PROFILE_SPECIFIER" ]; then
-            PROFILE_ARG=(PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_SPECIFIER")
-          elif [ -n "$PROFILE_UUID" ]; then
-            PROFILE_ARG=(PROVISIONING_PROFILE="$PROFILE_UUID")
-          fi
-
           xcodebuild clean archive \
             -workspace JackMarvelsApp.xcworkspace \
             -scheme JackMarvelsApp \
@@ -144,8 +138,7 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \
             CODE_SIGNING_REQUIRED=YES \
-            CODE_SIGNING_ALLOWED=YES \
-            "${PROFILE_ARG[@]}"
+            CODE_SIGNING_ALLOWED=YES
 
           if [ ! -d "$PWD/build/AlphaVlogs-production.xcarchive" ]; then
             echo "Archive not created"

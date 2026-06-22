@@ -306,6 +306,7 @@ jobs:
           echo "$IOS_DEV_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
           security cms -D -i "$PROFILE_PATH" > "$PROFILE_PLIST"
           PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST")
           if [ -z "$PROFILE_UUID" ]; then
             echo "Failed to extract provisioning profile UUID"
             exit 1
@@ -317,16 +318,22 @@ jobs:
           rm -f "$CERTIFICATE_PATH" "$PROFILE_PATH" "$PROFILE_PLIST"
           security find-identity -v -p codesigning "$KEYCHAIN_PATH"
           echo "profile_uuid=$PROFILE_UUID" >> "$GITHUB_OUTPUT"
+          echo "profile_name=$PROFILE_NAME" >> "$GITHUB_OUTPUT"
           echo "signing_enabled=true" >> "$GITHUB_OUTPUT"
-          echo "Development signing configured (profile: $PROFILE_UUID)"
+          echo "Development signing configured (profile: $PROFILE_NAME / $PROFILE_UUID)"
 
       - name: Build iOS archive
         env:
           SIGNING_ENABLED: ${{ steps.dev_signing.outputs.signing_enabled }}
-          PROFILE_UUID: ${{ steps.dev_signing.outputs.profile_uuid }}
+          IOS_DEV_TEAM_ID: ${{ secrets.IOS_DEV_TEAM_ID }}
         run: |
           cd ios
           if [ "$SIGNING_ENABLED" = "true" ]; then
+            if [ -z "$IOS_DEV_TEAM_ID" ]; then
+              echo "Missing IOS_DEV_TEAM_ID secret"
+              exit 1
+            fi
+            # Do not pass PROVISIONING_PROFILE here — it applies to all Pod targets and fails the build.
             xcodebuild clean archive \
               -workspace JackMarvelsApp.xcworkspace \
               -scheme JackMarvelsApp \
@@ -334,9 +341,9 @@ jobs:
               -destination 'generic/platform=iOS' \
               -archivePath "$PWD/build/AlphaVlogs-dev.xcarchive" \
               PRODUCT_BUNDLE_IDENTIFIER="${{ env.IOS_BUNDLE_ID }}" \
+              DEVELOPMENT_TEAM="$IOS_DEV_TEAM_ID" \
               CODE_SIGN_STYLE=Manual \
               CODE_SIGN_IDENTITY="Apple Development" \
-              PROVISIONING_PROFILE="$PROFILE_UUID" \
               CODE_SIGNING_REQUIRED=YES \
               CODE_SIGNING_ALLOWED=YES
           else
@@ -362,6 +369,7 @@ jobs:
         env:
           SIGNING_ENABLED: ${{ steps.dev_signing.outputs.signing_enabled }}
           IOS_DEV_TEAM_ID: ${{ secrets.IOS_DEV_TEAM_ID }}
+          PROFILE_NAME: ${{ steps.dev_signing.outputs.profile_name }}
         run: |
           cd ios
           if [ "$SIGNING_ENABLED" = "true" ]; then
@@ -380,20 +388,30 @@ jobs:
             exit 1
           fi
 
+          if [ -z "$PROFILE_NAME" ]; then
+            echo "Missing provisioning profile name from signing step"
+            exit 1
+          fi
+
           cat > ExportOptions.plist <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>${EXPORT_METHOD}</string>
-            <key>teamID</key>
-            <string>${TEAM_ID}</string>
-            <key>signingStyle</key>
-            <string>manual</string>
-          </dict>
-          </plist>
-          EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>${EXPORT_METHOD}</string>
+  <key>teamID</key>
+  <string>${TEAM_ID}</string>
+  <key>signingStyle</key>
+  <string>manual</string>
+  <key>provisioningProfiles</key>
+  <dict>
+    <key>${{ env.IOS_BUNDLE_ID }}</key>
+    <string>${PROFILE_NAME}</string>
+  </dict>
+</dict>
+</plist>
+EOF
 
           xcodebuild -exportArchive \
             -archivePath "$PWD/build/AlphaVlogs-dev.xcarchive" \
