@@ -4,7 +4,7 @@ Alpha Vlogs uses **three deploy workflows** plus CI. Dev Android and iOS share o
 
 | Workflow | File | Trigger | Deploy target |
 | -------- | ---- | ------- | ------------- |
-| Dev (Android + iOS) | `android-ios-firebase-distribution.yml` | `push` → `develop`, manual | Firebase App Distribution (both platforms) |
+| Dev (Android + iOS) | `android-ios-firebase-distribution.yml` | `push` → `main` or `develop`, manual | Firebase App Distribution (both platforms) |
 | Android Production | `android-production.yml` | tag `v*.*.*`, manual | Play Console **Internal Testing** |
 | iOS Production | `ios-production.yml` | tag `v*.*.*`, manual | **TestFlight only** |
 
@@ -194,7 +194,7 @@ The service account needs:
 
 ### Dev (Android + iOS)
 
-1. Actions → **Android and iOS Firebase Distribution** → **Run workflow** (branch: `develop`)
+1. Actions → **Android and iOS Firebase Distribution** → **Run workflow** → select the branch you want to build
 2. Confirm lint, type-check, and tests pass in the **Validate** job
 3. Download artifacts `android-dev-apk`, `android-dev-aab`, and `ios-dev-ipa`
 4. Verify Android package: `aapt dump badging app-develop-release.apk | grep package`
