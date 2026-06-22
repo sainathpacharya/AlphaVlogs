@@ -103,7 +103,7 @@ interface IPageHeaderProps {
 }
 const PageHeader = (props: IPageHeaderProps) => {
   const {
-    renderNavBar = <View />,
+    renderNavBar: _renderNavBar = <View />,
     renderContent = <View />,
     searchBar = undefined,
     navbarColor = DEFAULT_NAVBAR_COLOR,
@@ -121,8 +121,8 @@ const PageHeader = (props: IPageHeaderProps) => {
     innerContainerStyle = undefined,
     scrollViewStyle = undefined,
     containerStyle = undefined,
-    alwaysShowTitle = false,
-    alwaysShowNavBar = true,
+    alwaysShowTitle: _alwaysShowTitle = false,
+    alwaysShowNavBar: _alwaysShowNavBar = true,
     statusBarColor = undefined,
     scrollViewProps = {},
     scrollEnabled = true,
@@ -186,14 +186,6 @@ const PageHeader = (props: IPageHeaderProps) => {
     return scrollY.interpolate({
       inputRange: getInputRange(),
       outputRange: [getBackgroundImageScale(), 1, 1],
-      extrapolate: 'clamp',
-    });
-  };
-
-  const getTitleTranslateY = () => {
-    return scrollY.interpolate({
-      inputRange: getInputRange(),
-      outputRange: [5, 0, 0],
       extrapolate: 'clamp',
     });
   };
@@ -274,7 +266,6 @@ const PageHeader = (props: IPageHeaderProps) => {
   };
 
   const renderHeaderTitle = () => {
-    const titleTranslateY = getTitleTranslateY();
     // const titleOpacity = getTitleOpacity();
 
     return (
@@ -283,7 +274,6 @@ const PageHeader = (props: IPageHeaderProps) => {
           style={[
             styles.headerTitle,
             {
-              // transform: [{ translateY: titleTranslateY }],
               height: getHeaderHeight(),
               // opacity: titleOpacity,
             },

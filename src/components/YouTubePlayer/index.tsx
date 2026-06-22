@@ -31,7 +31,7 @@ const YouTubePlayerComponent: React.FC<YouTubePlayerProps> = ({
 }) => {
   const colors = useThemeColors();
   const playerRef = useRef<any>(null);
-  const [playing, setPlaying] = useState(false);
+  const [playing, setPlaying] = useState(autoplay);
   const [isReady, setIsReady] = useState(false);
 
   const handleReady = () => {

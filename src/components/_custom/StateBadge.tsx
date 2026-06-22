@@ -31,27 +31,23 @@ const StateBadge = ({ state }: iState) => {
   const [color, setColor] = useState<string>('');
 
   useEffect(() => {
-    borderColor();
-  }, [state]);
-
-  const borderColor = () => {
     const parsedState = state?.toLowerCase()?.replace(' ', '_');
-    let color = '';
+    let nextColor = '';
 
     if (ColorItems.blue.includes(parsedState)) {
-      color = ColorVar.blue;
+      nextColor = ColorVar.blue;
     } else if (ColorItems.yellow.includes(parsedState)) {
-      color = ColorVar.yellow;
+      nextColor = ColorVar.yellow;
     } else if (ColorItems.red.includes(parsedState)) {
-      color = ColorVar.red;
+      nextColor = ColorVar.red;
     } else if (ColorItems.green.includes(parsedState)) {
-      color = ColorVar.green;
+      nextColor = ColorVar.green;
     } else if (ColorItems.gray.includes(parsedState)) {
-      color = ColorVar.gray;
+      nextColor = ColorVar.gray;
     }
 
-    setColor(color);
-  };
+    setColor(nextColor);
+  }, [state]);
 
   if (!color) {
     return null;

@@ -314,8 +314,6 @@ const StyledIcon = styled(
   }
 );
 
-const Badge = StyledRoot;
-
 // Create a proper Badge component that includes text
 const BadgeComponent = ({ children, ...props }: any) => {
   return (

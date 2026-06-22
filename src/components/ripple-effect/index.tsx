@@ -10,7 +10,6 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withSequence,
-  runOnJS,
 } from 'react-native-reanimated';
 
 interface RippleEffectProps extends PressableProps {
@@ -38,13 +37,6 @@ export const RippleEffect: React.FC<RippleEffectProps> = ({
 
   const handlePressIn = (event: GestureResponderEvent) => {
     if (disabled) {return;}
-
-    // Get the center of the press
-    const {locationX, locationY} = event.nativeEvent;
-
-    // Calculate the maximum ripple radius (diagonal of the component)
-    // Use a default size if dimensions are not available
-    const maxRadius = Math.sqrt(Math.pow(100, 2) + Math.pow(100, 2));
 
     // Set ripple position and size
     scale.value = withSequence(
