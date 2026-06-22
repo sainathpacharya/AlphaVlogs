@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {ScrollView, RefreshControl, StyleSheet} from 'react-native';
 import {
   Box,
@@ -38,12 +38,7 @@ const GifPlayerScreen: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedGif, setSelectedGif] = useState<GifData | null>(null);
 
-  useEffect(() => {
-    loadGifs();
-    loadCategories();
-  }, []);
-
-  const loadGifs = async () => {
+  const loadGifs = useCallback(async () => {
     if (isMounted.current) {
       setIsLoading(true);
     }
@@ -59,9 +54,9 @@ const GifPlayerScreen: React.FC = () => {
         setIsLoading(false);
       }
     }
-  };
+  }, [isMounted, selectedCategory]);
 
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     try {
       const categoryData = await gifService.getCategories();
       if (isMounted.current) {
@@ -70,7 +65,12 @@ const GifPlayerScreen: React.FC = () => {
     } catch (error) {
       console.error('Error loading categories:', error);
     }
-  };
+  }, [isMounted]);
+
+  useEffect(() => {
+    loadGifs();
+    loadCategories();
+  }, [loadGifs, loadCategories]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {

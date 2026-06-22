@@ -1,5 +1,4 @@
-import { User, Event, InfluencerEvent, Subscription, PaymentMethod, VideoSubmission, QuizQuestion, QuizResult, Notification, DashboardData } from '@/types';
-import { validateRegistrationData } from '@/utils/validation';
+import { User, Event, InfluencerEvent, Subscription, DashboardData } from '@/types';
 import { MockDataStore } from './mock/mock-data-store';
 import { MockAuthService } from './mock/mock-auth';
 
@@ -503,7 +502,7 @@ class MockApiService {
   }
 
   // SEARCH API
-  async search(query: string, filters?: any) {
+  async search(query: string, _filters?: any) {
     await this.delay();
 
     const searchTerm = query.toLowerCase();

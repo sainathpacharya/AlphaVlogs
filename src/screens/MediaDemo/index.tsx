@@ -1,7 +1,6 @@
 import React, {useState} from 'react';
 import {ScrollView, StyleSheet} from 'react-native';
 import {
-  Box,
   Text,
   Button,
   VStack,
@@ -48,14 +47,6 @@ const MediaDemoScreen: React.FC = () => {
 
   const handleYoutubeUploadError = (error: string) => {
     console.error('YouTube upload error:', error);
-  };
-
-  const handleGifUploadComplete = (gifId: string, gifUrl: string) => {
-    console.log('GIF uploaded:', {gifId, gifUrl});
-  };
-
-  const handleGifUploadError = (error: string) => {
-    console.error('GIF upload error:', error);
   };
 
   return (

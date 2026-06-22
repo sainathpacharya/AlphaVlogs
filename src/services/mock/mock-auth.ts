@@ -1,4 +1,4 @@
-import { User, AuthTokens } from '@/types';
+import { User } from '@/types';
 import { validateRegistrationData } from '@/utils/validation';
 import { MockDataStore } from './mock-data-store';
 
@@ -296,7 +296,7 @@ export class MockAuthService {
     return this.createErrorResponse('User not found', 404);
   }
 
-  async uploadAvatar(userId: string, file: any) {
+  async uploadAvatar(userId: string, _file: any) {
     await this.delay();
 
     const avatarUrl = `https://example.com/avatars/${userId}_${Date.now()}.jpg`;

@@ -1,7 +1,7 @@
 // Mock for zustand that handles the create<UserStore>()() pattern
 const create = jest.fn(() => {
   // Return a function that takes the store creator
-  return (storeCreator) => {
+  return (_storeCreator) => {
     // Create a shared state object that can be updated
     let state = {
       isLoading: false,

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiService from './api';
 import { API_ENDPOINTS, STORAGE_KEYS } from '@/constants';
-import { ApiResponse, User, AuthTokens, OTPResponse, StudentProfile, VerifyOTPResponse, LoginResponse, StudentProfilesResponse } from '@/types';
+import { ApiResponse, User, OTPResponse, StudentProfile, VerifyOTPResponse, LoginResponse, StudentProfilesResponse } from '@/types';
 import { MockWrapperService } from './mock-wrapper';
 import { apiLogger } from '@/utils/api-logger';
 import { validateRegistrationData } from '@/utils/validation';

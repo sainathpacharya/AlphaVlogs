@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useMemo, useCallback} from 'react';
-import {View, StyleSheet, Alert, Dimensions} from 'react-native';
+import {View, StyleSheet, Alert} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {Crown} from 'lucide-react-native';
 import {
@@ -8,7 +8,6 @@ import {
   Text,
   Button,
   Box,
-  Divider,
   Badge,
   Pressable,
 } from '@/components';
@@ -24,8 +23,6 @@ import {useUser, useUserStore} from '@/stores';
 import {useIsMounted} from '@/hooks';
 import {InfoScreenLayout} from '@/components/InfoScreenLayout';
 
-const {width} = Dimensions.get('window');
-
 interface PaymentMethod {
   id: string;
   type: 'cash' | 'cheque' | 'razorpay' | 'stripe' | 'paytm';
@@ -40,18 +37,7 @@ const SubscriptionScreen: React.FC = () => {
   const isMounted = useIsMounted();
   const user = useUser();
   const setUser = useUserStore(state => state.setUser);
-  const styles = useMemo(() => getStyles(colors), [
-    colors.primaryBackground,
-    colors.primaryText,
-    colors.mutedText,
-    colors.cardBackground,
-    colors.border,
-    colors.danger,
-    colors.accentAction,
-    colors.success,
-    colors.white,
-    colors.secondaryBackground,
-  ]);
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [selectedPlan, setSelectedPlan] = useState<'free' | 'premium'>('free');
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<string>('');

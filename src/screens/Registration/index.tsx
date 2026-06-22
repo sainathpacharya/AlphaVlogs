@@ -5,7 +5,6 @@ import {
   ScrollView,
   Dimensions,
   View,
-  TextInput,
 } from 'react-native';
 import {
   VStack,
@@ -14,7 +13,6 @@ import {
   Button,
   Text,
   Box,
-  Image,
   Icon,
   Select,
 } from '../../components';
@@ -23,15 +21,11 @@ import {useThemeColors} from '../../utils/colors';
 import {useIsMounted, useRegisterMutation} from '@/hooks';
 import {schoolsService, School} from '../../services/schools-service';
 import {
-  validateRegistrationForm,
   validateFieldRealtime as validateFieldRealtimeUtil,
-  validateSchoolSelection,
   sanitizeInput,
   formatPhoneNumber,
   formatPincode,
-  isFormReadyForSubmission,
   REGISTRATION_VALIDATION_RULES,
-  VALIDATION_MESSAGES,
 } from '../../utils/validation';
 
 import {
@@ -315,18 +309,6 @@ const RegistrationScreen = ({navigation}: any) => {
     [touchedFields],
   );
 
-  // Comprehensive form validation
-  const validateForm = useCallback(() => {
-    const validationResult = validateRegistrationForm(form);
-    setErrors(validationResult.errors);
-    return validationResult.isValid;
-  }, [form]);
-
-  // Check if form is ready for submission
-  const isFormReady = useCallback(() => {
-    return isFormReadyForSubmission(form);
-  }, [form]);
-
   // Validate form and show only the first error
   const validateFormProgressive = useCallback(() => {
     // Clear all existing errors first
@@ -394,29 +376,6 @@ const RegistrationScreen = ({navigation}: any) => {
 
     return true;
   }, [form, showCustomSchool, validateFieldRealtime]);
-
-  // Get missing required fields for user feedback
-  const getMissingFields = useCallback(() => {
-    const requiredFields = [
-      'firstName',
-      'lastName',
-      'emailId',
-      'mobileNumber',
-      'state',
-      'district',
-      'city',
-      'pincode',
-    ];
-    const missingFields = requiredFields.filter(
-      field => !form[field as keyof typeof form]?.trim(),
-    );
-
-    if (!form.schoolId && !form.schoolName?.trim()) {
-      missingFields.push('school');
-    }
-
-    return missingFields;
-  }, [form]);
 
   const handleRegister = async () => {
     // Mark all fields as touched for validation
@@ -707,7 +666,7 @@ const RegistrationScreen = ({navigation}: any) => {
               placeholder: 'Enter promo code (optional)',
               icon: Hash,
             },
-          ].map(({key, label, placeholder, icon: IconComponent, isSelect}) => (
+          ].map(({key, placeholder, icon: IconComponent, isSelect}) => (
             <React.Fragment key={key}>
               <Box mb={'$2'} testID={`registration-${key}-container`}>
                 {isSelect ? (

@@ -14,7 +14,7 @@ export class MockWrapperService {
   }
 
   // Helper to convert mock response to standard API response format
-  static convertMockResponse<T>(mockResponse: any): any {
+  static convertMockResponse(mockResponse: any): any {
     if (mockResponse.success && 'data' in mockResponse) {
       return {
         success: true,

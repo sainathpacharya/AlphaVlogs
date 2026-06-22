@@ -64,7 +64,6 @@ class OTPAutoReadService {
 
           const match = message.match(this.defaultSmsPattern);
           if (match && match[1]) {
-            const otp = match[1];
             this.stopListening();
           }
         });

@@ -262,8 +262,8 @@ const SelectWrapper = React.forwardRef<any, any>((props, ref) => {
 
   // Extract options from children (SelectItem components)
   const options: SelectOption[] = [];
-  const processChildren = (children: any) => {
-    Children.forEach(children, (child: any) => {
+  const processChildren = (childNodes: any) => {
+    Children.forEach(childNodes, (child: any) => {
       if (child && typeof child === 'object') {
         const componentName = child.type?.displayName || child.type?.name || '';
         if (

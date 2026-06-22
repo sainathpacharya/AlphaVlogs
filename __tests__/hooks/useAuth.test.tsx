@@ -1,6 +1,4 @@
-import React from 'react';
-import {renderHook} from '@testing-library/react-native';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import {QueryClient} from '@tanstack/react-query';
 
 // Simple test that doesn't rely on complex mocking
 describe('useAuth - Simple Tests', () => {
@@ -18,12 +16,6 @@ describe('useAuth - Simple Tests', () => {
       },
     });
   });
-
-  const createWrapper = () => {
-    return ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
-  };
 
   describe('Hook Structure', () => {
     it('should have correct hook structure', () => {

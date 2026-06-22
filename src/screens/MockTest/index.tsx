@@ -1,13 +1,12 @@
 // @ts-nocheck
 import React, {useState} from 'react';
-import {Alert, ScrollView} from 'react-native';
+import {ScrollView} from 'react-native';
 import {
   VStack,
   HStack,
   Text,
   Button,
   Box,
-  Pressable,
   Input,
   InputField,
 } from '@/components';

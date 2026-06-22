@@ -186,7 +186,7 @@ class SubscriptionService {
   }
 
   // Legacy alias — prefer completeRazorpayCheckout
-  async initiateRazorpayPayment(amount: number, _subscriptionId: string): Promise<any> {
+  async initiateRazorpayPayment(_amount: number, _subscriptionId: string): Promise<any> {
     throw new Error('Use completeRazorpayCheckout instead');
   }
 

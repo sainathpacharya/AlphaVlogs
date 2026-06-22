@@ -191,7 +191,6 @@ const PageHeader = (props: IPageHeaderProps) => {
   };
 
   const renderBackgroundImage = () => {
-    const { backgroundImage } = props;
     const imageOpacity = getImageOpacity();
     const imageTranslate = getImageTranslate();
     const imageScale = getImageScale();

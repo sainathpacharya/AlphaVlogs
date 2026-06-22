@@ -2,11 +2,6 @@ import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import strings from '@/constants/strings.json';
 
-type StringKeys = keyof typeof strings;
-type NestedStringKeys = {
-  [K in StringKeys]: keyof typeof strings[K];
-};
-
 // Initialize i18next with react-i18next
 const initializeI18n = async () => {
   if (!i18next.isInitialized) {

@@ -1,7 +1,6 @@
 import React, {useState} from 'react';
 import {ScrollView, StyleSheet} from 'react-native';
 import {
-  Box,
   Text,
   Button,
   VStack,
@@ -24,8 +23,8 @@ const YouTubeDemoScreen: React.FC = () => {
     }
   };
 
-  const handleUploadComplete = (videoId: string, videoUrl: string) => {
-    console.log('Video uploaded successfully:', {videoId, videoUrl});
+  const handleUploadComplete = (uploadedVideoId: string, videoUrl: string) => {
+    console.log('Video uploaded successfully:', {videoId: uploadedVideoId, videoUrl});
     // You can show a success message or navigate somewhere
   };
 

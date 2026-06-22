@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {ScrollView, RefreshControl, StyleSheet, Image} from 'react-native';
 import {
   Box,
@@ -36,11 +36,7 @@ const YouTubeScreen: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<YouTubeVideo | null>(null);
 
-  useEffect(() => {
-    loadVideos();
-  }, []);
-
-  const loadVideos = async () => {
+  const loadVideos = useCallback(async () => {
     if (isMounted.current) {
       setIsLoading(true);
     }
@@ -56,7 +52,11 @@ const YouTubeScreen: React.FC = () => {
         setIsLoading(false);
       }
     }
-  };
+  }, [isMounted]);
+
+  useEffect(() => {
+    loadVideos();
+  }, [loadVideos]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -97,7 +97,7 @@ const YouTubeScreen: React.FC = () => {
     setSelectedVideo(video);
   };
 
-  const handleUploadComplete = (videoId: string, videoUrl: string) => {
+  const handleUploadComplete = (_videoId: string, _videoUrl: string) => {
     // Refresh videos list to show the newly uploaded video
     loadVideos();
     setActiveTab(0); // Switch to videos tab
@@ -157,8 +157,7 @@ const YouTubeScreen: React.FC = () => {
             size="sm"
             variant="outline"
             onPress={() => {
-              // Open in YouTube app or browser
-              const url = youtubeService.getVideoUrl(video.videoId);
+              youtubeService.getVideoUrl(video.videoId);
               // You can use Linking.openURL(url) here
             }}
             flex={1}>

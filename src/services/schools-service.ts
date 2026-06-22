@@ -5,7 +5,6 @@
 
 import { API_ENDPOINTS, getApiBaseUrl } from '@/constants';
 import { ApiResponse } from '@/types';
-import { MockWrapperService } from './mock-wrapper';
 import { isMockMode } from '@/config/api-config';
 
 export interface School {

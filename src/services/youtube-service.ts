@@ -323,7 +323,7 @@ class YouTubeService {
       .slice(0, limit);
   }
 
-  private getMockPlaylists(category?: string): YouTubePlaylist[] {
+  private getMockPlaylists(_category?: string): YouTubePlaylist[] {
     return [
       {
         id: '1',

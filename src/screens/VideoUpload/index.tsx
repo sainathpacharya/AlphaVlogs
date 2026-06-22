@@ -1,6 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import {Alert, ScrollView} from 'react-native';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
 import {launchImageLibrary} from 'react-native-image-picker';
 import {ImagePlus} from 'lucide-react-native';
 import {

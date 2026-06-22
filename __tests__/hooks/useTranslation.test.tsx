@@ -1,4 +1,3 @@
-import React from 'react';
 import {renderHook} from '@testing-library/react-native';
 import {useTranslation} from 'react-i18next';
 import {useTranslation as useCustomTranslation} from '../../src/hooks/useTranslation';

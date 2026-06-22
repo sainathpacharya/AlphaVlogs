@@ -131,7 +131,6 @@ const PermissionsScreen: React.FC = () => {
   const colors = useThemeColors();
   const navigation = useNavigation();
   const {
-    permissions,
     loading,
     requestPermission,
     openSettings,

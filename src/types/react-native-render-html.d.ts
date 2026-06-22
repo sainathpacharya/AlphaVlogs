@@ -1,6 +1,6 @@
 declare module 'react-native-render-html' {
   import { Component } from 'react';
-  import { ViewStyle, TextStyle } from 'react-native';
+  import { TextStyle } from 'react-native';
 
   export interface HTMLProps {
     source: { html: string };

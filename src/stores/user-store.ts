@@ -32,7 +32,7 @@ const initialState: AppState = {
 
 export const useUserStore = create<UserStore>()(
   persist(
-    subscribeWithSelector((set, get) => ({
+    subscribeWithSelector((set, _get) => ({
       ...initialState,
 
       setLoading: (loading: boolean) =>

@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Dimensions} from 'react-native';
+import {Dimensions} from 'react-native';
 import {SafeAreaView, VStack, Spinner, Text} from '@/components';
 import {AppLogoImage} from '@/components/AppLogoImage';
 import appLogo from '@/assets/png/appLogo.png';

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
-import { AuthTokens, User, SecureStorageKeys } from '@/types';
+import { AuthTokens, User } from '@/types';
 import { purgeAuthTokensFromDevice } from '@/utils/auth-storage';
 
 interface CachedData {
@@ -53,7 +53,7 @@ const defaultCachedData: CachedData = {
 
 export const useUserCachedStore = create<UserCachedStore>()(
   persist(
-    (set, get) => ({
+    (set, _get) => ({
       tokens: null,
       userData: null,
       settings: defaultSettings,

@@ -198,6 +198,7 @@ const ProfileScreen = () => {
                     try {
                       const response = await deleteAccountMutation.mutateAsync();
                       if (response.success) {
+                        await clearLocalSession();
                         Alert.alert(
                           'Account Deleted',
                           'Your account has been permanently deleted.',

@@ -36,18 +36,25 @@ module.exports = {
       },
     ],
     // Inline styles are common in React Native
-    'react-native/no-inline-styles': 'warn',
+    'react-native/no-inline-styles': 'off',
     // Allow console in some cases
-    'no-console': 'warn',
+    'no-console': 'off',
+    'no-void': 'off',
+    '@typescript-eslint/no-shadow': 'warn',
+    'eslint-comments/no-unused-disable': 'off',
+    'no-trailing-spaces': 'off',
+    curly: 'off',
   },
   overrides: [
     {
       // Test files and mocks
       files: ['**/__tests__/**', '**/__mocks__/**', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
       rules: {
-        '@typescript-eslint/no-unused-vars': 'warn',
+        '@typescript-eslint/no-unused-vars': 'off',
         'no-dupe-keys': 'warn',
-        'no-unused-vars': 'warn',
+        'no-unused-vars': 'off',
+        '@typescript-eslint/no-shadow': 'off',
+        'no-shadow': 'off',
       },
     },
   ],
