@@ -1,8 +1,6 @@
 name: Android and iOS Firebase Distribution
 
 on:
-  push:
-    branches: [main, develop]
   workflow_dispatch:
 
 concurrency:
@@ -322,6 +320,61 @@ jobs:
           echo "signing_enabled=true" >> "$GITHUB_OUTPUT"
           echo "Development signing configured (profile: $PROFILE_NAME / $PROFILE_UUID)"
 
+      - name: Configure app target signing
+        if: steps.dev_signing.outputs.signing_enabled == 'true'
+        env:
+          IOS_DEV_TEAM_ID: ${{ secrets.IOS_DEV_TEAM_ID }}
+          PROFILE_UUID: ${{ steps.dev_signing.outputs.profile_uuid }}
+          PROFILE_NAME: ${{ steps.dev_signing.outputs.profile_name }}
+          IOS_BUNDLE_ID: ${{ env.IOS_BUNDLE_ID }}
+        run: |
+          cd ios
+          python3 <<'PY'
+          import os
+          import re
+
+          path = "JackMarvelsApp.xcodeproj/project.pbxproj"
+          team = os.environ["IOS_DEV_TEAM_ID"]
+          profile_uuid = os.environ["PROFILE_UUID"]
+          profile_name = os.environ["PROFILE_NAME"]
+          bundle_id = os.environ["IOS_BUNDLE_ID"]
+
+          with open(path, encoding="utf-8") as f:
+              content = f.read()
+
+          block_id = "13B07F951A680F5B00A75B9A"
+          pattern = rf"({re.escape(block_id)} /\* Release \*/ = \{{\n\t\t\tisa = XCBuildConfiguration;\n\t\t\tbaseConfigurationReference = [^;]+;\n\t\t\tbuildSettings = \{{)(.*?)(\n\t\t\t\}};\n\t\t\tname = Release;)"
+
+          def patch_release_block(match: re.Match) -> str:
+              settings = match.group(2)
+              for key in (
+                  "CODE_SIGN_STYLE",
+                  "CODE_SIGN_IDENTITY",
+                  "PROVISIONING_PROFILE",
+                  "PROVISIONING_PROFILE_SPECIFIER",
+              ):
+                  settings = re.sub(rf"\n\t\t\t\t{key} = [^;]*;", "", settings)
+
+              settings += (
+                  f'\n\t\t\t\tCODE_SIGN_STYLE = Manual;'
+                  f'\n\t\t\t\tCODE_SIGN_IDENTITY = "Apple Development";'
+                  f'\n\t\t\t\tDEVELOPMENT_TEAM = {team};'
+                  f'\n\t\t\t\tPROVISIONING_PROFILE = "{profile_uuid}";'
+                  f'\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "{profile_name}";'
+                  f'\n\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = {bundle_id};'
+              )
+              return match.group(1) + settings + match.group(3)
+
+          updated, count = re.subn(pattern, patch_release_block, content, count=1, flags=re.DOTALL)
+          if count != 1:
+              raise SystemExit("Failed to patch JackMarvelsApp Release signing settings in project.pbxproj")
+
+          with open(path, "w", encoding="utf-8") as f:
+              f.write(updated)
+
+          print(f"Configured manual signing for JackMarvelsApp Release ({bundle_id})")
+          PY
+
       - name: Build iOS archive
         env:
           SIGNING_ENABLED: ${{ steps.dev_signing.outputs.signing_enabled }}
@@ -333,14 +386,13 @@ jobs:
               echo "Missing IOS_DEV_TEAM_ID secret"
               exit 1
             fi
-            # Do not pass PROVISIONING_PROFILE here — it applies to all Pod targets and fails the build.
+            # Profile is set on JackMarvelsApp target only (see Configure app target signing).
             xcodebuild clean archive \
               -workspace JackMarvelsApp.xcworkspace \
               -scheme JackMarvelsApp \
               -configuration Release \
               -destination 'generic/platform=iOS' \
               -archivePath "$PWD/build/AlphaVlogs-dev.xcarchive" \
-              PRODUCT_BUNDLE_IDENTIFIER="${{ env.IOS_BUNDLE_ID }}" \
               DEVELOPMENT_TEAM="$IOS_DEV_TEAM_ID" \
               CODE_SIGN_STYLE=Manual \
               CODE_SIGN_IDENTITY="Apple Development" \

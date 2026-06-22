@@ -4,7 +4,7 @@ Alpha Vlogs uses **three deploy workflows** plus CI. Dev Android and iOS share o
 
 | Workflow | File | Trigger | Deploy target |
 | -------- | ---- | ------- | ------------- |
-| Dev (Android + iOS) | `android-ios-firebase-distribution.yml` | `push` → `main` or `develop`, manual | Firebase App Distribution (both platforms) |
+| Dev (Android + iOS) | `android-ios-firebase-distribution.yml` | manual only | Firebase App Distribution (both platforms) |
 | Android Production | `android-production.yml` | tag `v*.*.*`, manual | Play Console **Internal Testing** |
 | iOS Production | `ios-production.yml` | tag `v*.*.*`, manual | **TestFlight only** |
 

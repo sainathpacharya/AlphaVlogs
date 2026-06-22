@@ -87,6 +87,17 @@ target 'JackMarvelsApp' do
 
     fix_react_native_script_phases_for_spaces(installer)
 
+    installer.generated_projects.each do |project|
+      project.targets.each do |target|
+        target.build_configurations.each do |config|
+          config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+          config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
+          config.build_settings['PROVISIONING_PROFILE'] = ''
+          config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = ''
+        end
+      end
+    end
+
     # Fix for Razorpay Swift protocol linking and other build issues
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
