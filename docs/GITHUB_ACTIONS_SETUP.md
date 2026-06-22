@@ -1,12 +1,11 @@
 # GitHub Actions — Platform & Environment Workflows
 
-Alpha Vlogs uses **four independent workflows** (no shared/reusable workflows). Each can be validated on its own before any unified pipeline is built.
+Alpha Vlogs uses **three deploy workflows** plus CI. Dev Android and iOS share one workflow that runs both platforms in parallel after a single validate job.
 
 | Workflow | File | Trigger | Deploy target |
 | -------- | ---- | ------- | ------------- |
-| Android Dev | `android-dev.yml` | `push` → `develop`, manual | Firebase App Distribution |
+| Dev (Android + iOS) | `dev-firebase-distribution.yml` | `push` → `develop`, manual | Firebase App Distribution (both platforms) |
 | Android Production | `android-production.yml` | tag `v*.*.*`, manual | Play Console **Internal Testing** |
-| iOS Dev | `ios-dev.yml` | `push` → `develop`, manual | Firebase App Distribution |
 | iOS Production | `ios-production.yml` | tag `v*.*.*`, manual | **TestFlight only** |
 
 **Identifiers**
@@ -24,9 +23,9 @@ Create four environments under **Settings → Environments**:
 
 | Environment | Used by | Protection rules (recommended) |
 | ----------- | ------- | ------------------------------ |
-| `android-development` | `android-dev.yml` | Optional: require reviewer for manual dispatch |
+| `android-development` | `dev-firebase-distribution.yml` (Android job) | Optional: require reviewer for manual dispatch |
 | `android-production` | `android-production.yml` | Required reviewers; restrict to `main` / tags |
-| `ios-development` | `ios-dev.yml` | Optional reviewer |
+| `ios-development` | `dev-firebase-distribution.yml` (iOS job) | Optional reviewer |
 | `ios-production` | `ios-production.yml` | Required reviewers; restrict to tags |
 
 Store environment-specific secrets in each environment when possible (e.g. production keystore only in `android-production`).
@@ -41,9 +40,9 @@ Repository-level secrets are also supported if you prefer a single secret store.
 
 | Secret | Workflows | Description |
 | ------ | --------- | ----------- |
-| `FIREBASE_SERVICE_ACCOUNT_JSON` | `android-dev`, `ios-dev` | Full JSON for a Firebase/Google service account with **Firebase App Distribution Admin** |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | `dev-firebase-distribution` | Full JSON for a Firebase/Google service account with **Firebase App Distribution Admin** |
 
-### Android Dev — `android-dev.yml`
+### Android Dev — `dev-firebase-distribution.yml` (Android job)
 
 | Secret | Required | Notes |
 | ------ | -------- | ----- |
@@ -83,7 +82,7 @@ base64 -i release.keystore | pbcopy   # macOS — paste into ANDROID_KEYSTORE_BA
 4. Download JSON → paste entire contents into `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`
 5. Ensure the app listing uses package **`com.nsnr.aplhavlogs`**
 
-### iOS Dev — `ios-dev.yml`
+### iOS Dev — `dev-firebase-distribution.yml` (iOS job)
 
 | Secret | Required | Notes |
 | ------ | -------- | ----- |
@@ -193,19 +192,14 @@ The service account needs:
 
 ## 5. Validation steps
 
-### Android Dev
+### Dev (Android + iOS)
 
-```bash
-# Local pre-check (optional)
-yarn lint && yarn type-check && yarn test:ci
-cd android && ./gradlew assembleDevelopRelease bundleDevelopRelease
-```
-
-1. Actions → **Android Dev — Build & Firebase Distribution** → **Run workflow** (branch: `develop`)
-2. Confirm lint, type-check, and tests pass (workflow fails otherwise)
-3. Download artifacts `android-dev-apk` and `android-dev-aab`
-4. Verify package name: `aapt dump badging app-develop-release.apk | grep package`
-5. Confirm build appears in [Firebase App Distribution](https://console.firebase.google.com/project/alpha-vlogs-cf60a/appdistribution) for `com.nsnr.aplhavlogs.dev`
+1. Actions → **Dev — Build & Firebase Distribution (Android + iOS)** → **Run workflow** (branch: `develop`)
+2. Confirm lint, type-check, and tests pass in the **Validate** job
+3. Download artifacts `android-dev-apk`, `android-dev-aab`, and `ios-dev-ipa`
+4. Verify Android package: `aapt dump badging app-develop-release.apk | grep package`
+5. Verify iOS bundle ID: `unzip -p JackMarvelsApp.ipa Payload/*.app/Info.plist | plutil -p - | grep CFBundleIdentifier`
+6. Confirm both builds appear in [Firebase App Distribution](https://console.firebase.google.com/project/alpha-vlogs-cf60a/appdistribution)
 
 ### Android Production
 
@@ -214,13 +208,6 @@ cd android && ./gradlew assembleDevelopRelease bundleDevelopRelease
 3. Confirm AAB artifact uploaded
 4. Play Console → **Testing → Internal testing** → verify new release
 5. Confirm track is **internal**, not production
-
-### iOS Dev
-
-1. Run workflow on `develop`
-2. Confirm IPA artifact `ios-dev-ipa`
-3. Verify bundle ID: `unzip -p JackMarvelsApp.ipa Payload/*.app/Info.plist | plutil -p - | grep CFBundleIdentifier`
-4. Confirm Firebase App Distribution shows the build
 
 ### iOS Production
 
@@ -235,9 +222,8 @@ cd android && ./gradlew assembleDevelopRelease bundleDevelopRelease
 
 | Workflow | Rollback action |
 | -------- | --------------- |
-| Android Dev | Disable workflow; previous Firebase builds remain available; no store impact |
+| Dev (Android + iOS) | Disable workflow; previous Firebase builds remain available; no store impact |
 | Android Production | Play Console → Internal testing → **Halt rollout** or promote previous release; disable workflow |
-| iOS Dev | Disable workflow; expire Firebase build in console if needed |
 | iOS Production | TestFlight → expire build; do not submit for review; disable workflow |
 
 **Emergency stop:** Repository **Settings → Actions → Disable actions** or disable individual workflow files.
