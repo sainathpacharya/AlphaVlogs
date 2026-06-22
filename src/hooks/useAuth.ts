@@ -10,7 +10,6 @@ import { User } from '@/types';
 import { SUCCESS_MESSAGES, ERROR_MESSAGES } from '@/constants';
 import { queryKeys } from '@/lib/query-keys';
 import {
-  useDeleteAccountMutation,
   useLoginMutation,
   useLogoutMutation,
   useProfileQuery,

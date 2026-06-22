@@ -189,12 +189,4 @@ module.exports = {
   FadeOutUp: jest.fn(),
   FadeInDown: jest.fn(),
   FadeOutDown: jest.fn(),
-  SlideInUp: jest.fn(),
-  SlideOutUp: jest.fn(),
-  SlideInDown: jest.fn(),
-  SlideOutDown: jest.fn(),
-  SlideInLeft: jest.fn(),
-  SlideOutLeft: jest.fn(),
-  SlideInRight: jest.fn(),
-  SlideOutRight: jest.fn(),
 };

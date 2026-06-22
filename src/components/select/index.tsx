@@ -302,7 +302,7 @@ SelectWrapper.displayName = 'Select';
 export {Select};
 
 // Stub exports for gluestack-ui Select API compatibility
-export const SelectTrigger: any = ({children, ...props}: any) => children;
+export const SelectTrigger: any = ({children, ..._props}: any) => children;
 export const SelectInput: any = () => null;
 export const SelectIcon: any = ({children}: any) => children;
 export const SelectPortal: any = ({children}: any) => children;
@@ -311,7 +311,7 @@ export const SelectContent: any = ({children}: any) => children;
 export const SelectDragIndicatorWrapper: any = ({children}: any) => children;
 export const SelectDragIndicator: any = () => null;
 // SelectItem component for gluestack-ui API compatibility
-export const SelectItem: any = ({label, value, children, ...props}: any) => {
+export const SelectItem: any = ({label: _label, value: _value, children: _children, ..._props}: any) => {
   // This component is used by SelectWrapper to extract options
   // It doesn't render anything itself
   return null;

@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Platform } from 'react-native';
-import otpAutoReadService, { OTPAutoReadConfig, OTPAutoReadResult } from '@/services/otp-auto-read-service';
+import otpAutoReadService, { OTPAutoReadConfig } from '@/services/otp-auto-read-service';
 
 export interface UseOTPAutoReadOptions {
   enableAutoRead?: boolean;
@@ -25,7 +24,7 @@ export const useOTPAutoRead = (options: UseOTPAutoReadOptions = {}): UseOTPAutoR
     timeout = 60000,
     onOTPReceived,
     onError,
-    onTimeout,
+    onTimeout: _onTimeout,
   } = options;
 
   const [isListening, setIsListening] = useState(false);

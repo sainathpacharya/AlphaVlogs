@@ -75,7 +75,6 @@ const Keychain = {
   hasGenericPasswordAsync: jest.fn(() => Promise.resolve(true)),
   resetGenericPasswordAsync: jest.fn(() => Promise.resolve(true)),
   canImplyAuthenticationAsync: jest.fn(() => Promise.resolve(true)),
-  getSupportedBiometryTypeAsync: jest.fn(() => Promise.resolve('TouchID')),
 };
 
 module.exports = Keychain;

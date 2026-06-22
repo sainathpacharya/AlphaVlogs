@@ -11,7 +11,6 @@ import {
   UserAvatar,
 } from '../../components';
 import {
-  DashboardEventCard,
   DashboardEventCardItem,
   DashboardEventRow,
 } from '../../components/DashboardEventCard';

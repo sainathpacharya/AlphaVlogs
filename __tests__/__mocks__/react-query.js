@@ -42,11 +42,4 @@ module.exports = {
   useIsFetching: jest.fn(() => 0),
   useIsMutating: jest.fn(() => 0),
   useQueries: jest.fn(() => []),
-  useQueryClient: jest.fn(() => ({
-    invalidateQueries: jest.fn(),
-    setQueryData: jest.fn(),
-    getQueryData: jest.fn(),
-    fetchQuery: jest.fn(),
-    clear: jest.fn(),
-  })),
 };
