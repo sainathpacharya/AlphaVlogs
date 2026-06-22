@@ -194,7 +194,7 @@ The service account needs:
 
 ### Dev (Android + iOS)
 
-1. Actions → **Dev — Build & Firebase Distribution (Android + iOS)** → **Run workflow** (branch: `develop`)
+1. Actions → **Dev Firebase Distribution** → **Run workflow** (branch: `develop`)
 2. Confirm lint, type-check, and tests pass in the **Validate** job
 3. Download artifacts `android-dev-apk`, `android-dev-aab`, and `ios-dev-ipa`
 4. Verify Android package: `aapt dump badging app-develop-release.apk | grep package`

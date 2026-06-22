@@ -7,7 +7,7 @@ Platform-specific and environment-specific workflows for independent validation.
 | File | Trigger | Purpose |
 | ---- | ------- | ------- |
 | `ci.yml` | PR / push to `main`, `develop` | Lint, type-check, test (non-deploying) |
-| `dev-firebase-distribution.yml` | push → `develop`, manual | Develop **Android + iOS** → Firebase App Distribution |
+| `dev-firebase-distribution.yml` | push → `develop`, manual | **Dev Firebase Distribution** — Android + iOS → Firebase |
 | `android-production.yml` | tag `v*.*.*`, manual | Signed AAB → Play **Internal Testing** |
 | `ios-production.yml` | tag `v*.*.*`, manual | Signed IPA → **TestFlight** |
 

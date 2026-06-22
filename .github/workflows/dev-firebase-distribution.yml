@@ -1,9 +1,15 @@
-name: Dev — Build & Firebase Distribution (Android + iOS)
+name: Dev Firebase Distribution
 
 on:
   push:
     branches: [develop]
   workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to build from
+        required: false
+        default: develop
+        type: string
 
 concurrency:
   group: dev-firebase-${{ github.ref }}
@@ -25,6 +31,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -54,6 +64,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -231,6 +243,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -393,30 +407,19 @@ jobs:
             exit 1
           fi
 
-          cat > ExportOptions.plist <<EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>method</key>
-  <string>${EXPORT_METHOD}</string>
-  <key>teamID</key>
-  <string>${TEAM_ID}</string>
-  <key>signingStyle</key>
-  <string>manual</string>
-  <key>provisioningProfiles</key>
-  <dict>
-    <key>${{ env.IOS_BUNDLE_ID }}</key>
-    <string>${PROFILE_NAME}</string>
-  </dict>
-</dict>
-</plist>
-EOF
+          BUNDLE_ID="${{ env.IOS_BUNDLE_ID }}"
+          EXPORT_OPTIONS="$PWD/ExportOptions.plist"
+          /usr/libexec/PlistBuddy -c 'Clear dict' "$EXPORT_OPTIONS"
+          /usr/libexec/PlistBuddy -c "Add :method string $EXPORT_METHOD" "$EXPORT_OPTIONS"
+          /usr/libexec/PlistBuddy -c "Add :teamID string $TEAM_ID" "$EXPORT_OPTIONS"
+          /usr/libexec/PlistBuddy -c 'Add :signingStyle string manual' "$EXPORT_OPTIONS"
+          /usr/libexec/PlistBuddy -c 'Add :provisioningProfiles dict' "$EXPORT_OPTIONS"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:${BUNDLE_ID} string ${PROFILE_NAME}" "$EXPORT_OPTIONS"
 
           xcodebuild -exportArchive \
             -archivePath "$PWD/build/AlphaVlogs-dev.xcarchive" \
             -exportPath "$PWD/build/export" \
-            -exportOptionsPlist ExportOptions.plist
+            -exportOptionsPlist "$EXPORT_OPTIONS"
 
           IPA_PATH="$(find "$PWD/build/export" -maxdepth 1 -name '*.ipa' -print -quit)"
           if [ -z "$IPA_PATH" ] || [ ! -f "$IPA_PATH" ]; then
