@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
 import { AuthTokens, User } from '@/types';
+import { STORAGE_KEYS } from '@/constants';
 import { purgeAuthTokensFromDevice } from '@/utils/auth-storage';
 
 interface CachedData {
@@ -133,6 +134,14 @@ export const initializeSecureStorage = async () => {
     if (credentials && credentials.password) {
       const tokens: AuthTokens = JSON.parse(credentials.password);
       useUserCachedStore.setState({ tokens });
+
+      const tokensJson = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKENS);
+      if (!tokensJson) {
+        await AsyncStorage.setItem(
+          STORAGE_KEYS.AUTH_TOKENS,
+          credentials.password,
+        );
+      }
     }
   } catch (error) {
     if (__DEV__) {

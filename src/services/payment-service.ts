@@ -1,10 +1,14 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import apiService from './api';
-import { API_ENDPOINTS, STORAGE_KEYS, getApiBaseUrl } from '@/constants';
+import { API_ENDPOINTS, getApiBaseUrl } from '@/constants';
 import { MockWrapperService } from './mock-wrapper';
 import { RazorpayResponse } from './razorpay-service';
 import { parseApiErrorMessage } from '@/utils/api-response';
 import { devLog } from '@/utils/dev-log';
+import { getStoredAuthApiBaseUrl } from '@/utils/auth-api-session';
+import {
+  getStoredAuthTokensForPayment,
+  paymentApiPost,
+  PaymentApiDebugMeta,
+} from '@/utils/payment-api-request';
 
 export interface CreateOrderResult {
   order_id: string;
@@ -25,21 +29,109 @@ export interface CreateOrderRequest {
   receipt?: string;
 }
 
-function formatPaymentError(path: string, error: unknown, statusCode?: number): string {
-  const base =
-    (typeof error === 'string' ? error : parseApiErrorMessage(error)) ||
+function parsePaymentErrorPayload(payload: unknown): {
+  message: string;
+  code?: string;
+} {
+  const message =
+    (typeof payload === 'string' ? payload : parseApiErrorMessage(payload)) ||
     'Payment request failed';
+
+  if (!payload || typeof payload !== 'object') {
+    return { message };
+  }
+
+  const record = payload as Record<string, unknown>;
+  const nested = record.error;
+  if (nested && typeof nested === 'object') {
+    const code = (nested as Record<string, unknown>).code;
+    if (typeof code === 'string' && code.trim()) {
+      return { message, code: code.trim() };
+    }
+  }
+
+  return { message };
+}
+
+function userFacingPaymentError(
+  payload: unknown,
+  statusCode?: number,
+  debug?: PaymentApiDebugMeta,
+): string {
+  const { message, code } = parsePaymentErrorPayload(payload);
+  const isDevServer = (debug?.url ?? getApiBaseUrl()).includes('192.168.');
+
+  if (
+    code === 'RAZORPAY_AUTH_FAILED' ||
+    message.toLowerCase().includes('razorpay authentication failed')
+  ) {
+    return 'Payment gateway is not configured on the server yet. Please try again later or contact support.';
+  }
+
+  if (
+    statusCode === 404 ||
+    code === 'NOT_FOUND' ||
+    message.toLowerCase().includes('not found: api/create-order')
+  ) {
+    if (isDevServer) {
+      return (
+        'Payment was rejected by your local dev server (404). ' +
+        'Log out, sign in again, and ensure your student exists in the local database. ' +
+        'The backend team can confirm POST /api/create-order is running on your Mac.'
+      );
+    }
+    return 'Payment service is not available on production yet. The backend must deploy POST /api/create-order.';
+  }
+
+  if (statusCode === 401 || message.toLowerCase().includes('unauthorized')) {
+    if (debug?.hasAuth === false) {
+      return 'No login token was sent with the payment request. Log out, sign in again, and retry.';
+    }
+    return 'Your session expired or is invalid. Please log out, sign in again, and retry payment.';
+  }
+
+  if (statusCode === 403 || code === 'FORBIDDEN') {
+    return 'Your account is not allowed to make payments. Please use a student account or contact support.';
+  }
+
+  return message;
+}
+
+function formatPaymentError(
+  path: string,
+  error: unknown,
+  statusCode?: number,
+  debug?: PaymentApiDebugMeta,
+): string {
+  const base = userFacingPaymentError(error, statusCode, debug);
 
   if (!__DEV__) {
     return base;
   }
 
-  return `${base}\n\n[dev debug]\nURL: ${getApiBaseUrl()}${path}\nHTTP: ${statusCode ?? '?'}`;
+  const { code } = parsePaymentErrorPayload(error);
+  const codeLine = code ? `\nCode: ${code}` : '';
+  const urlLine = debug?.url ?? `${getApiBaseUrl()}${path}`;
+  const jwtLine = debug?.jwtSummary ? `\nJWT: ${debug.jwtSummary}` : '';
+  const authLine =
+    debug?.hasAuth === false ? '\nAuth header: missing' : '\nAuth header: present';
+
+  return `${base}\n\n[dev debug]\nURL: ${urlLine}\nHTTP: ${statusCode ?? '?'}${codeLine}${authLine}${jwtLine}`;
 }
 
 async function assertPaymentAuth(): Promise<void> {
-  const tokensJson = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKENS);
-  if (!tokensJson) {
+  const currentBaseUrl = getApiBaseUrl();
+  const storedBaseUrl = await getStoredAuthApiBaseUrl();
+
+  if (storedBaseUrl && storedBaseUrl !== currentBaseUrl) {
+    throw new PaymentApiError(
+      `Your login session is for ${storedBaseUrl}, but the app is using ${currentBaseUrl}. Log out and sign in again.`,
+      401,
+    );
+  }
+
+  const tokens = await getStoredAuthTokensForPayment();
+  if (!tokens?.accessToken) {
     throw new PaymentApiError(
       'Session expired. Please log out and sign in again before paying.',
       401,
@@ -71,24 +163,22 @@ class PaymentService {
       receipt: request.receipt,
     });
 
-    const response = await apiService.post<CreateOrderResult>(
-      path,
-      {
-        amount: request.amount,
-        currency: request.currency ?? 'INR',
-        ...(request.receipt ? { receipt: request.receipt } : {}),
-      },
-    );
+    const response = await paymentApiPost<CreateOrderResult>(path, {
+      amount: request.amount,
+      currency: request.currency ?? 'INR',
+      ...(request.receipt ? { receipt: request.receipt } : {}),
+    });
 
     devLog('PaymentService.createOrder ←', {
       success: response.success,
       statusCode: response.statusCode,
       error: response.error,
+      debug: response.debug,
     });
 
     if (!response.success || !response.data) {
       throw new PaymentApiError(
-        formatPaymentError(path, response.error, response.statusCode),
+        formatPaymentError(path, response.error, response.statusCode, response.debug),
         response.statusCode,
       );
     }
@@ -130,18 +220,15 @@ class PaymentService {
     const path = API_ENDPOINTS.PAYMENT.VERIFY_PAYMENT;
     devLog('PaymentService.verifyPayment →', { path, baseUrl: getApiBaseUrl() });
 
-    const response = await apiService.post<VerifyPaymentResult>(
-      path,
-      {
-        razorpay_order_id: payment.razorpay_order_id,
-        razorpay_payment_id: payment.razorpay_payment_id,
-        razorpay_signature: payment.razorpay_signature,
-      },
-    );
+    const response = await paymentApiPost<VerifyPaymentResult>(path, {
+      razorpay_order_id: payment.razorpay_order_id,
+      razorpay_payment_id: payment.razorpay_payment_id,
+      razorpay_signature: payment.razorpay_signature,
+    });
 
     if (!response.success || !response.data) {
       throw new PaymentApiError(
-        formatPaymentError(path, response.error, response.statusCode),
+        formatPaymentError(path, response.error, response.statusCode, response.debug),
         response.statusCode,
       );
     }

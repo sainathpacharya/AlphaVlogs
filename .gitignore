@@ -82,3 +82,6 @@ package-lock.json
 
 # Yarn Lockfile
 yarn.lock
+
+# Local API overrides (LAN backend); committed defaults use production URL
+src/config/api-config.local.ts

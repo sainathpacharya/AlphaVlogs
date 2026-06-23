@@ -19,6 +19,8 @@ import {useUserStore, useUserCachedStore} from '@/stores';
 import {useShallow} from 'zustand/react/shallow';
 import {i18next} from '@/services/i18n-service';
 import {subscribeSslPinningErrors} from '@/config/ssl-pinning';
+import {getApiBaseUrl} from '@/constants';
+import {getStoredAuthApiBaseUrl} from '@/utils/auth-api-session';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -73,6 +75,22 @@ const AppContent = React.memo(() => {
           await apiService.clearStoredAuth();
         } else {
           await initializeSecureStorage();
+
+          const storedApiBaseUrl = await getStoredAuthApiBaseUrl();
+          const currentApiBaseUrl = getApiBaseUrl();
+          if (
+            storedApiBaseUrl &&
+            storedApiBaseUrl !== currentApiBaseUrl
+          ) {
+            devLog('API base URL changed — clearing stale auth session', {
+              storedApiBaseUrl,
+              currentApiBaseUrl,
+            });
+            await useUserCachedStore.getState().clearAll();
+            setAuthenticated(false);
+            setUser(null);
+            return;
+          }
         }
 
         if (cancelled) {

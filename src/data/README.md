@@ -22,7 +22,7 @@ When `API_CONFIG.MODE === 'mock'` in `src/config/api-config.ts`, the app uses th
 
 ## Switching back to real API
 
-In `src/config/api-config.ts` set `MODE: 'real'` and update `DEV.LAN_HOST` to your Mac’s LAN IP (`ipconfig getifaddr en0`). Dev URLs:
+Committed config uses production (`https://api.alphavlogs.com`). For a local backend, copy `src/config/api-config.local.example.ts` to `api-config.local.ts`, set `USE_PRODUCTION_API: false`, and set `DEV.LAN_HOST` to your Mac’s LAN IP (`ipconfig getifaddr en0`). Dev URLs:
 
 | Client | Base URL |
 |--------|----------|

@@ -1,8 +1,25 @@
 import { Platform } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 
-// API Configuration
-export const API_CONFIG = {
+type ApiConfigLocal = {
+  USE_PRODUCTION_API?: boolean;
+  DEV?: Partial<typeof DEFAULT_API_CONFIG.DEV>;
+};
+
+/** Optional local overrides — copy from api-config.local.example.ts (gitignored). */
+function loadLocalOverrides(): ApiConfigLocal {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const local = require('./api-config.local') as {
+      API_CONFIG_LOCAL?: ApiConfigLocal;
+    };
+    return local.API_CONFIG_LOCAL ?? {};
+  } catch {
+    return {};
+  }
+}
+
+const DEFAULT_API_CONFIG = {
   // Set to 'mock' to use static data (no API calls), 'real' to use actual backend
   MODE: 'real' as 'mock' | 'real',
 
@@ -14,8 +31,8 @@ export const API_CONFIG = {
     PAYMENT_DELAY: 1500, // milliseconds
   },
 
-  // Set to true to use REAL.BASE_URL even in __DEV__ builds (local LAN otherwise).
-  USE_PRODUCTION_API: false,
+  // Committed default: production API. Override in api-config.local.ts for LAN backend.
+  USE_PRODUCTION_API: true,
 
   // Real API settings (production)
   REAL: {
@@ -25,11 +42,9 @@ export const API_CONFIG = {
     RETRY_DELAY: 1000, // milliseconds
   },
 
-  // LAN IP of the machine running the backend (Spring Boot default port 8080).
-  // Set LAN_HOST to that machine's IP — not your dev Mac, and not 10.0.2.2.
+  // Used only when USE_PRODUCTION_API is false in a __DEV__ build (see api-config.local.example.ts).
   DEV: {
-    LAN_HOST: '192.168.29.192', // 192.168.1.9 | 192.168.29.192
-    // true only when Spring Boot runs on the same machine as the emulator/simulator
+    LAN_HOST: 'localhost',
     USE_LOCAL_BACKEND: false,
     PORT: 8080,
     /** API + service console groups in Metro (dev builds only). */
@@ -47,6 +62,19 @@ export const API_CONFIG = {
     ENABLE_OFFLINE_MODE: true,
     ENABLE_PUSH_NOTIFICATIONS: true,
     ENABLE_BIOMETRIC_AUTH: true,
+  },
+};
+
+const LOCAL_OVERRIDES = loadLocalOverrides();
+
+// API Configuration
+export const API_CONFIG = {
+  ...DEFAULT_API_CONFIG,
+  USE_PRODUCTION_API:
+    LOCAL_OVERRIDES.USE_PRODUCTION_API ?? DEFAULT_API_CONFIG.USE_PRODUCTION_API,
+  DEV: {
+    ...DEFAULT_API_CONFIG.DEV,
+    ...LOCAL_OVERRIDES.DEV,
   },
 };
 

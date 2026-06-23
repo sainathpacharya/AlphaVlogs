@@ -1,14 +1,13 @@
 import React, {useState, useEffect, useMemo, useCallback} from 'react';
-import {View, StyleSheet, Alert} from 'react-native';
+import {View, StyleSheet, Alert, useWindowDimensions, Platform} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
-import {Crown} from 'lucide-react-native';
+import {Check, Crown} from 'lucide-react-native';
 import {
   VStack,
   HStack,
   Text,
   Button,
   Box,
-  Badge,
   Pressable,
 } from '@/components';
 import {SUBSCRIPTION} from '@/constants';
@@ -19,9 +18,10 @@ import {canAccessPayment} from '@/utils/payment';
 import {devLog} from '@/utils/dev-log';
 import {getApiBaseUrl} from '@/constants';
 import {isMockMode} from '@/config/api-config';
-import {useUser, useUserStore} from '@/stores';
+import {useUser, useUserStore, useTokens} from '@/stores';
 import {useIsMounted} from '@/hooks';
 import {InfoScreenLayout} from '@/components/InfoScreenLayout';
+import {formatJwtSummary} from '@/utils/jwt';
 
 interface PaymentMethod {
   id: string;
@@ -31,13 +31,52 @@ interface PaymentMethod {
   icon?: string;
 }
 
+const PLAN_STACK_BREAKPOINT = 480;
+const CONTENT_MAX_WIDTH = 600;
+
+const getPaymentDisplayName = (method: PaymentMethod) => {
+  if (method.type === 'razorpay') {
+    return 'Razorpay';
+  }
+  return method.name;
+};
+
+type ApiEnvironmentKind = 'mock' | 'development' | 'production';
+
+const getApiEnvironmentInfo = (): {
+  label: string;
+  kind: ApiEnvironmentKind;
+  url: string;
+} => {
+  const url = getApiBaseUrl();
+  if (isMockMode()) {
+    return {label: 'Mock', kind: 'mock', url};
+  }
+  if (url.includes('alphavlogs.com')) {
+    return {label: 'Production', kind: 'production', url};
+  }
+  return {label: 'Development', kind: 'development', url};
+};
+
 const SubscriptionScreen: React.FC = () => {
   const navigation = useNavigation();
   const colors = useThemeColors();
+  const {width: screenWidth} = useWindowDimensions();
   const isMounted = useIsMounted();
   const user = useUser();
+  const tokens = useTokens();
   const setUser = useUserStore(state => state.setUser);
-  const styles = useMemo(() => getStyles(colors), [colors]);
+  const isStackedPlans = screenWidth < PLAN_STACK_BREAKPOINT;
+  const isWideLayout = screenWidth >= 768;
+  const styles = useMemo(
+    () => getStyles(colors, screenWidth),
+    [colors, screenWidth],
+  );
+  const apiEnvironment = useMemo(() => getApiEnvironmentInfo(), []);
+  const jwtSummary = useMemo(
+    () => formatJwtSummary(tokens?.accessToken),
+    [tokens?.accessToken],
+  );
   const [selectedPlan, setSelectedPlan] = useState<'free' | 'premium'>('free');
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<string>('');
@@ -295,6 +334,14 @@ const SubscriptionScreen: React.FC = () => {
               );
               return;
             }
+            if (razorpayError.statusCode === 404) {
+              Alert.alert('Payment unavailable', razorpayError.message);
+              return;
+            }
+            if (razorpayError.statusCode === 401) {
+              Alert.alert('Session expired', razorpayError.message);
+              return;
+            }
             Alert.alert('Payment Error', razorpayError.message);
             return;
           }
@@ -318,7 +365,6 @@ const SubscriptionScreen: React.FC = () => {
         return;
       }
 
-      // Mock-only cash / cheque flow
       const subscription = await subscriptionService.createSubscription({
         plan: 'premium',
         paymentMethod: paymentMethod.type as 'cash' | 'cheque',
@@ -435,55 +481,67 @@ const SubscriptionScreen: React.FC = () => {
         onPress={() => setSelectedPlan(plan)}
         style={[
           styles.planCard,
-          isSelected && styles.selectedPlanCard,
-          isPremium && styles.premiumCard,
+          isStackedPlans && styles.planCardStacked,
+          isSelected &&
+            (isPremium ? styles.selectedPremiumCard : styles.selectedFreeCard),
         ]}>
-        <VStack space="md" flex={1}>
-          <HStack justifyContent="space-between" alignItems="center">
+        <VStack space="md" flex={1} justifyContent="space-between">
+          <VStack space="md" flex={1}>
             <Text
               testID={`subscription-plan-title-${plan}`}
               style={[
                 styles.planTitle,
-                isSelected && styles.selectedPlanTitle,
+                isSelected &&
+                  (isPremium
+                    ? styles.selectedPremiumTitle
+                    : styles.selectedFreeTitle),
               ]}>
               {isPremium ? 'Premium Plan' : 'Free Plan'}
             </Text>
-            {isPremium && (
-              <Badge
-                testID={`subscription-plan-badge-${plan}`}
-                action="success"
-                variant="solid">
-                ₹100/year
-              </Badge>
-            )}
-          </HStack>
 
-          <VStack testID={`subscription-plan-features-${plan}`} space="sm">
-            {features.map((feature, index) => (
-              <HStack key={index} space="sm" alignItems="center">
-                <View
-                  testID={`subscription-plan-checkmark-${plan}-${index}`}
-                  style={[
-                    styles.checkmark,
-                    isSelected && styles.selectedCheckmark,
-                  ]}
-                />
-                <Text
-                  testID={`subscription-plan-feature-${plan}-${index}`}
-                  style={[
-                    styles.featureText,
-                    isSelected && styles.selectedFeatureText,
-                  ]}>
-                  {feature}
-                </Text>
-              </HStack>
-            ))}
+            <VStack testID={`subscription-plan-features-${plan}`} space="sm">
+              {features.map((feature, index) => (
+                <HStack
+                  key={index}
+                  space="sm"
+                  alignItems="flex-start"
+                  style={styles.featureRow}>
+                  {isSelected ? (
+                    <View
+                      testID={`subscription-plan-checkmark-${plan}-${index}`}
+                      style={[
+                        styles.checkmarkSelected,
+                        isPremium && styles.checkmarkSelectedPremium,
+                      ]}>
+                      <Check
+                        size={10}
+                        color={colors.white}
+                        strokeWidth={3}
+                      />
+                    </View>
+                  ) : (
+                    <View
+                      testID={`subscription-plan-checkmark-${plan}-${index}`}
+                      style={styles.checkmark}
+                    />
+                  )}
+                  <Text
+                    testID={`subscription-plan-feature-${plan}-${index}`}
+                    style={styles.featureText}>
+                    {feature}
+                  </Text>
+                </HStack>
+              ))}
+            </VStack>
           </VStack>
 
           {isPremium && (
             <Text
               testID={`subscription-plan-price-${plan}`}
-              style={styles.priceText}>
+              style={[
+                styles.priceText,
+                isSelected && styles.selectedPriceText,
+              ]}>
               ₹{SUBSCRIPTION.PRICING.PREMIUM_ANNUAL}/year
             </Text>
           )}
@@ -505,22 +563,26 @@ const SubscriptionScreen: React.FC = () => {
           isSelected && styles.selectedPaymentMethod,
         ]}
         disabled={!method.isEnabled}>
-        <HStack space="md" alignItems="center">
+        <HStack space="md" alignItems="center" flex={1}>
           <View
             testID={`subscription-payment-icon-${method.id}`}
             style={[
               styles.paymentIcon,
               !method.isEnabled && styles.disabledIcon,
-            ]}
-          />
-          <VStack flex={1}>
+            ]}>
+            {method.icon ? (
+              <Text style={styles.paymentIconEmoji}>{method.icon}</Text>
+            ) : null}
+          </View>
+          <VStack flex={1} style={styles.paymentTextContainer}>
             <Text
               testID={`subscription-payment-name-${method.id}`}
               style={[
                 styles.paymentMethodName,
                 !method.isEnabled && styles.disabledText,
-              ]}>
-              {method.name}
+              ]}
+              numberOfLines={2}>
+              {getPaymentDisplayName(method)}
             </Text>
             {!method.isEnabled && (
               <Text
@@ -529,165 +591,286 @@ const SubscriptionScreen: React.FC = () => {
                 Coming Soon
               </Text>
             )}
+            {method.type === 'razorpay' && method.isEnabled && (
+              <Text style={styles.paymentMethodHint}>
+                UPI, Cards & Net Banking
+              </Text>
+            )}
           </VStack>
-          {isSelected && (
-            <View
-              testID={`subscription-payment-selected-${method.id}`}
-              style={styles.selectedIndicator}
-            />
-          )}
+          <View
+            testID={`subscription-payment-selected-${method.id}`}
+            style={[
+              styles.radioOuter,
+              isSelected && styles.radioOuterSelected,
+            ]}>
+            {isSelected && <View style={styles.radioInner} />}
+          </View>
         </HStack>
       </Pressable>
     );
   };
 
-  return (
-    <InfoScreenLayout testID="subscription-screen" title="Subscription">
-      <VStack testID="subscription-content" space="lg">
-        {/* Header */}
-        <VStack
-          testID="subscription-header-section"
-          space="sm"
-          alignItems="center">
-          <Crown
-            testID="subscription-icon"
-            size={72}
-            color={colors.accentAction}
-            strokeWidth={1.75}
-          />
-          <Text testID="subscription-header-title" style={styles.headerTitle}>
-            Choose Your Plan
-          </Text>
-          <Text
-            testID="subscription-header-subtitle"
-            style={styles.headerSubtitle}>
-            Unlock premium features and access to all quizzes
-          </Text>
-        </VStack>
+  const PlanContainer = isStackedPlans ? VStack : HStack;
 
-        {/* Current Subscription Status */}
-        {currentSubscription && (
-          <Box
-            testID="subscription-current-status"
-            style={styles.currentSubscriptionCard}>
-            <HStack justifyContent="space-between" alignItems="center">
-              <VStack>
+  return (
+    <InfoScreenLayout
+      testID="subscription-screen"
+      title="Subscription"
+      contentContainerStyle={isWideLayout ? styles.wideContentContainer : undefined}>
+      <Box style={styles.contentWrapper}>
+        <VStack testID="subscription-content" space="lg">
+          {__DEV__ && (
+            <Box
+              testID="subscription-api-env-banner"
+              style={[
+                styles.apiEnvBanner,
+                apiEnvironment.kind === 'production' && styles.apiEnvBannerWarning,
+                apiEnvironment.kind === 'mock' && styles.apiEnvBannerMock,
+              ]}>
+              <VStack space="xs">
                 <Text
-                  testID="subscription-current-plan"
-                  style={styles.currentPlanText}>
-                  Current Plan:{' '}
-                  {currentSubscription.plan === 'premium' ? 'Premium' : 'Free'}
+                  testID="subscription-api-env-label"
+                  style={styles.apiEnvBannerTitle}>
+                  API environment: {apiEnvironment.label}
                 </Text>
-                {currentSubscription.plan === 'premium' && currentSubscription.endDate && (
+                <Text
+                  testID="subscription-api-env-url"
+                  style={styles.apiEnvBannerUrl}
+                  selectable>
+                  {apiEnvironment.url}
+                </Text>
+                {apiEnvironment.kind === 'production' && (
                   <Text
-                    testID="subscription-expiry-date"
-                    style={styles.expiryText}>
-                    Expires:{' '}
-                    {new Date(currentSubscription.endDate).toLocaleDateString()}
+                    testID="subscription-api-env-hint"
+                    style={styles.apiEnvBannerHint}>
+                    Payment APIs may not be live on production yet. Use a debug
+                    build on the same Wi‑Fi as your Mac backend to test.
                   </Text>
                 )}
-              </VStack>
-              {currentSubscription.plan === 'premium' && (
-                <Button
-                  testID="subscription-cancel-button"
-                  onPress={handleCancelSubscription}
-                  style={styles.cancelButton}>
+                {apiEnvironment.kind === 'development' && (
                   <Text
-                    testID="subscription-cancel-text"
-                    style={{color: colors.white, fontWeight: 'bold'}}>
-                    Cancel
+                    testID="subscription-api-env-hint"
+                    style={styles.apiEnvBannerHint}>
+                    Phone and backend must be on the same Wi‑Fi. Confirm your
+                    Mac IP matches LAN_HOST in api-config.local.ts.
                   </Text>
-                </Button>
-              )}
-            </HStack>
-          </Box>
-        )}
+                )}
+                <Text
+                  testID="subscription-api-env-session"
+                  style={styles.apiEnvBannerHint}
+                  selectable>
+                  {tokens?.accessToken
+                    ? `Session: ${jwtSummary}`
+                    : 'Session: no token — log out and sign in again'}
+                </Text>
+                {user?.mobile ? (
+                  <Text
+                    testID="subscription-api-env-user"
+                    style={styles.apiEnvBannerHint}>
+                    Mobile: {user.mobile}
+                  </Text>
+                ) : null}
+              </VStack>
+            </Box>
+          )}
 
-        {/* Plan Selection */}
-        <VStack testID="subscription-plan-selection" space="md">
-          <Text testID="subscription-plan-title" style={styles.sectionTitle}>
-            Select Plan
-          </Text>
-          <HStack space="md">
-            {renderPlanCard('free', selectedPlan === 'free')}
-            {renderPlanCard('premium', selectedPlan === 'premium')}
-          </HStack>
-        </VStack>
-
-        {/* Payment Methods */}
-        {selectedPlan === 'premium' && (
-          <VStack testID="subscription-payment-methods" space="md">
-            <Text
-              testID="subscription-payment-title"
-              style={styles.sectionTitle}>
-              Payment Method
+          <VStack
+            testID="subscription-header-section"
+            space="sm"
+            alignItems="center"
+            style={styles.headerSection}>
+            <Crown
+              testID="subscription-icon"
+              size={isWideLayout ? 80 : 64}
+              color={colors.accentAction}
+              strokeWidth={1.75}
+            />
+            <Text testID="subscription-header-title" style={styles.headerTitle}>
+              Choose Your Plan
             </Text>
-            <VStack space="sm">
-              {paymentMethods.map(renderPaymentMethod)}
-            </VStack>
+            <Text
+              testID="subscription-header-subtitle"
+              style={styles.headerSubtitle}>
+              Unlock premium features and access to all quizzes
+            </Text>
           </VStack>
-        )}
 
-        {/* Subscribe Button */}
-        {selectedPlan === 'premium' && canAccessPayment(user) && (
-          <Button
-            testID="subscription-subscribe-button"
-            onPress={handleSubscribe}
-            disabled={isLoading || !selectedPaymentMethod}
-            style={[
-              styles.subscribeButton,
-              (isLoading || !selectedPaymentMethod) && styles.disabledButton,
-            ]}>
-            <Text
-              testID="subscription-subscribe-text"
-              style={{color: colors.white, fontWeight: 'bold'}}>
-              {isLoading ? 'Processing...' : 'Subscribe Now'}
+          {currentSubscription && (
+            <Box
+              testID="subscription-current-status"
+              style={styles.currentSubscriptionCard}>
+              <HStack
+                justifyContent="space-between"
+                alignItems="center"
+                flexWrap="wrap"
+                space="md">
+                <VStack flex={1} style={styles.currentPlanInfo}>
+                  <Text
+                    testID="subscription-current-plan"
+                    style={styles.currentPlanText}>
+                    Current Plan:{' '}
+                    {currentSubscription.plan === 'premium' ? 'Premium' : 'Free'}
+                  </Text>
+                  {currentSubscription.plan === 'premium' &&
+                    currentSubscription.endDate && (
+                      <Text
+                        testID="subscription-expiry-date"
+                        style={styles.expiryText}>
+                        Expires:{' '}
+                        {new Date(
+                          currentSubscription.endDate,
+                        ).toLocaleDateString()}
+                      </Text>
+                    )}
+                </VStack>
+                {currentSubscription.plan === 'premium' && (
+                  <Button
+                    testID="subscription-cancel-button"
+                    onPress={handleCancelSubscription}
+                    style={styles.cancelButton}>
+                    <Text
+                      testID="subscription-cancel-text"
+                      style={{color: colors.white, fontWeight: 'bold'}}>
+                      Cancel
+                    </Text>
+                  </Button>
+                )}
+              </HStack>
+            </Box>
+          )}
+
+          <VStack testID="subscription-plan-selection" space="md">
+            <Text testID="subscription-plan-title" style={styles.sectionTitle}>
+              Select Plan
             </Text>
-          </Button>
-        )}
+            <PlanContainer
+              space="md"
+              alignItems={isStackedPlans ? 'stretch' : 'stretch'}
+              style={isStackedPlans ? undefined : styles.planRow}>
+              {renderPlanCard('free', selectedPlan === 'free')}
+              {renderPlanCard('premium', selectedPlan === 'premium')}
+            </PlanContainer>
+          </VStack>
 
-        {/* Terms and Conditions */}
-        <VStack testID="subscription-terms" space="sm">
-          <Text testID="subscription-terms-text-1" style={styles.termsText}>
-            By subscribing, you agree to our Terms of Service and Privacy
-            Policy.
-          </Text>
-          <Text testID="subscription-terms-text-2" style={styles.termsText}>
-            Subscription will auto-renew annually. Cancel anytime in your
-            account settings.
-          </Text>
+          {selectedPlan === 'premium' && (
+            <VStack testID="subscription-payment-methods" space="md">
+              <Text
+                testID="subscription-payment-title"
+                style={styles.sectionTitle}>
+                Payment Method
+              </Text>
+              <VStack space="sm">
+                {paymentMethods.map(renderPaymentMethod)}
+              </VStack>
+            </VStack>
+          )}
+
+          {selectedPlan === 'premium' && canAccessPayment(user) && (
+            <Button
+              testID="subscription-subscribe-button"
+              onPress={handleSubscribe}
+              disabled={isLoading || !selectedPaymentMethod}
+              style={[
+                styles.subscribeButton,
+                (isLoading || !selectedPaymentMethod) && styles.disabledButton,
+              ]}>
+              <Text
+                testID="subscription-subscribe-text"
+                style={styles.subscribeButtonText}>
+                {isLoading ? 'Processing...' : 'Subscribe Now'}
+              </Text>
+            </Button>
+          )}
+
+          <VStack testID="subscription-terms" space="sm" style={styles.termsSection}>
+            <Text testID="subscription-terms-text-1" style={styles.termsText}>
+              By subscribing, you agree to our Terms of Service and Privacy
+              Policy.
+            </Text>
+            <Text testID="subscription-terms-text-2" style={styles.termsText}>
+              Subscription will auto-renew annually. Cancel anytime in your
+              account settings.
+            </Text>
+          </VStack>
         </VStack>
-      </VStack>
+      </Box>
     </InfoScreenLayout>
   );
 };
 
-const getStyles = (colors: any) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.primaryBackground,
+const getStyles = (colors: any, screenWidth: number) => {
+  const isNarrow = screenWidth < PLAN_STACK_BREAKPOINT;
+  const isWide = screenWidth >= 768;
+
+  return StyleSheet.create({
+    wideContentContainer: {
+      alignItems: 'center',
+    },
+    contentWrapper: {
+      width: '100%',
+      maxWidth: CONTENT_MAX_WIDTH,
+      alignSelf: 'center',
+    },
+    apiEnvBanner: {
+      backgroundColor: colors.accentBackground ?? 'rgba(0, 122, 255, 0.08)',
+      borderWidth: 1,
+      borderColor: colors.accentAction,
+      borderRadius: 10,
+      padding: isNarrow ? 12 : 14,
+    },
+    apiEnvBannerWarning: {
+      backgroundColor: 'rgba(234, 88, 12, 0.08)',
+      borderColor: colors.subscriptionCta ?? '#EA580C',
+    },
+    apiEnvBannerMock: {
+      backgroundColor: colors.mutedBackground ?? 'rgba(0, 0, 0, 0.04)',
+      borderColor: colors.border,
+    },
+    apiEnvBannerTitle: {
+      fontSize: isNarrow ? 13 : 14,
+      fontWeight: '700',
+      color: colors.primaryText,
+    },
+    apiEnvBannerUrl: {
+      fontSize: isNarrow ? 12 : 13,
+      color: colors.accentAction,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    apiEnvBannerHint: {
+      fontSize: 12,
+      color: colors.mutedText,
+      lineHeight: 17,
+      marginTop: 4,
+    },
+    headerSection: {
+      paddingHorizontal: isNarrow ? 4 : 12,
     },
     headerTitle: {
-      fontSize: 24,
-      fontWeight: 'bold',
+      fontSize: isWide ? 28 : isNarrow ? 22 : 24,
+      fontWeight: '700',
       color: colors.primaryText,
       textAlign: 'center',
     },
     headerSubtitle: {
-      fontSize: 16,
+      fontSize: isNarrow ? 14 : 16,
       color: colors.mutedText,
       textAlign: 'center',
+      lineHeight: isNarrow ? 20 : 24,
+      paddingHorizontal: 8,
     },
     currentSubscriptionCard: {
       backgroundColor: colors.cardBackground,
-      padding: 16,
+      padding: isNarrow ? 14 : 16,
       borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.border,
     },
+    currentPlanInfo: {
+      minWidth: 0,
+      flexShrink: 1,
+    },
     currentPlanText: {
-      fontSize: 16,
+      fontSize: isNarrow ? 15 : 16,
       fontWeight: '600',
       color: colors.primaryText,
     },
@@ -701,108 +884,177 @@ const getStyles = (colors: any) =>
       paddingHorizontal: 16,
       paddingVertical: 8,
       borderRadius: 8,
+      flexShrink: 0,
     },
     sectionTitle: {
-      fontSize: 18,
+      fontSize: isNarrow ? 17 : 18,
       fontWeight: '600',
       color: colors.primaryText,
     },
+    planRow: {
+      width: '100%',
+    },
     planCard: {
-      flex: 1,
+      flex: isNarrow ? undefined : 1,
+      width: isNarrow ? '100%' : undefined,
+      minWidth: isNarrow ? undefined : 0,
       backgroundColor: colors.cardBackground,
-      padding: 16,
+      padding: isNarrow ? 16 : 18,
+      borderRadius: 14,
+      borderWidth: 2,
+      borderColor: colors.border,
+      minHeight: isNarrow ? undefined : 220,
+    },
+    planCardStacked: {
+      width: '100%',
+    },
+    selectedFreeCard: {
+      borderColor: colors.accentAction,
+      backgroundColor: colors.accentBackground ?? colors.cardBackground,
+    },
+    selectedPremiumCard: {
+      borderColor: colors.success,
+      backgroundColor: 'rgba(40, 167, 69, 0.06)',
+    },
+    planTitle: {
+      fontSize: isNarrow ? 17 : 18,
+      fontWeight: '700',
+      color: colors.primaryText,
+    },
+    selectedFreeTitle: {
+      color: colors.accentAction,
+    },
+    selectedPremiumTitle: {
+      color: colors.accentAction,
+    },
+    featureRow: {
+      width: '100%',
+    },
+    checkmark: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: colors.border,
+      marginTop: 1,
+      flexShrink: 0,
+    },
+    checkmarkSelected: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: colors.accentAction,
+      marginTop: 1,
+      flexShrink: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkmarkSelectedPremium: {
+      backgroundColor: colors.accentAction,
+    },
+    featureText: {
+      flex: 1,
+      flexShrink: 1,
+      fontSize: isNarrow ? 13 : 14,
+      color: colors.primaryText,
+      lineHeight: isNarrow ? 18 : 20,
+    },
+    priceText: {
+      fontSize: isNarrow ? 18 : 20,
+      fontWeight: '700',
+      color: colors.success,
+      marginTop: 12,
+    },
+    selectedPriceText: {
+      color: colors.success,
+    },
+    paymentMethodCard: {
+      backgroundColor: colors.cardBackground,
+      padding: isNarrow ? 14 : 16,
       borderRadius: 12,
       borderWidth: 2,
       borderColor: colors.border,
     },
-    selectedPlanCard: {
-      borderColor: colors.accentAction,
-      backgroundColor: colors.cardBackground,
-    },
-    premiumCard: {
-      borderColor: colors.success,
-    },
-    planTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: colors.primaryText,
-    },
-    selectedPlanTitle: {
-      color: colors.accentAction,
-    },
-    checkmark: {
-      width: 16,
-      height: 16,
-      borderRadius: 8,
-      backgroundColor: colors.border,
-    },
-    selectedCheckmark: {
-      backgroundColor: colors.accentAction,
-    },
-    featureText: {
-      fontSize: 14,
-      color: colors.primaryText,
-    },
-    selectedFeatureText: {
-      color: colors.primaryText,
-    },
-    priceText: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: colors.success,
-      textAlign: 'center',
-      marginTop: 8,
-    },
-    paymentMethodCard: {
-      backgroundColor: colors.cardBackground,
-      padding: 16,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
     selectedPaymentMethod: {
       borderColor: colors.accentAction,
-      backgroundColor: colors.cardBackground,
+      backgroundColor: colors.accentBackground ?? colors.cardBackground,
     },
     paymentIcon: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
       backgroundColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+    paymentIconEmoji: {
+      fontSize: 18,
     },
     disabledIcon: {
-      backgroundColor: colors.border,
       opacity: 0.5,
     },
+    paymentTextContainer: {
+      minWidth: 0,
+      flexShrink: 1,
+    },
     paymentMethodName: {
-      fontSize: 16,
-      fontWeight: '500',
+      fontSize: isNarrow ? 15 : 16,
+      fontWeight: '600',
       color: colors.primaryText,
+    },
+    paymentMethodHint: {
+      fontSize: 13,
+      color: colors.mutedText,
+      marginTop: 2,
     },
     disabledText: {
       color: colors.mutedText,
     },
-    selectedIndicator: {
-      width: 20,
-      height: 20,
-      borderRadius: 10,
+    radioOuter: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      borderWidth: 2,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+    radioOuterSelected: {
+      borderColor: colors.accentAction,
+    },
+    radioInner: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
       backgroundColor: colors.accentAction,
     },
     subscribeButton: {
       backgroundColor: colors.accentAction,
-      paddingVertical: 16,
+      paddingVertical: isNarrow ? 14 : 16,
       borderRadius: 12,
-      marginTop: 16,
+      width: '100%',
+    },
+    subscribeButtonText: {
+      color: colors.white,
+      fontWeight: '700',
+      fontSize: isNarrow ? 15 : 16,
+      textAlign: 'center',
     },
     disabledButton: {
       backgroundColor: colors.border,
+    },
+    termsSection: {
+      paddingTop: 4,
     },
     termsText: {
       fontSize: 12,
       color: colors.mutedText,
       textAlign: 'center',
       lineHeight: 18,
+      paddingHorizontal: 4,
     },
   });
+};
 
 export default SubscriptionScreen;

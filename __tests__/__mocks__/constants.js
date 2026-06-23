@@ -28,6 +28,7 @@ module.exports = {
   },
   STORAGE_KEYS: {
     AUTH_TOKENS: 'auth_tokens',
+    AUTH_API_BASE_URL: 'auth_api_base_url',
     USER_DATA: 'user_data',
     APP_SETTINGS: 'app_settings',
     CACHED_DATA: 'cached_data',
