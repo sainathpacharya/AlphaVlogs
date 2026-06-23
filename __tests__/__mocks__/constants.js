@@ -1,5 +1,8 @@
 // Mock constants for testing
+const getApiBaseUrl = jest.fn(() => 'http://localhost:3000/api');
+
 module.exports = {
+  getApiBaseUrl,
   APP_CONFIG: {
     apiUrl: 'http://localhost:3000/api',
     environment: 'test',

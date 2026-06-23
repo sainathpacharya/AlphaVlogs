@@ -11,22 +11,63 @@ const mockComponent = (name) => {
 
 module.exports = {
   // Core Components
+  Text: props => {
+    const React = require('react');
+    const {children, ...otherProps} = props;
+    return React.createElement('Text', otherProps, children);
+  },
+  Image: props => {
+    const React = require('react');
+    const {children, ...otherProps} = props;
+    return React.createElement('Image', otherProps, children);
+  },
+  ScrollView: props => {
+    const React = require('react');
+    const {children, ...otherProps} = props;
+    return React.createElement('ScrollView', otherProps, children);
+  },
+  TextInput: props => {
+    const React = require('react');
+    const {children, ...otherProps} = props;
+    return React.createElement('TextInput', otherProps, children);
+  },
+  TouchableOpacity: props => {
+    const React = require('react');
+    const {children, onPress, ...otherProps} = props;
+    return React.createElement(
+      'TouchableOpacity',
+      {...otherProps, onPress},
+      children,
+    );
+  },
+  Pressable: props => {
+    const React = require('react');
+    const {children, onPress, ...otherProps} = props;
+    return React.createElement('Pressable', {...otherProps, onPress}, children);
+  },
+  FlatList: props => {
+    const React = require('react');
+    const {data, renderItem, keyExtractor, ...otherProps} = props;
+    return React.createElement(
+      'ScrollView',
+      otherProps,
+      data?.map((item, index) =>
+        React.createElement(
+          'View',
+          {key: keyExtractor ? keyExtractor(item, index) : String(index)},
+          renderItem ? renderItem({item, index}) : null,
+        ),
+      ),
+    );
+  },
   View: mockComponent('View'),
-  Text: mockComponent('Text'),
-  Image: mockComponent('Image'),
-  ScrollView: mockComponent('ScrollView'),
-  TextInput: mockComponent('TextInput'),
-  TouchableOpacity: mockComponent('TouchableOpacity'),
-  TouchableHighlight: mockComponent('TouchableHighlight'),
-  TouchableWithoutFeedback: mockComponent('TouchableWithoutFeedback'),
-  Pressable: mockComponent('Pressable'),
-  FlatList: mockComponent('FlatList'),
   SectionList: mockComponent('SectionList'),
   VirtualizedList: mockComponent('VirtualizedList'),
   KeyboardAvoidingView: mockComponent('KeyboardAvoidingView'),
   SafeAreaView: mockComponent('SafeAreaView'),
   StatusBar: mockComponent('StatusBar'),
   ActivityIndicator: mockComponent('ActivityIndicator'),
+  RefreshControl: mockComponent('RefreshControl'),
   Alert: {
     alert: jest.fn(),
   },
@@ -35,6 +76,12 @@ module.exports = {
     addEventListener: jest.fn(),
     removeEventListener: jest.fn(),
   },
+  useWindowDimensions: jest.fn(() => ({
+    width: 375,
+    height: 812,
+    scale: 2,
+    fontScale: 1,
+  })),
   Platform: {
     OS: 'ios',
     select: jest.fn((obj) => obj.ios),

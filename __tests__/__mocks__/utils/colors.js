@@ -35,6 +35,12 @@ const useThemeColors = jest.fn(() => ({
   white: '#FFFFFF',
   black: '#000000',
   transparent: 'transparent',
+  buttonText: '#FFFFFF',
+  text: '#1A1A1A',
+  textSecondary: '#6C757D',
+  lightGray: '#E9ECEF',
+  accentBackground: 'rgba(0,122,255,0.12)',
+  error: '#DC3545',
 }));
 
 module.exports = {

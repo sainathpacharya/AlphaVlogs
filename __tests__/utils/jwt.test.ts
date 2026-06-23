@@ -28,4 +28,31 @@ describe('jwt utils', () => {
     expect(formatJwtSummary(undefined)).toBe('no token');
     expect(formatJwtSummary('bad.token')).toBe('invalid token');
   });
+
+  it('returns null when atob is unavailable', () => {
+    const originalAtob = globalThis.atob;
+    // @ts-expect-error test override
+    globalThis.atob = undefined;
+
+    expect(decodeJwtPayload(token)).toBeNull();
+
+    globalThis.atob = originalAtob;
+  });
+
+  it('returns null when payload JSON is invalid', () => {
+    const badSegment = Buffer.from('not-json').toString('base64');
+    expect(decodeJwtPayload(`header.${badSegment}.signature`)).toBeNull();
+  });
+
+  it('formats summary when studentId and exp are missing', () => {
+    const minimalPayload = {role: 'admin'};
+    const segment = Buffer.from(JSON.stringify(minimalPayload))
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+    const minimalToken = `h.${segment}.s`;
+
+    expect(formatJwtSummary(minimalToken)).toBe('role=admin, studentId=missing, exp=?');
+  });
 });

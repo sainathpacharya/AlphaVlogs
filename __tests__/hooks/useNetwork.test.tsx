@@ -1,9 +1,15 @@
-import {renderHook} from '@testing-library/react-native';
+import {renderHook, act, waitFor} from '@testing-library/react-native';
 import {useNetwork} from '../../src/hooks/useNetwork';
 
-// Mock NetInfo
+let listener: ((state: unknown) => void) | null = null;
+
 jest.mock('@react-native-community/netinfo', () => ({
-  addEventListener: jest.fn(() => jest.fn()),
+  addEventListener: jest.fn((cb) => {
+    listener = cb;
+    return jest.fn(() => {
+      listener = null;
+    });
+  }),
   fetch: jest.fn(() =>
     Promise.resolve({
       type: 'wifi',
@@ -40,5 +46,28 @@ describe('useNetwork Hook', () => {
     expect(result.current).toHaveProperty('isConnected');
     expect(result.current).toHaveProperty('isInternetReachable');
     expect(result.current).toHaveProperty('type');
+  });
+
+  it('updates status when NetInfo emits changes', async () => {
+    const {result, unmount} = renderHook(() => useNetwork());
+
+    await waitFor(() => {
+      expect(listener).not.toBeNull();
+    });
+
+    act(() => {
+      listener?.({
+        type: 'cellular',
+        isConnected: false,
+        isInternetReachable: null,
+      });
+    });
+
+    expect(result.current.isConnected).toBe(false);
+    expect(result.current.isInternetReachable).toBe(false);
+    expect(result.current.type).toBe('cellular');
+
+    unmount();
+    expect(listener).toBeNull();
   });
 });

@@ -152,6 +152,7 @@ module.exports = {
   Radio: MockComponent,
   Checkbox: MockComponent,
   Slider: MockComponent,
+  Tabs: MockComponent,
   Tab: MockComponent,
   TabList: MockComponent,
   TabTitle: MockText,
@@ -169,8 +170,10 @@ module.exports = {
   YouTubePlayer: MockComponent,
   YouTubeUpload: MockComponent,
   GifPlayer: MockComponent,
+  UserAvatar: MockComponent,
 
   // Additional components
   RippleDemo: MockComponent,
   RippleEffect: MockComponent,
+  SearchIcon: MockIcon,
 };

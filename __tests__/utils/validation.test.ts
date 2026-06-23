@@ -7,6 +7,14 @@ import {
   formatPhoneNumber,
   formatPincode,
   isFormReadyForSubmission,
+  validateEmail,
+  validateMobileNumber,
+  validatePincode,
+  validateName,
+  validateLocationName,
+  sanitizeString,
+  sanitizeRegistrationData,
+  validateFieldRealtime,
   VALIDATION_PATTERNS,
   VALIDATION_MESSAGES,
   REGISTRATION_VALIDATION_RULES,
@@ -221,6 +229,120 @@ describe('Validation Utils', () => {
       };
 
       expect(isFormReadyForSubmission(formData)).toBe(false);
+    });
+
+    it('should return false when school is missing', () => {
+      const formData = {
+        firstName: 'John',
+        lastName: 'Doe',
+        emailId: 'john@example.com',
+        mobileNumber: '9876543210',
+        state: 'Maharashtra',
+        district: 'Mumbai',
+        city: 'Mumbai',
+        pincode: '400001',
+        schoolId: '',
+        schoolName: '',
+        promocode: '',
+      };
+
+      expect(isFormReadyForSubmission(formData)).toBe(false);
+    });
+  });
+
+  describe('simple validators', () => {
+    it('validates email, mobile, pincode, name, and location', () => {
+      expect(validateEmail('user@example.com')).toBe(true);
+      expect(validateEmail('bad')).toBe(false);
+      expect(validateMobileNumber('9876543210')).toBe(true);
+      expect(validateMobileNumber('123')).toBe(false);
+      expect(validatePincode('400001')).toBe(true);
+      expect(validatePincode('000000')).toBe(false);
+      expect(validateName('John Doe')).toBe(true);
+      expect(validateName('John123')).toBe(false);
+      expect(validateLocationName('Mumbai')).toBe(true);
+      expect(validateLocationName('Mumbai1')).toBe(false);
+      expect(sanitizeString('  hello  ')).toBe('hello');
+    });
+  });
+
+  describe('sanitizeRegistrationData', () => {
+    it('normalizes email and mobile aliases', () => {
+      const result = sanitizeRegistrationData({
+        firstName: ' John ',
+        lastName: ' Doe ',
+        email: 'john@example.com',
+        mobileNumber: '9876543210',
+        state: 'MH',
+        district: 'Pune',
+        city: 'Pune',
+        pincode: '411001',
+        schoolId: '1',
+        schoolName: ' School ',
+        promocode: ' PROMO ',
+      });
+
+      expect(result.firstName).toBe('John');
+      expect(result.emailId).toBe('john@example.com');
+      expect(result.mobile).toBe('9876543210');
+      expect(result.schoolName).toBe('School');
+      expect(result.promocode).toBe('PROMO');
+    });
+  });
+
+  describe('validateRegistrationForm edge cases', () => {
+    it('flags invalid names and location fields', () => {
+      const result = validateRegistrationForm({
+        firstName: 'John123',
+        lastName: 'Doe!',
+        emailId: 'john@example.com',
+        mobileNumber: '9876543210',
+        state: 'MH1',
+        district: 'Pune1',
+        city: 'Pune1',
+        pincode: '400001',
+        schoolId: '1',
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors.firstName).toBeDefined();
+      expect(result.errors.lastName).toBeDefined();
+      expect(result.errors.state).toBeDefined();
+      expect(result.errors.district).toBeDefined();
+      expect(result.errors.city).toBeDefined();
+    });
+
+    it('accepts email and mobile from alternate fields', () => {
+      const result = validateRegistrationForm({
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        mobile: '9876543210',
+        state: 'Maharashtra',
+        district: 'Mumbai',
+        city: 'Mumbai',
+        pincode: '400001',
+        schoolId: '1',
+      });
+
+      expect(result.isValid).toBe(true);
+    });
+  });
+
+  describe('validateFieldRealtime', () => {
+    it('defers mobile validation until 10 digits', () => {
+      expect(validateFieldRealtime('mobileNumber', '98765')).toBeNull();
+      expect(validateFieldRealtime('mobileNumber', '9876543210')).toBeNull();
+      expect(validateFieldRealtime('mobileNumber', '1234567890')).toBeTruthy();
+    });
+
+    it('returns null for unknown fields without rules', () => {
+      expect(validateFieldRealtime('unknownField', 'value')).toBeNull();
+    });
+
+    it('validates known registration fields', () => {
+      expect(validateFieldRealtime('firstName', 'J')).toBeTruthy();
+      expect(validateFieldRealtime('firstName', 'John', REGISTRATION_VALIDATION_RULES.firstName)).toBeNull();
     });
   });
 });

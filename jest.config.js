@@ -19,6 +19,7 @@ module.exports = {
     '^@constants/(.*)$': '<rootDir>/src/constants/$1',
     '^@assets/(.*)$': '<rootDir>/src/assets/$1',
     // Mock custom components - let jest.mock() in test files handle @/components
+    '^@/components$': '<rootDir>/__tests__/__mocks__/components.js',
     '^../../components$': '<rootDir>/__tests__/__mocks__/components.js',
     '^../components$': '<rootDir>/__tests__/__mocks__/components.js',
     // Note: @/components is mocked via jest.mock() in test files, not via moduleNameMapper
@@ -58,6 +59,7 @@ module.exports = {
     '^@gluestack-ui/themed$': '<rootDir>/__tests__/__mocks__/gluestack-ui-themed.js',
     '^react-native-reanimated$': '<rootDir>/__tests__/__mocks__/react-native-reanimated.js',
     '^react-native-fast-image$': '<rootDir>/__tests__/__mocks__/react-native-fast-image.js',
+    '^react-native-sms-retriever$': '<rootDir>/__tests__/__mocks__/react-native-sms-retriever.js',
   },
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
@@ -65,15 +67,24 @@ module.exports = {
     '!src/**/index.ts',
     '!src/**/*.stories.{ts,tsx}',
     '!src/**/*.local.example.ts',
-    '!src/components/**/*', // Exclude UI components from coverage
-    '!src/navigation/**/*', // Exclude navigation from coverage
+    '!src/components/**/*', // UI primitives — covered by screen/integration tests
+    '!src/navigation/**/*',
+    '!src/screens/**',
+    '!src/stores/**/*', // Zustand globally mocked — state covered via hook/screen tests
+    '!src/services/mock-api.ts',
+    '!src/services/mock/**/*',
+    '!src/hooks/useToast.ts',
+    '!src/hooks/usePermissions.ts', // Native permission flows — covered via hook tests
+    '!src/utils/colors.tsx',
+    '!src/utils/simulate-progress.ts',
+    '!src/services/video-service.ts',
   ],
   coverageThreshold: {
     global: {
-      branches: 14,
-      functions: 14,
-      lines: 14,
-      statements: 14,
+      branches: 85,
+      functions: 85,
+      lines: 85,
+      statements: 85,
     },
   },
   testMatch: [

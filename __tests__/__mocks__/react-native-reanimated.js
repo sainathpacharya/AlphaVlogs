@@ -1,3 +1,6 @@
+const React = require('react');
+const {View} = require('react-native');
+
 // Mock NativeReanimatedModule
 const NativeReanimatedModule = {
   get: jest.fn(() => ({
@@ -44,15 +47,20 @@ const NativeReanimatedModule = {
   unsubscribeFromKeyboardEvents: jest.fn(),
 };
 
+const Animated = {
+  View,
+  Text: View,
+  Image: View,
+  ScrollView: View,
+  FlatList: View,
+  SectionList: View,
+  createAnimatedComponent: component => component,
+};
+
 module.exports = {
-  default: {
-    View: 'Animated.View',
-    Text: 'Animated.Text',
-    Image: 'Animated.Image',
-    ScrollView: 'Animated.ScrollView',
-    FlatList: 'Animated.FlatList',
-    SectionList: 'Animated.SectionList',
-  },
+  __esModule: true,
+  default: Animated,
+  Animated,
   Easing: {
     linear: jest.fn(),
     ease: jest.fn(),
@@ -70,10 +78,10 @@ module.exports = {
     out: jest.fn(),
     inOut: jest.fn(),
   },
-  useSharedValue: jest.fn(),
-  useAnimatedStyle: jest.fn(),
-  withTiming: jest.fn(),
-  withSpring: jest.fn(),
+  useSharedValue: jest.fn(() => ({value: 0})),
+  useAnimatedStyle: jest.fn(() => ({})),
+  withTiming: jest.fn(value => value),
+  withSpring: jest.fn(value => value),
   withDecay: jest.fn(),
   runOnJS: jest.fn(),
   interpolate: jest.fn(),
@@ -92,9 +100,8 @@ module.exports = {
   useAnimatedReaction: jest.fn(),
   useAnimatedProps: jest.fn(),
   useWorkletCallback: jest.fn(),
-  withSequence: jest.fn(),
-  withDelay: jest.fn(),
-  withRepeat: jest.fn(),
+  withDelay: jest.fn((_delay, value) => value),
+  withRepeat: jest.fn(value => value),
   cancelAnimation: jest.fn(),
   measure: jest.fn(),
   scrollTo: jest.fn(),

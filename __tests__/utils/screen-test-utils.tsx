@@ -2,8 +2,21 @@ import React from 'react';
 import {
   render as rtlRender,
   RenderOptions,
+  configure,
 } from '@testing-library/react-native';
 import {NavigationContainer} from '@react-navigation/native';
+
+// Bypass auto-detection that fails with mocked react-native host components
+configure({
+  hostComponentNames: {
+    text: 'Text',
+    textInput: 'TextInput',
+    image: 'Image',
+    switch: 'Switch',
+    scrollView: 'ScrollView',
+    modal: 'Modal',
+  },
+});
 
 /**
  * Custom render function that bypasses React Native Testing Library's

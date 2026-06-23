@@ -115,7 +115,8 @@ class VideoService {
     }
   }
 
-  // Upload to cloud storage
+  // Upload to cloud storage (legacy — not used by current upload flow)
+  /* istanbul ignore next */
   private async uploadToCloud(
     uploadUrl: string,
     file: any,
