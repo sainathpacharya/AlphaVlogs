@@ -5,7 +5,7 @@ const encodedPayload = Buffer.from(JSON.stringify(payload))
   .toString('base64')
   .replace(/\+/g, '-')
   .replace(/\//g, '_')
-  .replace(/=+$/, '');
+  .replace(new RegExp('=+$'), '');
 const token = `header.${encodedPayload}.signature`;
 
 describe('jwt utils', () => {
@@ -50,7 +50,7 @@ describe('jwt utils', () => {
       .toString('base64')
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
-      .replace(/=+$/, '');
+      .replace(new RegExp('=+$'), '');
     const minimalToken = `h.${segment}.s`;
 
     expect(formatJwtSummary(minimalToken)).toBe('role=admin, studentId=missing, exp=?');
