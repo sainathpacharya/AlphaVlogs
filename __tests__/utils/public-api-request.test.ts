@@ -28,7 +28,36 @@ describe('public-api-request utils', () => {
   });
 
   it('exposes the public API client version', () => {
-    expect(PUBLIC_API_CLIENT_VERSION).toBe('direct-fetch-v4');
+    expect(PUBLIC_API_CLIENT_VERSION).toBe('direct-fetch-v5');
+  });
+
+  it('never sends Authorization on student registration', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      status: 201,
+      statusText: 'Created',
+      headers: { get: () => 'application/json' },
+      json: async () => ({ success: true, data: { id: 'user_1' } }),
+    });
+
+    await publicApiPost('/api/students/register', {
+      firstName: 'NagaSainath',
+      mobileNumber: '7013134330',
+      deviceId: 'android-device-uuid-123',
+      deviceType: 'android',
+      token: 'fcm-push-token',
+    });
+
+    const [, requestInit] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(requestInit.credentials).toBe('omit');
+    expect(requestInit.headers).toMatchObject({
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    });
+    expect(requestInit.headers.Authorization).toBeUndefined();
+    expect(requestInit.headers.authorization).toBeUndefined();
+    expect(requestInit.body).toContain('"token":"fcm-push-token"');
+    expect(requestInit.body).not.toContain('Authorization');
   });
 
   it('posts JSON and returns ApiResponse-shaped success payloads', async () => {
@@ -97,6 +126,23 @@ describe('public-api-request utils', () => {
       success: false,
       error: 'Validation failed',
       statusCode: 422,
+    });
+  });
+
+  it('maps HTML gateway errors to friendly messages', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 502,
+      statusText: 'Bad Gateway',
+      headers: { get: () => 'text/html' },
+      text: async () => '<html><head><title>502 Bad Gateway</title></head></html>',
+    });
+
+    const result = await publicApiPost('/students/register');
+    expect(result).toMatchObject({
+      success: false,
+      error: 'Server is temporarily unavailable. Please try again later.',
+      statusCode: 502,
     });
   });
 

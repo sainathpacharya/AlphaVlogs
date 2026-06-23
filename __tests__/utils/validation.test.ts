@@ -158,8 +158,10 @@ describe('Validation Utils', () => {
 
   describe('sanitizeInput', () => {
     it('should sanitize name inputs', () => {
-      expect(sanitizeInput('  John@123  ', 'name')).toBe('John');
+      expect(sanitizeInput('  John@123  ', 'name', true)).toBe('John');
       expect(sanitizeInput('Mary-Jane O\'Connor', 'name')).toBe('Mary-Jane O\'Connor');
+      expect(sanitizeInput('Naga ', 'name', false)).toBe('Naga ');
+      expect(sanitizeInput('Naga Sai', 'name', false)).toBe('Naga Sai');
     });
 
     it('should sanitize email inputs', () => {

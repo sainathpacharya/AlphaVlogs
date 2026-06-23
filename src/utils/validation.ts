@@ -40,6 +40,8 @@ export interface RegistrationData {
   schoolId?: string;
   schoolName?: string;
   promocode?: string;
+  studentClass?: string;
+  section?: string;
 }
 
 /**
@@ -72,10 +74,10 @@ export function validateRegistrationData(data: RegistrationData): ValidationResu
     errors.push('Please enter a valid email address');
   }
 
-  const mobile = data.mobileNumber || data.mobile;
-  if (!mobile?.trim()) {
+  const mobileDigits = (data.mobileNumber || data.mobile || '').replace(/\D/g, '');
+  if (!mobileDigits) {
     errors.push('Mobile number is required');
-  } else if (!/^[6-9]\d{9}$/.test(mobile.trim())) {
+  } else if (!/^[6-9]\d{9}$/.test(mobileDigits)) {
     errors.push('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9');
   }
 
@@ -103,14 +105,27 @@ export function validateRegistrationData(data: RegistrationData): ValidationResu
     errors.push('Please enter a valid 6-digit pincode');
   }
 
-  // School validation
-  if (!data.schoolId && !data.schoolName?.trim()) {
-    errors.push('Please select a school or enter school name');
+  // School validation — 9999 is the client-only "Other" sentinel, not a backend id
+  const schoolId = data.schoolId?.trim();
+  const isManualSchool = !schoolId || schoolId === '9999';
+  if (isManualSchool) {
+    if (!data.schoolName?.trim()) {
+      errors.push('Please select a school or enter school name');
+    }
   }
 
-  // School name validation (if provided)
   if (data.schoolName && !/^[a-zA-Z0-9\s.'-]+$/.test(data.schoolName.trim())) {
     errors.push('School name can only contain letters, numbers, spaces, periods, hyphens, and apostrophes');
+  }
+
+  if (!data.studentClass?.trim()) {
+    errors.push('Class is required');
+  } else if (!/^(KG|[1-9]|1[0-2])$/.test(data.studentClass.trim())) {
+    errors.push('Please select a valid class');
+  }
+
+  if (data.section?.trim() && !/^[A-Za-z]{1,2}$/.test(data.section.trim())) {
+    errors.push('Section can only be 1-2 letters');
   }
 
   // Promo code validation (if provided)
@@ -135,7 +150,7 @@ export function validateEmail(email: string): boolean {
  * Validates mobile number format
  */
 export function validateMobileNumber(mobile: string): boolean {
-  return /^[6-9]\d{9}$/.test(mobile.trim());
+  return /^[6-9]\d{9}$/.test(mobile.replace(/\D/g, ''));
 }
 
 /**
@@ -252,7 +267,30 @@ export const REGISTRATION_VALIDATION_RULES: Record<string, FieldValidationRules>
   promocode: {
     pattern: VALIDATION_PATTERNS.promocode,
   },
+  studentClass: {
+    required: true,
+    pattern: /^(KG|[1-9]|1[0-2])$/,
+  },
+  section: {
+    pattern: /^[A-Za-z]{1,2}$/,
+  },
 } as const;
+
+export const STUDENT_CLASS_OPTIONS = [
+  'KG',
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '7',
+  '8',
+  '9',
+  '10',
+  '11',
+  '12',
+] as const;
 
 /**
  * Validates a single field with given rules
@@ -281,8 +319,17 @@ export function validateField(value: string, rules: FieldValidationRules): strin
   }
 
   // Pattern validation
-  if (rules.pattern && trimmedValue && !rules.pattern.test(trimmedValue)) {
-    return 'Invalid format';
+  if (rules.pattern && trimmedValue) {
+    const patternValue =
+      rules.pattern === VALIDATION_PATTERNS.phone
+        ? trimmedValue.replace(/\D/g, '')
+        : trimmedValue;
+    if (!rules.pattern.test(patternValue)) {
+      if (rules.pattern === VALIDATION_PATTERNS.phone) {
+        return VALIDATION_MESSAGES.invalidPhone;
+      }
+      return 'Invalid format';
+    }
   }
 
   // Custom validation
@@ -413,16 +460,17 @@ export function sanitizeInput(value: string, type: 'name' | 'email' | 'phone' | 
   switch (type) {
     case 'name':
       // Remove special characters except hyphens, apostrophes, and spaces
-      // Preserve spaces in the middle of the text
       sanitized = sanitized.replace(/[^a-zA-Z\s'-]/g, '');
-      // Always trim name inputs to remove leading/trailing spaces
-      sanitized = sanitized.trim();
+      if (trim) {
+        sanitized = sanitized.trim();
+      }
       break;
     case 'email':
       // Remove spaces and convert to lowercase
       sanitized = sanitized.replace(/\s/g, '').toLowerCase();
-      // Always trim email inputs
-      sanitized = sanitized.trim();
+      if (trim) {
+        sanitized = sanitized.trim();
+      }
       break;
     case 'phone':
       // Remove all non-digit characters and limit to 10 digits

@@ -8,7 +8,7 @@ jest.mock('../../src/config/api-config', () => ({
 jest.mock('../../src/constants', () => ({
   getApiBaseUrl: () => 'http://192.168.29.26:8080',
   API_ENDPOINTS: {
-    SCHOOLS: { GET: '/students/schools' },
+    SCHOOLS: { GET: '/api/students/schools' },
   },
 }));
 
@@ -45,7 +45,7 @@ describe('SchoolsService', () => {
     const result = await schoolsService.getSchools();
 
     expect(global.fetch).toHaveBeenCalledWith(
-      'http://192.168.29.26:8080/students/schools',
+      'http://192.168.29.26:8080/api/students/schools',
       expect.objectContaining({ method: 'GET' }),
     );
     expect(result.success).toBe(true);

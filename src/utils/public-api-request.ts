@@ -1,11 +1,21 @@
 import { Platform } from 'react-native';
 import { getApiBaseUrl, API } from '@/constants';
 import { ApiResponse } from '@/types';
-import { parseApiErrorMessage } from '@/utils/api-response';
+import { formatHttpStatusError } from '@/utils/api-response';
 import { devLog } from '@/utils/dev-log';
 
-/** Bump when OTP networking changes — shown in dev error alerts to confirm bundle reload. */
-export const PUBLIC_API_CLIENT_VERSION = 'direct-fetch-v4';
+/** Bump when public pre-login networking changes — shown in dev error alerts. */
+export const PUBLIC_API_CLIENT_VERSION = 'direct-fetch-v5';
+
+/** Headers for public pre-login POSTs (register, OTP). No Authorization / Bearer. */
+export function buildPublicApiHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    'X-Client-Platform': Platform.OS,
+    'Cache-Control': 'no-cache',
+  };
+}
 
 export type PublicApiDebugMeta = {
   url: string;
@@ -35,14 +45,9 @@ export async function publicApiPost<T>(
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   const url = `${baseUrl}${normalizedPath}`;
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    'X-Client-Platform': Platform.OS,
-    'Cache-Control': 'no-cache',
-  };
+  const headers = buildPublicApiHeaders();
 
-  devLog('OTP publicApiPost →', { url, body, client: PUBLIC_API_CLIENT_VERSION });
+  devLog('publicApiPost →', { url, headers, body, client: PUBLIC_API_CLIENT_VERSION });
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API.TIMEOUT);
@@ -63,7 +68,7 @@ export async function publicApiPost<T>(
       client: PUBLIC_API_CLIENT_VERSION,
     };
 
-    devLog('OTP publicApiPost ←', { ...debug, parsed });
+    devLog('publicApiPost ←', { ...debug, parsed });
 
     if (response.ok) {
       if (parsed && typeof parsed === 'object' && 'success' in (parsed as object)) {
@@ -74,13 +79,13 @@ export async function publicApiPost<T>(
 
     return {
       success: false,
-      error: parseApiErrorMessage(parsed) || response.statusText || 'Request failed',
+      error: formatHttpStatusError(response.status, parsed),
       statusCode: response.status,
       debug,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Network request failed';
-    devLog('OTP publicApiPost ERROR', { url, message });
+    devLog('publicApiPost ERROR', { url, message });
     return {
       success: false,
       error: message,

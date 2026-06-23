@@ -3,11 +3,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Dimensions,
   View,
 } from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   VStack,
+  HStack,
+  Pressable,
   Input,
   InputField,
   Button,
@@ -19,6 +21,7 @@ import {
 import {useToast} from '../../components/toast';
 import {useThemeColors} from '../../utils/colors';
 import {useIsMounted, useRegisterMutation} from '@/hooks';
+import {devLog} from '@/utils/dev-log';
 import {schoolsService, School} from '../../services/schools-service';
 import {
   validateFieldRealtime as validateFieldRealtimeUtil,
@@ -26,7 +29,9 @@ import {
   formatPhoneNumber,
   formatPincode,
   REGISTRATION_VALIDATION_RULES,
+  STUDENT_CLASS_OPTIONS,
 } from '../../utils/validation';
+import { MANUAL_SCHOOL_ID } from '@/utils/register-payload';
 
 import {
   User,
@@ -36,12 +41,9 @@ import {
   Building2,
   Landmark,
   Hash,
+  GraduationCap,
 } from 'lucide-react-native';
-import {AppLogoImage} from '../../components/AppLogoImage';
-import appLogo from '../../assets/png/appLogo.png';
 import {StatusBar} from '@/components/status-bar';
-
-const {width} = Dimensions.get('window');
 
 const RegistrationScreen = ({navigation}: any) => {
   const colors = useThemeColors();
@@ -57,6 +59,8 @@ const RegistrationScreen = ({navigation}: any) => {
     promocode: '',
     schoolId: '',
     schoolName: '',
+    studentClass: '',
+    section: '',
   });
 
   const [errors, setErrors] = useState<Partial<typeof form>>({});
@@ -75,6 +79,7 @@ const RegistrationScreen = ({navigation}: any) => {
   const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMounted = useIsMounted();
   const toast = useToast();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     return () => {
@@ -132,7 +137,7 @@ const RegistrationScreen = ({navigation}: any) => {
             }
           }
         } else {
-          console.error('Failed to fetch schools:', response.message);
+          devLog('Registration: schools API unavailable, using fallback list', response.message);
           if (!cancelled) {
           setSchools([
             {
@@ -241,7 +246,7 @@ const RegistrationScreen = ({navigation}: any) => {
           }
         }
       } catch (error) {
-        console.error('Error fetching schools:', error);
+        devLog('Registration: error fetching schools, using fallback list', error);
         if (!cancelled) {
         setSchools([
           {
@@ -322,6 +327,8 @@ const RegistrationScreen = ({navigation}: any) => {
       'mobileNumber',
       'schoolId',
       'schoolName',
+      'studentClass',
+      'section',
       'state',
       'district',
       'city',
@@ -340,6 +347,10 @@ const RegistrationScreen = ({navigation}: any) => {
         continue;
       }
 
+      if (field === 'section' && !fieldValue?.trim()) {
+        continue;
+      }
+
       // Check if field is required and empty
       if (!fieldValue?.trim()) {
         let errorMessage = '';
@@ -351,6 +362,8 @@ const RegistrationScreen = ({navigation}: any) => {
             lastName: 'Last Name',
             emailId: 'Email',
             mobileNumber: 'Mobile Number',
+            studentClass: 'Class',
+            section: 'Section',
             state: 'State',
             district: 'District',
             city: 'City',
@@ -478,6 +491,9 @@ const RegistrationScreen = ({navigation}: any) => {
       case 'schoolName':
         sanitizedValue = sanitizeInput(value, 'general', false);
         break;
+      case 'section':
+        sanitizedValue = sanitizeInput(value, 'general', false).toUpperCase();
+        break;
       default:
         sanitizedValue = sanitizeInput(value, 'general', false);
     }
@@ -518,12 +534,12 @@ const RegistrationScreen = ({navigation}: any) => {
   };
 
   const handleSchoolSelect = (schoolId: string) => {
-    if (schoolId === '9999') {
+    if (schoolId === MANUAL_SCHOOL_ID) {
       // "Other (Enter manually)" selected
       setShowCustomSchool(true);
       setForm({
         ...form,
-        schoolId: '9999', // Keep the selected value so dropdown shows "Other (Enter manually)"
+        schoolId: MANUAL_SCHOOL_ID, // Keep the selected value so dropdown shows "Other (Enter manually)"
         schoolName: '', // Clear school name so user can enter manually
       });
     } else {
@@ -563,45 +579,60 @@ const RegistrationScreen = ({navigation}: any) => {
     <KeyboardAvoidingView
       testID="registration-screen"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       style={{flex: 1, backgroundColor: colors.primaryBackground}}>
       <StatusBar translucent={false} />
+      <HStack
+        testID="registration-app-bar"
+        alignItems="center"
+        justifyContent="space-between"
+        px="$4"
+        pb="$3"
+        style={{
+          backgroundColor: colors.primaryBackground,
+          paddingTop: insets.top + 4,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border || 'rgba(0,0,0,0.08)',
+        }}>
+        <Pressable
+          testID="registration-back-button"
+          onPress={() => navigation.goBack()}
+          p="$2"
+          borderRadius="$md"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={{backgroundColor: colors.border || 'rgba(0,0,0,0.08)'}}>
+          <Text style={{color: colors.primaryText, fontSize: 18}}>←</Text>
+        </Pressable>
+        <Text
+          testID="registration-title"
+          style={{
+            color: colors.primaryText,
+            fontSize: 18,
+            fontWeight: '700',
+            flex: 1,
+            textAlign: 'center',
+          }}
+          numberOfLines={1}>
+          Registration
+        </Text>
+        <Box w="$10" />
+      </HStack>
       <ScrollView
         ref={scrollViewRef}
         testID="registration-scroll-view"
-        contentContainerStyle={{flexGrow: 1, paddingBottom: 100}}
-        showsVerticalScrollIndicator={false}
-        style={{overflow: 'visible'}}>
+        style={{flex: 1}}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 140,
+        }}
+        showsVerticalScrollIndicator={false}>
         <VStack
           testID="registration-container"
-          flex={1}
-          justifyContent="center"
           px="$5"
-          py="$10"
-          space="lg"
-          style={{overflow: 'visible'}}>
-          {/* Logo */}
-          <AppLogoImage
-            testID="registration-logo"
-            source={appLogo}
-            animation="bounce"
-            style={{
-              width: width,
-              height: width * 0.2,
-              marginBottom: 30,
-            }}
-          />
-
-          <Text
-            testID="registration-title"
-            fontSize="$2xl"
-            fontWeight="$bold"
-            color={colors.primaryText}
-            mb="$4"
-            textAlign="center">
-            Register
-          </Text>
-
-          {/* Inputs with custom left icon container */}
+          py="$4"
+          space="lg">
           {[
             {
               key: 'firstName',
@@ -637,6 +668,23 @@ const RegistrationScreen = ({navigation}: any) => {
               isSelect: true,
             },
             {
+              key: 'studentClass',
+              label: 'Class *',
+              placeholder: 'Select your class',
+              icon: GraduationCap,
+              isSelect: true,
+              selectOptions: STUDENT_CLASS_OPTIONS.map(value => ({
+                value,
+                label: value === 'KG' ? 'KG' : `Class ${value}`,
+              })),
+            },
+            {
+              key: 'section',
+              label: 'Section',
+              placeholder: 'Enter your section (optional)',
+              icon: Hash,
+            },
+            {
               key: 'state',
               label: 'State *',
               placeholder: 'Enter your state',
@@ -666,21 +714,29 @@ const RegistrationScreen = ({navigation}: any) => {
               placeholder: 'Enter promo code (optional)',
               icon: Hash,
             },
-          ].map(({key, placeholder, icon: IconComponent, isSelect}) => (
+          ].map(({key, placeholder, icon: IconComponent, isSelect, selectOptions}) => (
             <React.Fragment key={key}>
               <Box mb={'$2'} testID={`registration-${key}-container`}>
                 {isSelect ? (
-                  // School Selection Dropdown
                   <Select
-                    options={schools.map(school => ({
-                      value: school.id.toString(),
-                      label: school.name,
-                    }))}
-                    value={form.schoolId}
+                    options={
+                      selectOptions ??
+                      schools.map(school => ({
+                        value: school.id.toString(),
+                        label: school.name,
+                      }))
+                    }
+                    value={form[key as keyof typeof form]}
                     placeholder={placeholder}
-                    onValueChange={value => handleSchoolSelect(value)}
-                    error={errors.schoolId}
-                    disabled={schoolsLoading}
+                    onValueChange={value => {
+                      if (key === 'schoolId') {
+                        handleSchoolSelect(value);
+                        return;
+                      }
+                      onChange(key as keyof typeof form, value);
+                    }}
+                    error={errors[key as keyof typeof form]}
+                    disabled={key === 'schoolId' ? schoolsLoading : false}
                     icon={IconComponent}
                   />
                 ) : (
@@ -726,10 +782,12 @@ const RegistrationScreen = ({navigation}: any) => {
                         }
                         maxLength={
                           key === 'mobileNumber'
-                            ? 13 // 10 digits + 2 spaces (XXX XXX XXXX format)
+                            ? 13
                             : key === 'pincode'
                               ? 6
-                              : key === 'firstName' || key === 'lastName'
+                              : key === 'section'
+                                ? 2
+                                : key === 'firstName' || key === 'lastName'
                                 ? 50
                                 : key === 'emailId'
                                   ? 100
@@ -740,7 +798,8 @@ const RegistrationScreen = ({navigation}: any) => {
                           key === 'lastName' ||
                           key === 'state' ||
                           key === 'district' ||
-                          key === 'city'
+                          key === 'city' ||
+                          key === 'section'
                             ? 'words'
                             : key === 'emailId'
                               ? 'none'

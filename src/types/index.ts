@@ -218,6 +218,7 @@ export interface AsyncStorageKeys {
   CACHED_DATA: 'cached_data';
   THEME: 'theme';
   LANGUAGE: 'language';
+  PUSH_TOKEN: 'push_token';
 }
 
 export interface SecureStorageKeys {

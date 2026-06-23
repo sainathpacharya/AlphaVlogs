@@ -5,7 +5,11 @@ import NetInfo from '@react-native-community/netinfo';
 import { getApiBaseUrl, API_ENDPOINTS, API, STORAGE_KEYS } from '@/constants';
 import { ApiResponse, AuthTokens } from '@/types';
 import { apiLogger, ApiLogRequest, ApiLogResponse, ApiLogError } from '@/utils/api-logger';
-import { normalizeAuthTokens, parseApiErrorMessage } from '@/utils/api-response';
+import {
+  formatHttpStatusError,
+  normalizeAuthTokens,
+  parseApiErrorMessage,
+} from '@/utils/api-response';
 import { purgeAuthTokensFromDevice } from '@/utils/auth-storage';
 import { useUserCachedStore } from '@/stores/user-cached-store';
 
@@ -86,6 +90,7 @@ class ApiService {
       API_ENDPOINTS.STUDENTS.SEND_OTP,
       API_ENDPOINTS.STUDENTS.VERIFY_OTP,
       API_ENDPOINTS.STUDENTS.SELECT_PROFILE,
+      API_ENDPOINTS.STUDENTS.REGISTER,
       API_ENDPOINTS.AUTH.SEND_OTP,
       API_ENDPOINTS.AUTH.VERIFY_OTP,
       API_ENDPOINTS.AUTH.REGISTER,
@@ -357,15 +362,10 @@ class ApiService {
     }
   }
 
-  private handleHttpError(status: number, statusText: string, data: unknown): ApiResponse {
-    const errorMessage =
-      (typeof data === 'string' ? data : parseApiErrorMessage(data)) ||
-      statusText ||
-      'An error occurred';
-
+  private handleHttpError(status: number, _statusText: string, data: unknown): ApiResponse {
     return {
       success: false,
-      error: errorMessage,
+      error: formatHttpStatusError(status, data),
       statusCode: status,
     };
   }
@@ -457,6 +457,7 @@ class ApiService {
         method: 'POST',
         headers,
         body: data !== undefined && data !== null ? JSON.stringify(data) : undefined,
+        credentials: 'omit',
         signal: controller.signal,
       });
 

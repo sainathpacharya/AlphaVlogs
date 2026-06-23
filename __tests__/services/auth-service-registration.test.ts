@@ -10,6 +10,16 @@ jest.mock('../../src/utils/public-api-request', () => ({
   PUBLIC_API_CLIENT_VERSION: 'test',
 }));
 
+jest.mock('../../src/utils/device-registration', () => ({
+  getRegisterDeviceContext: jest.fn(() =>
+    Promise.resolve({
+      deviceId: 'android-device-uuid-123',
+      deviceType: 'ios',
+      token: 'android-device-uuid-123',
+    }),
+  ),
+}));
+
 const mockPublicApiPost = publicApiRequest.publicApiPost as jest.MockedFunction<
   typeof publicApiRequest.publicApiPost
 >;
@@ -26,6 +36,8 @@ describe('AuthService - Registration', () => {
     pincode: '400001',
     schoolId: '1',
     schoolName: '',
+    studentClass: '10',
+    section: 'A',
     promocode: '',
   };
 
@@ -88,6 +100,8 @@ describe('AuthService - Registration', () => {
         pincode: '12345',
         schoolId: '',
         schoolName: '',
+        studentClass: '',
+        section: '',
         promocode: '',
       };
 
@@ -176,6 +190,8 @@ describe('AuthService - Registration', () => {
         pincode: '012345', // Invalid starting digit
         schoolId: '',
         schoolName: '',
+        studentClass: '',
+        section: '',
         promocode: '',
       };
 
@@ -187,6 +203,52 @@ describe('AuthService - Registration', () => {
       expect(result.error).toContain('Please enter a valid 10-digit mobile number');
       expect(result.error).toContain('State name can only contain letters and spaces');
       expect(result.error).toContain('Please enter a valid 6-digit pincode');
+    });
+
+    it('should post mapped registration payload to the backend', async () => {
+      (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
+      mockPublicApiPost.mockResolvedValue({
+        success: true,
+        data: { id: 'user_123' },
+        statusCode: 201,
+      });
+
+      await authService.register(validRegistrationData);
+
+      expect(mockPublicApiPost).toHaveBeenCalledWith(
+        '/api/students/register',
+        expect.objectContaining({
+          firstName: 'John',
+          mobileNumber: '9876543210',
+          schoolId: 1,
+          studentClass: '10',
+          section: 'A',
+          deviceId: 'android-device-uuid-123',
+          deviceType: 'ios',
+          token: 'android-device-uuid-123',
+        }),
+      );
+      expect(mockPublicApiPost.mock.calls[0][1]).not.toHaveProperty('schoolName');
+    });
+
+    it('maps 401 unauthorized to a helpful registration error', async () => {
+      (MockWrapperService.isMockMode as jest.Mock).mockReturnValue(false);
+      mockPublicApiPost.mockResolvedValue({
+        success: false,
+        error: 'Unauthorized',
+        statusCode: 401,
+        debug: {
+          url: 'https://api.alphavlogs.com/api/students/register',
+          status: 401,
+          client: 'test',
+        },
+      });
+
+      const result = await authService.register(validRegistrationData);
+
+      expect(result.success).toBe(false);
+      expect(result.statusCode).toBe(401);
+      expect(result.error).toMatch(/unauthorized|401/i);
     });
 
     it('should handle network errors gracefully', async () => {
@@ -281,6 +343,8 @@ describe('AuthService - Registration', () => {
         pincode: '',
         schoolId: '',
         schoolName: '',
+        studentClass: '',
+        section: '',
         promocode: '',
       };
 
@@ -296,6 +360,7 @@ describe('AuthService - Registration', () => {
       expect(result.error).toContain('City is required');
       expect(result.error).toContain('Pincode is required');
       expect(result.error).toContain('Please select a school or enter school name');
+      expect(result.error).toContain('Class is required');
     });
 
     it('should validate email format', async () => {

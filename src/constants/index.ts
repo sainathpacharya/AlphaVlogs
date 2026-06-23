@@ -24,16 +24,17 @@ export const API_ENDPOINTS = {
     EVENTS: '/api/students/events',
     SUBSCRIPTION: '/api/students/subscription',
     DELETE_ACCOUNT: '/api/students/account',
+    REGISTER: '/api/students/register',
   },
   AUTH: {
     SEND_OTP: '/api/auth/send-otp',
     VERIFY_OTP: '/api/auth/verify-otp',
     REFRESH: '/api/auth/refresh',
-    REGISTER: '/students/register',
+    REGISTER: '/api/students/register',
     LOGOUT: '/auth/logout',
   },
   SCHOOLS: {
-    GET: '/students/schools',
+    GET: '/api/students/schools',
   },
   DASHBOARD: {
     GET: '/dashboard',
@@ -79,6 +80,7 @@ export const STORAGE_KEYS: AsyncStorageKeys = {
   CACHED_DATA: 'cached_data',
   THEME: 'theme',
   LANGUAGE: 'language',
+  PUSH_TOKEN: 'push_token',
 };
 
 export const SECURE_STORAGE_KEYS: SecureStorageKeys = {

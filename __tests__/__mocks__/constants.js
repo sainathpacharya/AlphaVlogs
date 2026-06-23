@@ -13,7 +13,7 @@ module.exports = {
     AUTH: {
       SEND_OTP: '/students/send-otp',
       VERIFY_OTP: '/students/verify-otp',
-      REGISTER: '/students/register',
+      REGISTER: '/api/students/register',
       LOGOUT: '/auth/logout',
     },
     DASHBOARD: {

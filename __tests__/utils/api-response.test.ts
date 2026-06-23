@@ -1,12 +1,19 @@
 import {
   normalizeAuthTokens,
   parseApiErrorMessage,
+  formatHttpStatusError,
 } from '../../src/utils/api-response';
 
 describe('api-response utils', () => {
   describe('parseApiErrorMessage', () => {
     it('returns string payloads directly', () => {
       expect(parseApiErrorMessage('Server unavailable')).toBe('Server unavailable');
+    });
+
+    it('ignores HTML error pages', () => {
+      expect(
+        parseApiErrorMessage('<html><head><title>502 Bad Gateway</title></head></html>'),
+      ).toBeUndefined();
     });
 
     it('returns undefined for nullish and non-string primitives', () => {
@@ -37,6 +44,23 @@ describe('api-response utils', () => {
           error: { code: 'AUTH_FAILED' },
         }),
       ).toBe('AUTH_FAILED');
+    });
+  });
+
+  describe('formatHttpStatusError', () => {
+    it('prefers API error bodies over status defaults', () => {
+      expect(formatHttpStatusError(400, { message: 'Email already exists' })).toBe(
+        'Email already exists',
+      );
+    });
+
+    it('maps gateway errors to friendly messages', () => {
+      expect(formatHttpStatusError(502, '<html>502 Bad Gateway</html>')).toBe(
+        'Server is temporarily unavailable. Please try again later.',
+      );
+      expect(formatHttpStatusError(503)).toBe(
+        'Service is temporarily unavailable. Please try again later.',
+      );
     });
   });
 

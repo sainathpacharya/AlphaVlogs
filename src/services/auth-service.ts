@@ -1,9 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiService from './api';
-import { API_ENDPOINTS, STORAGE_KEYS } from '@/constants';
+import { API_ENDPOINTS, STORAGE_KEYS, getApiBaseUrl } from '@/constants';
 import { ApiResponse, User, OTPResponse, StudentProfile, VerifyOTPResponse, LoginResponse, StudentProfilesResponse } from '@/types';
 import { MockWrapperService } from './mock-wrapper';
 import { apiLogger } from '@/utils/api-logger';
+import { getRegisterDeviceContext } from '@/utils/device-registration';
+import { buildRegisterApiPayload } from '@/utils/register-payload';
 import { validateRegistrationData } from '@/utils/validation';
 import { normalizeAuthTokens } from '@/utils/api-response';
 import {
@@ -47,6 +49,34 @@ function mapSendOtpError(
   if (msg.includes('not registered')) {
     return 'This mobile number is not registered. Please register first or contact support.';
   }
+  return formatDevOtpError(msg, debug);
+}
+
+function mapRegisterError(
+  message: string | undefined,
+  statusCode: number,
+  debug?: PublicApiResult<unknown>['debug'],
+): string {
+  const msg = message?.trim() || 'Registration failed';
+  const isUnauthorized =
+    statusCode === 401 ||
+    msg.toLowerCase().includes('unauthorized') ||
+    msg.toUpperCase() === 'UNAUTHORIZED';
+
+  if (isUnauthorized) {
+    const apiBase = getApiBaseUrl();
+    const onProduction = apiBase.includes('api.alphavlogs.com');
+    if (__DEV__) {
+      const hint = onProduction
+        ? 'Production blocks anonymous registration. Copy api-config.local.example.ts to api-config.local.ts, set USE_PRODUCTION_API: false, and point to your local backend (or ask backend to permit POST /api/students/register).'
+        : 'Ensure POST /api/students/register is permitAll on your backend SecurityConfig.';
+      return formatDevOtpError(`Registration unauthorized (401). ${hint}`, debug);
+    }
+    return onProduction
+      ? 'Registration is temporarily unavailable. Please try again later or contact support.'
+      : 'Registration could not be completed. Please check your connection and try again.';
+  }
+
   return formatDevOtpError(msg, debug);
 }
 
@@ -150,6 +180,8 @@ export interface RegisterRequest {
   promocode?: string;
   schoolId?: string;
   schoolName?: string;
+  studentClass?: string;
+  section?: string;
 }
 
 async function resolveLoginFromApiBody(
@@ -557,8 +589,38 @@ class AuthService {
         return errorResponse;
       }
 
-      // Use the data as-is since it already matches the backend format
-      const result = await publicApiPost<User>(API_ENDPOINTS.AUTH.REGISTER, data);
+      // Drop stale tokens — registration must be anonymous (same as sendOTP).
+      await apiService.clearStoredAuth();
+
+      // Build backend payload (schoolId vs schoolName, device fields, digit-only mobile)
+      const device = await getRegisterDeviceContext();
+      const payload = buildRegisterApiPayload(data, device);
+
+      devLog('AuthService.register start', {
+        client: PUBLIC_API_CLIENT_VERSION,
+        baseUrl: getApiBaseUrl(),
+        path: API_ENDPOINTS.STUDENTS.REGISTER,
+        payload,
+      });
+
+      const result = await publicApiPost<User>(API_ENDPOINTS.STUDENTS.REGISTER, payload);
+
+      devLog('AuthService.register request', {
+        via: 'publicApiPost',
+        authHeader: false,
+        path: API_ENDPOINTS.STUDENTS.REGISTER,
+      });
+
+      if (result.success === false) {
+        const err = {
+          success: false as const,
+          error: mapRegisterError(result.error, result.statusCode ?? 0, result.debug),
+          statusCode: result.statusCode ?? 400,
+        };
+        apiLogger.logServiceCall('AuthService', 'register', data, null, err);
+        return err;
+      }
+
       apiLogger.logServiceCall('AuthService', 'register', data, result);
       return result;
     } catch (error: any) {

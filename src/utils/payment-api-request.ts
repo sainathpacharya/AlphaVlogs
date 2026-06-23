@@ -2,7 +2,7 @@ import {Platform} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {getApiBaseUrl, API, STORAGE_KEYS} from '@/constants';
 import {ApiResponse, AuthTokens} from '@/types';
-import {parseApiErrorMessage, normalizeAuthTokens} from '@/utils/api-response';
+import {formatHttpStatusError, normalizeAuthTokens} from '@/utils/api-response';
 import {AUTH_KEYCHAIN_SERVER} from '@/utils/auth-storage';
 import {devLog} from '@/utils/dev-log';
 import {formatJwtSummary} from '@/utils/jwt';
@@ -103,7 +103,7 @@ export async function paymentApiPost<T>(
 
     return {
       success: false,
-      error: parseApiErrorMessage(parsed) || response.statusText || 'Payment request failed',
+      error: formatHttpStatusError(response.status, parsed),
       statusCode: response.status,
       debug,
     };

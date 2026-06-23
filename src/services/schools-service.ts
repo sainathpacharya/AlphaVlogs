@@ -6,6 +6,7 @@
 import { API_ENDPOINTS, getApiBaseUrl } from '@/constants';
 import { ApiResponse } from '@/types';
 import { isMockMode } from '@/config/api-config';
+import { devLog } from '@/utils/dev-log';
 
 export interface School {
   id: number;
@@ -58,20 +59,30 @@ class SchoolsService {
         },
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch schools');
+        const message =
+          (data && typeof data === 'object' && 'message' in data
+            ? String((data as { message?: string }).message)
+            : null) || 'Failed to fetch schools';
+        throw new Error(message);
       }
+
+      if (!data || typeof data !== 'object') {
+        throw new Error('Failed to fetch schools');
+      }
+
+      const body = data as { data?: SchoolsResponse; message?: string };
 
       return {
         success: true,
-        data: data.data,
-        message: data.message || 'Schools fetched successfully',
+        data: body.data,
+        message: body.message || 'Schools fetched successfully',
         statusCode: response.status,
       };
     } catch (error) {
-      console.error('SchoolsService.getSchools error:', error);
+      devLog('SchoolsService.getSchools: using static fallback', error);
 
       // Return static data in case of error (offline/fallback)
       // eslint-disable-next-line @typescript-eslint/no-var-requires
