@@ -1,4 +1,4 @@
-package com.nsnr.aplhavlogs
+package com.nsnr.alphavlogs
 
 import android.app.Application
 import com.facebook.react.PackageList

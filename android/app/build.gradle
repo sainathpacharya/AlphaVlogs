@@ -128,7 +128,7 @@ android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
-    namespace "com.nsnr.aplhavlogs"
+    namespace "com.nsnr.alphavlogs"
     
     // Get version code from project property (set via -PversionCode=xxx in CI/CD)
     // For Play Store: Must always increment (extracted from git tag)
@@ -176,7 +176,7 @@ android {
     }
     
     defaultConfig {
-        applicationId "com.nsnr.aplhavlogs"
+        applicationId "com.nsnr.alphavlogs"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Version code and name can be overridden via -PversionCode=xxx and -PversionName=xxx
@@ -253,7 +253,7 @@ android {
     // To distribute a build, run: ./gradlew app:appDistributionUploadDevelopRelease
     // or: ./gradlew app:appDistributionUploadProductionRelease
     firebaseAppDistribution {
-        // Default app ID (for production builds with package: com.nsnr.aplhavlogs)
+        // Default app ID (for production builds with package: com.nsnr.alphavlogs)
         appId = "1:452248149004:android:fda0cc05fefccedbaf2229"
         groups = ["testers"]
         releaseNotes = "Alpha Vlogs build"

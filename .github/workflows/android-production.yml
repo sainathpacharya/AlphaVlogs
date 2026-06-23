@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PACKAGE_NAME: com.nsnr.aplhavlogs
+  PACKAGE_NAME: com.nsnr.alphavlogs
   PLAY_STORE_TRACK: internal
 
 jobs:

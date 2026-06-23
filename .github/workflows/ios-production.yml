@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  BUNDLE_ID: com.nsnr.aplhavlogs
+  BUNDLE_ID: com.nsnr.alphavlogs
 
 jobs:
   build-and-publish:

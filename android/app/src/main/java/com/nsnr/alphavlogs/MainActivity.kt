@@ -1,4 +1,4 @@
-package com.nsnr.aplhavlogs
+package com.nsnr.alphavlogs
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

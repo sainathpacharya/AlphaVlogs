@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.nsnr.aplhavlogs</string>
+	<string>com.nsnr.alphavlogs</string>
 	<key>PROJECT_ID</key>
 	<string>alpha-vlogs-cf60a</string>
 	<key>STORAGE_BUCKET</key>

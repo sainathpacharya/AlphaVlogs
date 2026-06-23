@@ -8,8 +8,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ANDROID_PACKAGE_NAME: com.nsnr.aplhavlogs.dev
-  IOS_BUNDLE_ID: com.nsnr.aplhavlogs.dev
+  ANDROID_PACKAGE_NAME: com.nsnr.alphavlogs.dev
+  IOS_BUNDLE_ID: com.nsnr.alphavlogs.dev
   FIREBASE_PROJECT_ID: alpha-vlogs-cf60a
   FIREBASE_TESTER_GROUP: testers
   FIREBASE_IOS_PLIST_PATH: ios/JackMarvelsApp/GoogleService-Info-Develop.plist

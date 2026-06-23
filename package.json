@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "android": "react-native run-android --mode=developDebug --appId com.nsnr.aplhavlogs.dev",
+    "android": "react-native run-android --mode=developDebug --appId com.nsnr.alphavlogs.dev",
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
