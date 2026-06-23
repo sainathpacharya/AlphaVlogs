@@ -64,6 +64,7 @@ module.exports = {
     '!src/**/*.d.ts',
     '!src/**/index.ts',
     '!src/**/*.stories.{ts,tsx}',
+    '!src/**/*.local.example.ts',
     '!src/components/**/*', // Exclude UI components from coverage
     '!src/navigation/**/*', // Exclude navigation from coverage
   ],
