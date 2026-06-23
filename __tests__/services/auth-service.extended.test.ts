@@ -19,6 +19,16 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   removeItem: jest.fn(),
 }));
 
+jest.mock('../../src/utils/device-registration', () => ({
+  getRegisterDeviceContext: jest.fn(() =>
+    Promise.resolve({
+      deviceId: 'test-device-id',
+      deviceType: 'ios',
+      token: 'test-device-id',
+    }),
+  ),
+}));
+
 jest.mock('../../src/constants', () => ({
   getApiBaseUrl: () => 'http://192.168.29.26:8080',
   API_ENDPOINTS: {
@@ -29,9 +39,10 @@ jest.mock('../../src/constants', () => ({
       PROFILES: '/api/students/profiles',
       SWITCH_PROFILE: '/api/students/switch-profile',
       DELETE_ACCOUNT: '/api/students/account',
+      REGISTER: '/api/students/register',
     },
     AUTH: {
-      REGISTER: '/students/register',
+      REGISTER: '/api/students/register',
       LOGOUT: '/auth/logout',
     },
     USER: {
@@ -67,6 +78,7 @@ describe('AuthService extended', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockWrapper.isMockMode.mockReturnValue(false);
+    mockApiService.clearStoredAuth.mockResolvedValue(undefined);
   });
 
   describe('selectProfile', () => {
@@ -285,6 +297,7 @@ describe('AuthService extended', () => {
       district: 'Hyderabad',
       city: 'Hyderabad',
       schoolId: '1',
+      studentClass: '10',
     };
 
     it('returns validation errors before API call', async () => {

@@ -69,6 +69,7 @@ describe('MockApiService', () => {
         pincode: '123456',
         schoolId: '1',
         schoolName: 'Test School',
+        studentClass: '10',
       };
 
       const result = await mockApiService.register(registerData);
@@ -91,6 +92,7 @@ describe('MockApiService', () => {
         pincode: '123456',
         schoolId: '1',
         schoolName: 'Test School',
+        studentClass: '10',
       };
 
       const result = await mockApiService.register(registerData);

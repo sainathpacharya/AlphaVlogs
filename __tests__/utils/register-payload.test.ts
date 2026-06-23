@@ -82,4 +82,28 @@ describe('register-payload', () => {
     expect(payload.schoolName).toBeUndefined();
     expect(payload.promoCode).toBeUndefined();
   });
+
+  it('omits optional fields when not provided', () => {
+    const payload = buildRegisterApiPayload(
+      {
+        firstName: 'NagaSainath',
+        lastName: 'Reddy',
+        emailId: 'test@example.com',
+        mobileNumber: '7013134330',
+        state: 'Telangana',
+        district: 'Hyderabad',
+        city: 'Hyderabad',
+        pincode: '500114',
+        schoolId: MANUAL_SCHOOL_ID,
+        schoolName: '',
+      },
+      device,
+    );
+
+    expect(payload.studentClass).toBe('');
+    expect(payload.schoolName).toBeUndefined();
+    expect(payload.section).toBeUndefined();
+    expect(payload.promoCode).toBeUndefined();
+    expect(payload.geolocation).toBe('Hyderabad, Telangana');
+  });
 });

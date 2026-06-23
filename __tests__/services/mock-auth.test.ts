@@ -62,6 +62,7 @@ describe('MockAuthService', () => {
       pincode: '500001',
       schoolId: '1',
       schoolName: 'School',
+      studentClass: '10',
     });
     await flush();
     expect((await register).success).toBe(true);
@@ -77,6 +78,7 @@ describe('MockAuthService', () => {
       pincode: '500001',
       schoolId: '1',
       schoolName: 'School',
+      studentClass: '10',
     });
     await flush();
     expect((await duplicate).success).toBe(false);

@@ -1,3 +1,7 @@
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: jest.fn(() => ({top: 44, bottom: 34, left: 0, right: 0})),
+}));
+
 import React from 'react';
 import RegistrationScreen from '../../src/screens/Registration';
 import {

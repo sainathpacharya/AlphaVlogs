@@ -19,6 +19,16 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   removeItem: jest.fn(),
 }));
 
+jest.mock('../../src/utils/device-registration', () => ({
+  getRegisterDeviceContext: jest.fn(() =>
+    Promise.resolve({
+      deviceId: 'test-device-id',
+      deviceType: 'ios',
+      token: 'test-device-id',
+    }),
+  ),
+}));
+
 jest.mock('../../src/constants', () => ({
   getApiBaseUrl: () => 'http://test.local',
   API_ENDPOINTS: {
@@ -29,8 +39,9 @@ jest.mock('../../src/constants', () => ({
       PROFILES: '/api/students/profiles',
       SWITCH_PROFILE: '/api/students/switch-profile',
       DELETE_ACCOUNT: '/api/students/account',
+      REGISTER: '/api/students/register',
     },
-    AUTH: { REGISTER: '/students/register', LOGOUT: '/auth/logout' },
+    AUTH: { REGISTER: '/api/students/register', LOGOUT: '/auth/logout' },
     USER: { PROFILE: '/api/auth/me', UPDATE_PROFILE: '/students/profile' },
   },
   API: { TIMEOUT: 30000 },
@@ -488,6 +499,7 @@ describe('AuthService branch coverage', () => {
       district: 'Hyderabad',
       city: 'Hyderabad',
       schoolId: '1',
+      studentClass: '10',
     };
 
     it('uses mock register in mock mode', async () => {

@@ -62,6 +62,27 @@ describe('api-response utils', () => {
         'Service is temporarily unavailable. Please try again later.',
       );
     });
+
+    it('maps common HTTP status codes to friendly defaults', () => {
+      expect(formatHttpStatusError(400)).toBe(
+        'Invalid request. Please check your information and try again.',
+      );
+      expect(formatHttpStatusError(401)).toBe(
+        'Authentication required. Please log in and try again.',
+      );
+      expect(formatHttpStatusError(403)).toBe(
+        'You do not have permission to perform this action.',
+      );
+      expect(formatHttpStatusError(404)).toBe('The requested resource was not found.');
+      expect(formatHttpStatusError(408)).toBe('Request timed out. Please try again.');
+      expect(formatHttpStatusError(429)).toBe('Too many requests. Please wait and try again.');
+      expect(formatHttpStatusError(504)).toBe('Server took too long to respond. Please try again.');
+      expect(formatHttpStatusError(500)).toBe('Server error. Please try again later.');
+      expect(formatHttpStatusError(418)).toBe(
+        'Request failed. Please check your information and try again.',
+      );
+      expect(formatHttpStatusError(0)).toBe('Request failed');
+    });
   });
 
   describe('normalizeAuthTokens', () => {
