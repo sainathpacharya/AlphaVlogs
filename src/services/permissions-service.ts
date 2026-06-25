@@ -15,6 +15,7 @@ import {
   getAndroidVideoGalleryPermissions,
   getIosPhotoLibraryPermission,
   isPermissionSatisfied,
+  type PermissionConstant,
 } from '@/utils/media-permissions';
 
 export interface PermissionStatus {
@@ -33,8 +34,7 @@ export interface PermissionResult {
   notifications: PermissionStatus;
 }
 
-type PermissionConstant = (typeof PERMISSIONS.IOS)[keyof typeof PERMISSIONS.IOS]
-  | (typeof PERMISSIONS.ANDROID)[keyof typeof PERMISSIONS.ANDROID];
+type PermissionResultMap = Record<PermissionConstant, string>;
 
 class PermissionsService {
   private getRequiredPermissions(): PermissionConstant[] {
@@ -56,7 +56,7 @@ class PermissionsService {
 
     const notificationPermission = getAndroidNotificationPermission();
     if (notificationPermission) {
-      permissions.push(notificationPermission as PermissionConstant);
+      permissions.push(notificationPermission);
     }
 
     return permissions;
@@ -114,10 +114,13 @@ class PermissionsService {
 
   private mapMultipleResults(
     permissions: PermissionConstant[],
-    results: Record<string, string>,
+    results: PermissionResultMap,
   ): PermissionResult {
     const readPermission = getAndroidVideoGalleryPermissions()[0];
     const notificationPermission = getAndroidNotificationPermission();
+    const readPermissionResult = readPermission
+      ? results[readPermission]
+      : undefined;
 
     if (Platform.OS === 'ios') {
       return {
@@ -132,11 +135,11 @@ class PermissionsService {
 
     return {
       camera: this.mapPermissionResult(results[PERMISSIONS.ANDROID.CAMERA] || RESULTS.UNAVAILABLE),
-      photoLibrary: this.mapPermissionResult(results[readPermission] || RESULTS.UNAVAILABLE),
+      photoLibrary: this.mapPermissionResult(readPermissionResult || RESULTS.UNAVAILABLE),
       storage: this.mapPermissionResult(
         results[PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE] ||
           results[PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE] ||
-          results[readPermission] ||
+          readPermissionResult ||
           RESULTS.UNAVAILABLE,
       ),
       location: this.mapPermissionResult(results[PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION] || RESULTS.UNAVAILABLE),

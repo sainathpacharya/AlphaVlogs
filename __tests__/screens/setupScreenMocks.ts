@@ -334,6 +334,14 @@ jest.mock('@/stores', () => ({
   })),
 }));
 
+jest.mock('@/hooks/api/use-auth-api', () => ({
+  useLogoutMutation: jest.fn(() => ({
+    mutate: jest.fn(),
+    mutateAsync: jest.fn().mockResolvedValue(undefined),
+    isPending: false,
+  })),
+}));
+
 jest.mock('@/stores/user-cached-store', () => ({
   useUserCachedStore: jest.fn(() => ({
     clearLocalSession: jest.fn(),
@@ -408,6 +416,11 @@ jest.mock('@/services/payment-service', () => ({
 jest.mock('@/config/api-config', () => ({
   isMockMode: jest.fn(() => true),
   getApiBaseUrl: jest.fn(() => 'http://mock-api.test'),
+  API_CONFIG: {
+    DEV: {
+      LOG_API_CALLS: false,
+    },
+  },
 }));
 
 jest.mock('@/utils/platform', () => ({

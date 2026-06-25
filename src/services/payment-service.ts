@@ -6,7 +6,6 @@ import { parseApiErrorMessage } from '@/utils/api-response';
 import { devLog } from '@/utils/dev-log';
 import { getStoredAuthApiBaseUrl } from '@/utils/auth-api-session';
 import {
-  getStoredAuthTokensForPayment,
   paymentApiPost,
   PaymentApiDebugMeta,
 } from '@/utils/payment-api-request';

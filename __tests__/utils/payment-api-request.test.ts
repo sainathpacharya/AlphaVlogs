@@ -21,6 +21,17 @@ jest.mock('@/utils/dev-log', () => ({
   devLog: jest.fn(),
 }));
 
+const mockSetTokens = jest.fn().mockResolvedValue(undefined);
+
+jest.mock('@/stores/user-cached-store', () => ({
+  useUserCachedStore: {
+    getState: () => ({
+      tokens: null,
+      setTokens: mockSetTokens,
+    }),
+  },
+}));
+
 import * as Keychain from 'react-native-keychain';
 import { STORAGE_KEYS } from '@/constants';
 import {
@@ -63,6 +74,7 @@ describe('payment-api-request utils', () => {
 
       await expect(getStoredAuthTokensForPayment()).resolves.toEqual(sampleTokens);
       expect(mockStorage.get(STORAGE_KEYS.AUTH_TOKENS)).toBe(JSON.stringify(sampleTokens));
+      expect(mockSetTokens).toHaveBeenCalledWith(sampleTokens);
       expect(Keychain.getInternetCredentials).toHaveBeenCalledWith(AUTH_KEYCHAIN_SERVER);
     });
 
