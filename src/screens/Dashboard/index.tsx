@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {Alert, FlatList, ListRenderItem, Platform, StyleSheet} from 'react-native';
+import {FlatList, ListRenderItem, Platform, StyleSheet} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   Box,
@@ -23,9 +23,6 @@ import {subscriptionService} from '../../services/subscription-service';
 import {canAccessPayment} from '../../utils/payment';
 import {isSubscribedFromUser} from '../../utils/subscription';
 import {DIMENSIONS} from '../../utils/styles';
-
-const SUBSCRIBERS_ONLY_MESSAGE =
-  'This feature is only for subscribed students only.';
 
 const EVENT_ROW_HEIGHT = DIMENSIONS.cardHeight + DIMENSIONS.margin.md;
 
@@ -67,28 +64,20 @@ const DashboardScreen: React.FC = () => {
 
   const handleEventPress = useCallback(
     (event: DashboardEventCardItem) => {
-      if (isSubscribed) {
-        navigation.navigate('VideoUpload', {
-          eventId: event.id,
-          eventTitle: event.title,
-          iconId: event.iconId,
-          eventGifUrl: event.gifUrl ?? undefined,
-        });
-        return;
-      }
-
-      Alert.alert('Subscription required', SUBSCRIBERS_ONLY_MESSAGE, [
-        {
-          text: 'Subscribe',
-          onPress: () => navigation.navigate('Subscription'),
-        },
-        {
-          text: 'OK',
-          onPress: () => navigation.navigate('ComingSoon'),
-        },
-      ]);
+      navigation.navigate('VideoUpload', {
+        eventId: event.id,
+        eventTitle: event.title,
+        iconId: event.iconId,
+        eventGifUrl: event.gifUrl ?? undefined,
+        isActive: event.isActive,
+        canUpload: event.canUpload,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        uploadStartDate: event.uploadStartDate,
+        uploadEndDate: event.uploadEndDate,
+      });
     },
-    [navigation, isSubscribed],
+    [navigation],
   );
 
   const handleSubscriptionPress = useCallback(() => {

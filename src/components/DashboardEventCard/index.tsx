@@ -15,6 +15,12 @@ export interface DashboardEventCardItem {
   iconId: string;
   title: string;
   gifUrl: string | null;
+  isActive: boolean;
+  canUpload: boolean;
+  startDate: string;
+  endDate: string;
+  uploadStartDate: string;
+  uploadEndDate: string;
 }
 
 export interface DashboardEventCardProps {

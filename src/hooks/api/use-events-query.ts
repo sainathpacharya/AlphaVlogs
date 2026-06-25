@@ -8,7 +8,17 @@ import { queryKeys } from '@/lib/query-keys';
 const EVENTS_STALE_TIME = 7 * 24 * 60 * 60 * 1000;
 
 function mapEventsToCards(
-  list: Array<{ id: string | number; title: string; eventGif?: string | null }>,
+  list: Array<{
+    id: string | number;
+    title: string;
+    eventGif?: string | null;
+    isActive?: boolean;
+    canUpload?: boolean;
+    startDate?: string;
+    endDate?: string;
+    uploadStartDate?: string;
+    uploadEndDate?: string;
+  }>,
 ): DashboardEventCardItem[] {
   return list.map(event => ({
     id: String(event.id),
@@ -18,6 +28,12 @@ function mapEventsToCards(
     }),
     title: event.title,
     gifUrl: resolveEventGifUrl(event.eventGif),
+    isActive: event.isActive !== false,
+    canUpload: event.canUpload !== false,
+    startDate: event.startDate ?? '',
+    endDate: event.endDate ?? '',
+    uploadStartDate: event.uploadStartDate ?? '',
+    uploadEndDate: event.uploadEndDate ?? '',
   }));
 }
 

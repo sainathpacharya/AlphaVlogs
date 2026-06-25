@@ -1,8 +1,6 @@
 import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Keychain from 'react-native-keychain';
 import NetInfo from '@react-native-community/netinfo';
-import { getApiBaseUrl, API_ENDPOINTS, API, STORAGE_KEYS } from '@/constants';
+import { getApiBaseUrl, API_ENDPOINTS, API } from '@/constants';
 import { ApiResponse, AuthTokens } from '@/types';
 import { apiLogger, ApiLogRequest, ApiLogResponse, ApiLogError } from '@/utils/api-logger';
 import {
@@ -10,7 +8,8 @@ import {
   normalizeAuthTokens,
   parseApiErrorMessage,
 } from '@/utils/api-response';
-import { purgeAuthTokensFromDevice } from '@/utils/auth-storage';
+import { purgeAuthTokensFromDevice, persistAuthTokens, resolveAuthTokens } from '@/utils/auth-storage';
+import { isJwtExpired } from '@/utils/jwt';
 import { useUserCachedStore } from '@/stores/user-cached-store';
 
 export type ApiRequestConfig = {
@@ -34,39 +33,41 @@ class ApiService {
   }> = [];
 
   private async getStoredTokens(): Promise<AuthTokens | null> {
-    try {
-      const tokensJson = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKENS);
-      if (tokensJson) {
-        const parsed = normalizeAuthTokens(JSON.parse(tokensJson));
-        if (parsed) {
-          return parsed;
-        }
-      }
-
-      const credentials = await Keychain.getInternetCredentials('auth_tokens');
-      if (credentials !== false && credentials.password) {
-        const parsed = normalizeAuthTokens(JSON.parse(credentials.password));
-        if (parsed) {
-          return parsed;
-        }
-      }
-
-      return null;
-    } catch (error) {
-      if (__DEV__) {
-        console.error('Error getting stored tokens:', error);
-      }
-      return null;
-    }
+    return resolveAuthTokens();
   }
 
   private async storeTokens(tokens: AuthTokens): Promise<void> {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKENS, JSON.stringify(tokens));
+      await persistAuthTokens(tokens);
     } catch (error) {
       if (__DEV__) {
         console.error('Error storing tokens:', error);
       }
+    }
+  }
+
+  /** Resolve stored tokens and refresh the access token when it is expired. */
+  async ensureFreshAccessToken(): Promise<AuthTokens | null> {
+    const tokens = await this.getStoredTokens();
+    if (!tokens?.accessToken) {
+      return null;
+    }
+
+    if (!isJwtExpired(tokens.accessToken)) {
+      return tokens;
+    }
+
+    if (!tokens.refreshToken) {
+      return null;
+    }
+
+    try {
+      return await this.refreshAccessToken(tokens.refreshToken);
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[api] ensureFreshAccessToken refresh failed:', error);
+      }
+      return null;
     }
   }
 

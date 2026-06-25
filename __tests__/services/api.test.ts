@@ -32,6 +32,36 @@ jest.mock('../../src/utils/api-logger', () => ({
 
 jest.mock('../../src/utils/auth-storage', () => ({
   purgeAuthTokensFromDevice: jest.fn(),
+  resolveAuthTokens: jest.fn(async () => {
+    const storage = require('@react-native-async-storage/async-storage');
+    const keychain = require('react-native-keychain');
+    const { STORAGE_KEYS } = require('../../src/constants');
+    const { normalizeAuthTokens } = require('../../src/utils/api-response');
+
+    try {
+      const tokensJson = await storage.getItem(STORAGE_KEYS.AUTH_TOKENS);
+      if (tokensJson) {
+        const parsed = normalizeAuthTokens(JSON.parse(tokensJson));
+        if (parsed) {
+          return parsed;
+        }
+      }
+
+      const credentials = await keychain.getInternetCredentials('auth_tokens');
+      if (credentials !== false && credentials.password) {
+        return normalizeAuthTokens(JSON.parse(credentials.password));
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }),
+  persistAuthTokens: jest.fn(async (tokens: { accessToken: string; refreshToken: string }) => {
+    const storage = require('@react-native-async-storage/async-storage');
+    const { STORAGE_KEYS } = require('../../src/constants');
+    await storage.setItem(STORAGE_KEYS.AUTH_TOKENS, JSON.stringify(tokens));
+  }),
 }));
 
 jest.mock('../../src/stores/user-cached-store', () => ({

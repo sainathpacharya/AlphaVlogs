@@ -1,4 +1,4 @@
-import {decodeJwtPayload, formatJwtSummary} from '../../src/utils/jwt';
+import {decodeJwtPayload, formatJwtSummary, isJwtExpired} from '../../src/utils/jwt';
 
 const payload = {role: 'student', studentId: 42, exp: 1_700_000_000};
 const encodedPayload = Buffer.from(JSON.stringify(payload))
@@ -54,5 +54,31 @@ describe('jwt utils', () => {
     const minimalToken = `h.${segment}.s`;
 
     expect(formatJwtSummary(minimalToken)).toBe('role=admin, studentId=missing, exp=?');
+  });
+
+  it('detects expired JWTs using exp claim', () => {
+    const expiredPayload = {role: 'student', exp: 1};
+    const expiredSegment = Buffer.from(JSON.stringify(expiredPayload))
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(new RegExp('=+$'), '');
+    const expiredToken = `h.${expiredSegment}.s`;
+
+    expect(isJwtExpired(expiredToken)).toBe(true);
+    expect(isJwtExpired(undefined)).toBe(true);
+  });
+
+  it('treats valid future JWTs as not expired', () => {
+    const futureExp = Math.floor(Date.now() / 1000) + 3600;
+    const validPayload = {role: 'student', exp: futureExp};
+    const validSegment = Buffer.from(JSON.stringify(validPayload))
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(new RegExp('=+$'), '');
+    const validToken = `h.${validSegment}.s`;
+
+    expect(isJwtExpired(validToken)).toBe(false);
   });
 });

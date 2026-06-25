@@ -1,12 +1,10 @@
 import {Platform} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {getApiBaseUrl, API, STORAGE_KEYS} from '@/constants';
-import {ApiResponse, AuthTokens} from '@/types';
-import {formatHttpStatusError, normalizeAuthTokens} from '@/utils/api-response';
-import {AUTH_KEYCHAIN_SERVER} from '@/utils/auth-storage';
+import {getApiBaseUrl, API} from '@/constants';
+import {ApiResponse} from '@/types';
+import {formatHttpStatusError} from '@/utils/api-response';
+import {resolveAuthTokens} from '@/utils/auth-storage';
 import {devLog} from '@/utils/dev-log';
 import {formatJwtSummary} from '@/utils/jwt';
-import * as Keychain from 'react-native-keychain';
 
 export type PaymentApiDebugMeta = {
   url: string;
@@ -19,25 +17,8 @@ export type PaymentApiResult<T> = ApiResponse<T> & {
   debug?: PaymentApiDebugMeta;
 };
 
-export async function getStoredAuthTokensForPayment(): Promise<AuthTokens | null> {
-  try {
-    const tokensJson = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKENS);
-    if (tokensJson) {
-      return normalizeAuthTokens(JSON.parse(tokensJson));
-    }
-
-    const credentials = await Keychain.getInternetCredentials(AUTH_KEYCHAIN_SERVER);
-    if (credentials !== false && credentials.password) {
-      await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKENS, credentials.password);
-      return normalizeAuthTokens(JSON.parse(credentials.password));
-    }
-  } catch (error) {
-    if (__DEV__) {
-      devLog('getStoredAuthTokensForPayment failed', error);
-    }
-  }
-
-  return null;
+export async function getStoredAuthTokensForPayment() {
+  return resolveAuthTokens();
 }
 
 /** Authenticated POST for payment — direct fetch, no token-refresh side effects. */

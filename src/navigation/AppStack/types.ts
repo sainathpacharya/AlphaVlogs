@@ -10,6 +10,12 @@ export type AppStackParamList = {
       eventTitle: string;
       iconId?: string;
       eventGifUrl?: string;
+      isActive?: boolean;
+      canUpload?: boolean;
+      startDate?: string;
+      endDate?: string;
+      uploadStartDate?: string;
+      uploadEndDate?: string;
     };
     ComingSoon: undefined;
     AboutUs: undefined;

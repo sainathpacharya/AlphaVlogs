@@ -1,15 +1,17 @@
 import { paymentService, PaymentApiError } from '../../src/services/payment-service';
+import { apiService } from '../../src/services/api';
 import { MockWrapperService } from '../../src/services/mock-wrapper';
 import { getStoredAuthApiBaseUrl } from '../../src/utils/auth-api-session';
-import {
-  getStoredAuthTokensForPayment,
-  paymentApiPost,
-} from '../../src/utils/payment-api-request';
+import { paymentApiPost } from '../../src/utils/payment-api-request';
 
 jest.mock('../../src/services/mock-wrapper');
+jest.mock('../../src/services/api', () => ({
+  apiService: {
+    ensureFreshAccessToken: jest.fn(),
+  },
+}));
 jest.mock('../../src/utils/payment-api-request', () => ({
   paymentApiPost: jest.fn(),
-  getStoredAuthTokensForPayment: jest.fn(),
 }));
 jest.mock('../../src/utils/auth-api-session', () => ({
   getStoredAuthApiBaseUrl: jest.fn(),
@@ -30,8 +32,8 @@ const mockPaymentApiPost = paymentApiPost as jest.MockedFunction<typeof paymentA
 const mockGetStoredBaseUrl = getStoredAuthApiBaseUrl as jest.MockedFunction<
   typeof getStoredAuthApiBaseUrl
 >;
-const mockGetTokens = getStoredAuthTokensForPayment as jest.MockedFunction<
-  typeof getStoredAuthTokensForPayment
+const mockEnsureFreshAccessToken = apiService.ensureFreshAccessToken as jest.MockedFunction<
+  typeof apiService.ensureFreshAccessToken
 >;
 
 describe('PaymentService', () => {
@@ -39,7 +41,10 @@ describe('PaymentService', () => {
     jest.clearAllMocks();
     jest.useFakeTimers();
     mockGetStoredBaseUrl.mockResolvedValue('http://192.168.29.26:8080');
-    mockGetTokens.mockResolvedValue({ accessToken: 'token', refreshToken: 'refresh' });
+    mockEnsureFreshAccessToken.mockResolvedValue({
+      accessToken: 'token',
+      refreshToken: 'refresh',
+    });
   });
 
   afterEach(() => {
@@ -115,7 +120,7 @@ describe('PaymentService', () => {
 
     it('throws when no auth token', async () => {
       mockMockWrapper.isMockMode.mockReturnValue(false);
-      mockGetTokens.mockResolvedValue(null);
+      mockEnsureFreshAccessToken.mockResolvedValue(null);
 
       await expect(paymentService.createOrder({ amount: 100 })).rejects.toThrow(
         /Session expired/,

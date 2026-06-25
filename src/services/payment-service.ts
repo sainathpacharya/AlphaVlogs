@@ -1,6 +1,7 @@
 import { API_ENDPOINTS, getApiBaseUrl } from '@/constants';
 import { MockWrapperService } from './mock-wrapper';
 import { RazorpayResponse } from './razorpay-service';
+import { apiService } from './api';
 import { parseApiErrorMessage } from '@/utils/api-response';
 import { devLog } from '@/utils/dev-log';
 import { getStoredAuthApiBaseUrl } from '@/utils/auth-api-session';
@@ -9,7 +10,6 @@ import {
   paymentApiPost,
   PaymentApiDebugMeta,
 } from '@/utils/payment-api-request';
-
 export interface CreateOrderResult {
   order_id: string;
   amount: number;
@@ -130,7 +130,7 @@ async function assertPaymentAuth(): Promise<void> {
     );
   }
 
-  const tokens = await getStoredAuthTokensForPayment();
+  const tokens = await apiService.ensureFreshAccessToken();
   if (!tokens?.accessToken) {
     throw new PaymentApiError(
       'Session expired. Please log out and sign in again before paying.',

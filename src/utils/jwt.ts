@@ -50,3 +50,21 @@ export function formatJwtSummary(token: string | undefined | null): string {
 
   return `role=${role}, studentId=${studentId}, exp=${exp}`;
 }
+
+/** True when JWT exp is in the past (optional clock skew buffer). */
+export function isJwtExpired(
+  token: string | undefined | null,
+  skewSeconds = 30,
+): boolean {
+  if (!token) {
+    return true;
+  }
+
+  const payload = decodeJwtPayload(token);
+  if (!payload || typeof payload.exp !== 'number') {
+    return false;
+  }
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  return payload.exp <= nowSeconds + skewSeconds;
+}

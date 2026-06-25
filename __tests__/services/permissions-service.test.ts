@@ -22,6 +22,9 @@ jest.mock('react-native-permissions', () => ({
       CAMERA: 'android.permission.CAMERA',
       READ_EXTERNAL_STORAGE: 'android.permission.READ_EXTERNAL_STORAGE',
       WRITE_EXTERNAL_STORAGE: 'android.permission.WRITE_EXTERNAL_STORAGE',
+      READ_MEDIA_VIDEO: 'android.permission.READ_MEDIA_VIDEO',
+      READ_MEDIA_VISUAL_USER_SELECTED:
+        'android.permission.READ_MEDIA_VISUAL_USER_SELECTED',
       ACCESS_FINE_LOCATION: 'android.permission.ACCESS_FINE_LOCATION',
       RECORD_AUDIO: 'android.permission.RECORD_AUDIO',
       POST_NOTIFICATIONS: 'android.permission.POST_NOTIFICATIONS',
@@ -55,6 +58,7 @@ describe('PermissionsService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     Object.defineProperty(Platform, 'OS', { configurable: true, value: 'android' });
+    Object.defineProperty(Platform, 'Version', { configurable: true, value: 33 });
   });
 
   describe('checkPermission', () => {
@@ -109,8 +113,7 @@ describe('PermissionsService', () => {
     it('maps all permission slots', async () => {
       mockCheckMultiple.mockResolvedValue({
         [PERMISSIONS.ANDROID.CAMERA]: RESULTS.GRANTED,
-        [PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE]: RESULTS.DENIED,
-        [PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE]: RESULTS.GRANTED,
+        [PERMISSIONS.ANDROID.READ_MEDIA_VIDEO]: RESULTS.DENIED,
         [PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION]: RESULTS.GRANTED,
         [PERMISSIONS.ANDROID.RECORD_AUDIO]: RESULTS.GRANTED,
         [PERMISSIONS.ANDROID.POST_NOTIFICATIONS]: RESULTS.UNAVAILABLE,
@@ -176,7 +179,7 @@ describe('PermissionsService', () => {
       const result = await permissionsService.checkMultiplePermissions();
 
       expect(result.camera.granted).toBe(true);
-      expect(result.notifications.unavailable).toBe(true);
+      expect(result.notifications.granted).toBe(true);
     });
 
     it('skips storage permission on iOS', async () => {
@@ -312,6 +315,18 @@ describe('PermissionsService', () => {
     it('requestVideoUploadPermissions requires photo library and storage', async () => {
       const result = await permissionsService.requestVideoUploadPermissions();
       expect(result).toBe(true);
+      expect(mockCheck).toHaveBeenCalledWith(PERMISSIONS.ANDROID.READ_MEDIA_VIDEO);
+    });
+
+    it('requestVideoUploadPermissions uses legacy storage on older Android', async () => {
+      Object.defineProperty(Platform, 'Version', { configurable: true, value: 28 });
+      mockCheck.mockResolvedValue(RESULTS.GRANTED);
+
+      const result = await permissionsService.requestVideoUploadPermissions();
+
+      expect(result).toBe(true);
+      expect(mockCheck).toHaveBeenCalledWith(PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE);
+      expect(mockCheck).toHaveBeenCalledWith(PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE);
     });
 
     it('requestEssentialPermissions alerts when not all granted', async () => {

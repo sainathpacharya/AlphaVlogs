@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {Alert, ScrollView} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {launchImageLibrary} from 'react-native-image-picker';
@@ -17,10 +17,16 @@ import {i18n} from '@/services/i18n-service';
 import {commonStyles, screenStyles} from '@/utils/styles';
 import {useThemeColors} from '@/utils/colors';
 import {videoService} from '@/services/video-service';
+import {subscriptionService} from '@/services/subscription-service';
+import {evaluateEventUploadEligibility} from '@/utils/event-upload-eligibility';
 import {usePermissions} from '@/hooks/usePermissions';
 import {useIsMounted} from '@/hooks';
+import {useUser} from '@/stores';
 import {EventGifImage} from '@/components/EventGifImage';
 import {getEventIcon} from '@/utils/event-icons';
+
+const SUBSCRIPTION_REQUIRED_MESSAGE =
+  'This feature is only for subscribed students. Subscribe to upload videos for events.';
 
 interface VideoUploadNavProps {
   route: {
@@ -29,16 +35,34 @@ interface VideoUploadNavProps {
       eventTitle: string;
       iconId?: string;
       eventGifUrl?: string;
+      isActive?: boolean;
+      canUpload?: boolean;
+      startDate?: string;
+      endDate?: string;
+      uploadStartDate?: string;
+      uploadEndDate?: string;
     };
   };
   navigation: any;
 }
 
 const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const colors = useThemeColors();
   const isMounted = useIsMounted();
-  const {eventId, eventTitle, iconId, eventGifUrl} = route?.params || {
+  const user = useUser();
+  const {
+    eventId,
+    eventTitle,
+    iconId,
+    eventGifUrl,
+    isActive,
+    canUpload,
+    startDate,
+    endDate,
+    uploadStartDate,
+    uploadEndDate,
+  } = route?.params || {
     eventId: '',
     eventTitle: '',
   };
@@ -73,6 +97,34 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
   const {requestVideoUploadPermissions} = usePermissions();
 
   const handleSelectVideo = async () => {
+    const eligibility = evaluateEventUploadEligibility({
+      isActive,
+      canUpload,
+      startDate,
+      endDate,
+      uploadStartDate,
+      uploadEndDate,
+    });
+
+    if (!eligibility.allowed) {
+      Alert.alert(
+        'Upload unavailable',
+        eligibility.message ?? 'This event is not accepting uploads right now.',
+      );
+      return;
+    }
+
+    const subscribed = await subscriptionService.isStudentSubscribed(user);
+    if (!subscribed) {
+      Alert.alert('Subscription required', SUBSCRIPTION_REQUIRED_MESSAGE, [
+        {
+          text: 'OK',
+          onPress: () => navigation.navigate('Subscription'),
+        },
+      ]);
+      return;
+    }
+
     const hasPermission = await requestVideoUploadPermissions();
     if (!hasPermission) {
       Alert.alert(

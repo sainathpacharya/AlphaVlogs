@@ -8,6 +8,14 @@ import {
   requestMultiple,
   openSettings,
 } from 'react-native-permissions';
+import {
+  getAndroidApiLevel,
+  getAndroidNotificationPermission,
+  getAndroidPartialGalleryPermission,
+  getAndroidVideoGalleryPermissions,
+  getIosPhotoLibraryPermission,
+  isPermissionSatisfied,
+} from '@/utils/media-permissions';
 
 export interface PermissionStatus {
   granted: boolean;
@@ -25,31 +33,41 @@ export interface PermissionResult {
   notifications: PermissionStatus;
 }
 
+type PermissionConstant = (typeof PERMISSIONS.IOS)[keyof typeof PERMISSIONS.IOS]
+  | (typeof PERMISSIONS.ANDROID)[keyof typeof PERMISSIONS.ANDROID];
+
 class PermissionsService {
-  // Define required permissions for each platform
-  private getRequiredPermissions() {
+  private getRequiredPermissions(): PermissionConstant[] {
     if (Platform.OS === 'ios') {
       return [
         PERMISSIONS.IOS.CAMERA,
         PERMISSIONS.IOS.PHOTO_LIBRARY,
         PERMISSIONS.IOS.LOCATION_WHEN_IN_USE,
         PERMISSIONS.IOS.MICROPHONE,
-        // PERMISSIONS.IOS.NOTIFICATIONS, // Not available in this version
-      ];
-    } else {
-      return [
-        PERMISSIONS.ANDROID.CAMERA,
-        PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
-        PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE,
-        PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
-        PERMISSIONS.ANDROID.RECORD_AUDIO,
-        PERMISSIONS.ANDROID.POST_NOTIFICATIONS,
       ];
     }
+
+    const permissions: PermissionConstant[] = [
+      PERMISSIONS.ANDROID.CAMERA,
+      ...getAndroidVideoGalleryPermissions(),
+      PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
+      PERMISSIONS.ANDROID.RECORD_AUDIO,
+    ];
+
+    const notificationPermission = getAndroidNotificationPermission();
+    if (notificationPermission) {
+      permissions.push(notificationPermission as PermissionConstant);
+    }
+
+    return permissions;
   }
 
   // Check a single permission
-  async checkPermission(permission: any): Promise<PermissionStatus> {
+  async checkPermission(permission: PermissionConstant | null): Promise<PermissionStatus> {
+    if (!permission) {
+      return { granted: true, blocked: false, unavailable: false };
+    }
+
     try {
       const result = await check(permission);
 
@@ -70,7 +88,11 @@ class PermissionsService {
   }
 
   // Request a single permission
-  async requestPermission(permission: any): Promise<PermissionStatus> {
+  async requestPermission(permission: PermissionConstant | null): Promise<PermissionStatus> {
+    if (!permission) {
+      return { granted: true, blocked: false, unavailable: false };
+    }
+
     try {
       const result = await request(permission);
 
@@ -90,21 +112,48 @@ class PermissionsService {
     }
   }
 
+  private mapMultipleResults(
+    permissions: PermissionConstant[],
+    results: Record<string, string>,
+  ): PermissionResult {
+    const readPermission = getAndroidVideoGalleryPermissions()[0];
+    const notificationPermission = getAndroidNotificationPermission();
+
+    if (Platform.OS === 'ios') {
+      return {
+        camera: this.mapPermissionResult(results[PERMISSIONS.IOS.CAMERA] || RESULTS.UNAVAILABLE),
+        photoLibrary: this.mapPermissionResult(results[PERMISSIONS.IOS.PHOTO_LIBRARY] || RESULTS.UNAVAILABLE),
+        storage: { granted: true, blocked: false, unavailable: false },
+        location: this.mapPermissionResult(results[PERMISSIONS.IOS.LOCATION_WHEN_IN_USE] || RESULTS.UNAVAILABLE),
+        microphone: this.mapPermissionResult(results[PERMISSIONS.IOS.MICROPHONE] || RESULTS.UNAVAILABLE),
+        notifications: { granted: true, blocked: false, unavailable: false },
+      };
+    }
+
+    return {
+      camera: this.mapPermissionResult(results[PERMISSIONS.ANDROID.CAMERA] || RESULTS.UNAVAILABLE),
+      photoLibrary: this.mapPermissionResult(results[readPermission] || RESULTS.UNAVAILABLE),
+      storage: this.mapPermissionResult(
+        results[PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE] ||
+          results[PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE] ||
+          results[readPermission] ||
+          RESULTS.UNAVAILABLE,
+      ),
+      location: this.mapPermissionResult(results[PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION] || RESULTS.UNAVAILABLE),
+      microphone: this.mapPermissionResult(results[PERMISSIONS.ANDROID.RECORD_AUDIO] || RESULTS.UNAVAILABLE),
+      notifications: notificationPermission
+        ? this.mapPermissionResult(results[notificationPermission] || RESULTS.UNAVAILABLE)
+        : { granted: true, blocked: false, unavailable: false },
+    };
+  }
+
   // Check multiple permissions at once
   async checkMultiplePermissions(): Promise<PermissionResult> {
     const permissions = this.getRequiredPermissions();
 
     try {
       const results = await checkMultiple(permissions);
-
-      return {
-        camera: this.mapPermissionResult(results[permissions[0]!] || RESULTS.UNAVAILABLE),
-        photoLibrary: this.mapPermissionResult(results[permissions[1]!] || RESULTS.UNAVAILABLE),
-        storage: this.mapPermissionResult(results[permissions[2]!] || RESULTS.UNAVAILABLE),
-        location: this.mapPermissionResult(results[permissions[3]!] || RESULTS.UNAVAILABLE),
-        microphone: this.mapPermissionResult(results[permissions[4]!] || RESULTS.UNAVAILABLE),
-        notifications: this.mapPermissionResult(results[permissions[5]!] || RESULTS.UNAVAILABLE),
-      };
+      return this.mapMultipleResults(permissions, results);
     } catch (error) {
       console.error('Error checking multiple permissions:', error);
       return this.getDefaultPermissionResult();
@@ -117,15 +166,7 @@ class PermissionsService {
 
     try {
       const results = await requestMultiple(permissions);
-
-      return {
-        camera: this.mapPermissionResult(results[permissions[0]!] || RESULTS.UNAVAILABLE),
-        photoLibrary: this.mapPermissionResult(results[permissions[1]!] || RESULTS.UNAVAILABLE),
-        storage: this.mapPermissionResult(results[permissions[2]!] || RESULTS.UNAVAILABLE),
-        location: this.mapPermissionResult(results[permissions[3]!] || RESULTS.UNAVAILABLE),
-        microphone: this.mapPermissionResult(results[permissions[4]!] || RESULTS.UNAVAILABLE),
-        notifications: this.mapPermissionResult(results[permissions[5]!] || RESULTS.UNAVAILABLE),
-      };
+      return this.mapMultipleResults(permissions, results);
     } catch (error) {
       console.error('Error requesting multiple permissions:', error);
       return this.getDefaultPermissionResult();
@@ -155,54 +196,93 @@ class PermissionsService {
   }
 
   // Check if a specific permission is granted
-  async isPermissionGranted(permission: string): Promise<boolean> {
+  async isPermissionGranted(permission: PermissionConstant | null): Promise<boolean> {
     const status = await this.checkPermission(permission);
-    return status.granted;
+    return isPermissionSatisfied(status);
   }
 
   // Request permission with user-friendly messaging
   async requestPermissionWithRationale(
-    permission: any,
+    permission: PermissionConstant | null,
     title: string,
     message: string,
-    settingsMessage?: string
+    settingsMessage?: string,
   ): Promise<boolean> {
-    if (!permission) {return true;} // Skip if permission not available
+    if (!permission) {
+      return true;
+    }
+
     const status = await this.checkPermission(permission);
 
-    if (status.granted) {
+    if (isPermissionSatisfied(status)) {
       return true;
     }
 
     if (status.blocked) {
-      // Permission is blocked, show settings dialog
       Alert.alert(
         title,
         settingsMessage || 'This permission is required. Please enable it in Settings.',
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Open Settings', onPress: () => this.openAppSettings() },
-        ]
+        ],
       );
       return false;
     }
 
-    // Request permission
     const requestResult = await this.requestPermission(permission);
 
-    if (!requestResult.granted && !requestResult.blocked) {
-      // Show rationale if permission was denied
+    if (!isPermissionSatisfied(requestResult) && !requestResult.blocked) {
       Alert.alert(
         title,
         message,
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Try Again', onPress: () => this.requestPermissionWithRationale(permission, title, message, settingsMessage) },
-        ]
+          {
+            text: 'Try Again',
+            onPress: () =>
+              this.requestPermissionWithRationale(permission, title, message, settingsMessage),
+          },
+        ],
       );
     }
 
-    return requestResult.granted;
+    return isPermissionSatisfied(requestResult);
+  }
+
+  private async requestAndroidVideoReadPermissions(): Promise<boolean> {
+    const permissions = getAndroidVideoGalleryPermissions();
+
+    for (const permission of permissions) {
+      const granted = await this.requestPermissionWithRationale(
+        permission,
+        'Video Access Permission',
+        'Alpha Vlogs needs access to your videos so you can select a performance video from your gallery.',
+        'Video access is required to select videos. Please enable it in Settings.',
+      );
+
+      if (!granted) {
+        const partialPermission = getAndroidPartialGalleryPermission();
+        if (partialPermission) {
+          const partialStatus = await this.checkPermission(partialPermission);
+          if (isPermissionSatisfied(partialStatus)) {
+            return true;
+          }
+        }
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private async requestIosPhotoLibraryReadPermission(): Promise<boolean> {
+    return this.requestPermissionWithRationale(
+      getIosPhotoLibraryPermission(),
+      'Photo Library Permission',
+      'Alpha Vlogs needs photo library access to select and upload videos.',
+      'Photo library access is required to select videos. Please enable it in Settings.',
+    );
   }
 
   // Open app settings
@@ -211,7 +291,6 @@ class PermissionsService {
       await openSettings();
     } catch (error) {
       console.error('Error opening settings:', error);
-      // Fallback to system settings
       Linking.openSettings();
     }
   }
@@ -222,32 +301,35 @@ class PermissionsService {
       Platform.OS === 'ios' ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA,
       'Camera Permission',
       'Alpha Vlogs needs camera access to record videos for talent show events.',
-      'Camera permission is required for video recording. Please enable it in Settings.'
+      'Camera permission is required for video recording. Please enable it in Settings.',
     );
   }
 
   // Check and request photo library permission
   async requestPhotoLibraryPermission(): Promise<boolean> {
-    return this.requestPermissionWithRationale(
-      Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
-      'Photo Library Permission',
-      'Alpha Vlogs needs photo library access to select and upload videos.',
-      'Photo library access is required to select videos. Please enable it in Settings.'
-    );
+    if (Platform.OS === 'ios') {
+      return this.requestIosPhotoLibraryReadPermission();
+    }
+
+    return this.requestAndroidVideoReadPermissions();
   }
 
   // Check and request storage permission
   async requestStoragePermission(): Promise<boolean> {
     if (Platform.OS === 'ios') {
-      // iOS doesn't have explicit storage permission
+      return true;
+    }
+
+    const apiLevel = getAndroidApiLevel();
+    if (apiLevel >= 29) {
       return true;
     }
 
     return this.requestPermissionWithRationale(
-      PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
+      PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE,
       'Storage Permission',
-      'Alpha Vlogs needs storage access to save and upload videos.',
-      'Storage permission is required to access videos. Please enable it in Settings.'
+      'Alpha Vlogs needs storage access to read videos on older Android devices.',
+      'Storage permission is required to access videos. Please enable it in Settings.',
     );
   }
 
@@ -257,7 +339,7 @@ class PermissionsService {
       Platform.OS === 'ios' ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
       'Location Permission',
       'Alpha Vlogs uses location to provide school-specific features and event recommendations.',
-      'Location permission is required for school-based features. Please enable it in Settings.'
+      'Location permission is required for school-based features. Please enable it in Settings.',
     );
   }
 
@@ -267,17 +349,26 @@ class PermissionsService {
       Platform.OS === 'ios' ? PERMISSIONS.IOS.MICROPHONE : PERMISSIONS.ANDROID.RECORD_AUDIO,
       'Microphone Permission',
       'Alpha Vlogs needs microphone access to record audio for videos.',
-      'Microphone permission is required for video recording. Please enable it in Settings.'
+      'Microphone permission is required for video recording. Please enable it in Settings.',
     );
   }
 
   // Check and request notification permission
   async requestNotificationPermission(): Promise<boolean> {
+    if (Platform.OS === 'ios') {
+      return true;
+    }
+
+    const notificationPermission = getAndroidNotificationPermission();
+    if (!notificationPermission) {
+      return true;
+    }
+
     return this.requestPermissionWithRationale(
-      Platform.OS === 'ios' ? null : PERMISSIONS.ANDROID.POST_NOTIFICATIONS,
+      notificationPermission,
       'Notification Permission',
       'Alpha Vlogs sends notifications for new events, quiz reminders, and results updates.',
-      'Notification permission is required for app updates. Please enable it in Settings.'
+      'Notification permission is required for app updates. Please enable it in Settings.',
     );
   }
 
@@ -290,23 +381,23 @@ class PermissionsService {
     return cameraGranted && microphoneGranted && storageGranted;
   }
 
-  // Request all permissions needed for video upload
+  // Request all permissions needed for video upload (version-aware on Android)
   async requestVideoUploadPermissions(): Promise<boolean> {
-    const photoLibraryGranted = await this.requestPhotoLibraryPermission();
-    const storageGranted = await this.requestStoragePermission();
+    if (Platform.OS === 'ios') {
+      return this.requestIosPhotoLibraryReadPermission();
+    }
 
-    return photoLibraryGranted && storageGranted;
+    return this.requestAndroidVideoReadPermissions();
   }
 
   // Request all essential permissions
   async requestEssentialPermissions(): Promise<boolean> {
     const results = await this.requestMultiplePermissions();
 
-    // Essential permissions are camera, photo library, and storage
     const essentialGranted =
       results.camera.granted &&
-      results.photoLibrary.granted &&
-      results.storage.granted;
+      isPermissionSatisfied(results.photoLibrary) &&
+      (Platform.OS === 'ios' || isPermissionSatisfied(results.storage));
 
     if (!essentialGranted) {
       Alert.alert(
@@ -315,7 +406,7 @@ class PermissionsService {
         [
           { text: 'OK', style: 'default' },
           { text: 'Open Settings', onPress: () => this.openAppSettings() },
-        ]
+        ],
       );
     }
 

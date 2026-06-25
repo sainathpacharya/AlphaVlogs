@@ -3,12 +3,31 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '@/constants';
 import {
   AUTH_KEYCHAIN_SERVER,
+  persistAuthTokens,
   purgeAuthTokensFromDevice,
+  resolveAuthTokens,
 } from '../../src/utils/auth-storage';
+
+const mockSetTokens = jest.fn().mockResolvedValue(undefined);
+
+jest.mock('@/stores/user-cached-store', () => ({
+  useUserCachedStore: {
+    getState: () => ({
+      tokens: {accessToken: 'memory-access', refreshToken: 'memory-refresh'},
+      setTokens: mockSetTokens,
+    }),
+    setState: jest.fn(),
+  },
+}));
 
 const mockStorage = new Map<string, string>();
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn((key: string) => Promise.resolve(mockStorage.get(key) ?? null)),
+  setItem: jest.fn((key: string, value: string) => {
+    mockStorage.set(key, value);
+    return Promise.resolve();
+  }),
   multiRemove: jest.fn((keys: string[]) => {
     keys.forEach((key) => mockStorage.delete(key));
     return Promise.resolve();
@@ -84,5 +103,40 @@ describe('auth-storage utils', () => {
 
     await expect(purgeAuthTokensFromDevice()).resolves.toBeUndefined();
     expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it('reads tokens from AsyncStorage first', async () => {
+    const tokens = {accessToken: 'stored-access', refreshToken: 'stored-refresh'};
+    mockStorage.set(STORAGE_KEYS.AUTH_TOKENS, JSON.stringify(tokens));
+
+    await expect(resolveAuthTokens()).resolves.toEqual(
+      expect.objectContaining({
+        accessToken: 'stored-access',
+        refreshToken: 'stored-refresh',
+      }),
+    );
+  });
+
+  it('falls back to in-memory tokens and persists them', async () => {
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(null);
+    (Keychain.getInternetCredentials as jest.Mock).mockResolvedValueOnce(false);
+
+    await expect(resolveAuthTokens()).resolves.toEqual({
+      accessToken: 'memory-access',
+      refreshToken: 'memory-refresh',
+    });
+    expect(mockSetTokens).toHaveBeenCalled();
+  });
+
+  it('persists tokens to AsyncStorage and memory store', async () => {
+    const tokens = {accessToken: 'new-access', refreshToken: 'new-refresh'};
+
+    await persistAuthTokens(tokens);
+
+    expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+      STORAGE_KEYS.AUTH_TOKENS,
+      JSON.stringify(tokens),
+    );
+    expect(mockSetTokens).toHaveBeenCalledWith(tokens);
   });
 });

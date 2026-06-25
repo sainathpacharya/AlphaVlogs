@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useMemo, useCallback} from 'react';
-import {View, StyleSheet, Alert, useWindowDimensions, Platform} from 'react-native';
+import {View, StyleSheet, Alert, useWindowDimensions} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {Check, Crown} from 'lucide-react-native';
 import {
@@ -18,10 +18,10 @@ import {canAccessPayment} from '@/utils/payment';
 import {devLog} from '@/utils/dev-log';
 import {getApiBaseUrl} from '@/constants';
 import {isMockMode} from '@/config/api-config';
-import {useUser, useUserStore, useTokens} from '@/stores';
+import {useUser, useUserStore} from '@/stores';
 import {useIsMounted} from '@/hooks';
+import {useLogoutMutation} from '@/hooks/api/use-auth-api';
 import {InfoScreenLayout} from '@/components/InfoScreenLayout';
-import {formatJwtSummary} from '@/utils/jwt';
 
 interface PaymentMethod {
   id: string;
@@ -41,41 +41,19 @@ const getPaymentDisplayName = (method: PaymentMethod) => {
   return method.name;
 };
 
-type ApiEnvironmentKind = 'mock' | 'development' | 'production';
-
-const getApiEnvironmentInfo = (): {
-  label: string;
-  kind: ApiEnvironmentKind;
-  url: string;
-} => {
-  const url = getApiBaseUrl();
-  if (isMockMode()) {
-    return {label: 'Mock', kind: 'mock', url};
-  }
-  if (url.includes('alphavlogs.com')) {
-    return {label: 'Production', kind: 'production', url};
-  }
-  return {label: 'Development', kind: 'development', url};
-};
-
 const SubscriptionScreen: React.FC = () => {
   const navigation = useNavigation();
   const colors = useThemeColors();
   const {width: screenWidth} = useWindowDimensions();
   const isMounted = useIsMounted();
   const user = useUser();
-  const tokens = useTokens();
   const setUser = useUserStore(state => state.setUser);
+  const logoutMutation = useLogoutMutation();
   const isStackedPlans = screenWidth < PLAN_STACK_BREAKPOINT;
   const isWideLayout = screenWidth >= 768;
   const styles = useMemo(
     () => getStyles(colors, screenWidth),
     [colors, screenWidth],
-  );
-  const apiEnvironment = useMemo(() => getApiEnvironmentInfo(), []);
-  const jwtSummary = useMemo(
-    () => formatJwtSummary(tokens?.accessToken),
-    [tokens?.accessToken],
   );
   const [selectedPlan, setSelectedPlan] = useState<'free' | 'premium'>('free');
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
@@ -235,6 +213,21 @@ const SubscriptionScreen: React.FC = () => {
     }
   }, [user?.id, isMounted]);
 
+  const handleSessionExpired = useCallback(
+    (message: string) => {
+      Alert.alert('Session expired', message, [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Log in again',
+          onPress: () => {
+            logoutMutation.mutate();
+          },
+        },
+      ]);
+    },
+    [logoutMutation],
+  );
+
   const handleSubscribe = async () => {
     if (selectedPlan === 'free') {
       Alert.alert('Free Plan', 'You are already on the free plan.');
@@ -339,7 +332,7 @@ const SubscriptionScreen: React.FC = () => {
               return;
             }
             if (razorpayError.statusCode === 401) {
-              Alert.alert('Session expired', razorpayError.message);
+              handleSessionExpired(razorpayError.message);
               return;
             }
             Alert.alert('Payment Error', razorpayError.message);
@@ -619,61 +612,6 @@ const SubscriptionScreen: React.FC = () => {
       contentContainerStyle={isWideLayout ? styles.wideContentContainer : undefined}>
       <Box style={styles.contentWrapper}>
         <VStack testID="subscription-content" space="lg">
-          {__DEV__ && (
-            <Box
-              testID="subscription-api-env-banner"
-              style={[
-                styles.apiEnvBanner,
-                apiEnvironment.kind === 'production' && styles.apiEnvBannerWarning,
-                apiEnvironment.kind === 'mock' && styles.apiEnvBannerMock,
-              ]}>
-              <VStack space="xs">
-                <Text
-                  testID="subscription-api-env-label"
-                  style={styles.apiEnvBannerTitle}>
-                  API environment: {apiEnvironment.label}
-                </Text>
-                <Text
-                  testID="subscription-api-env-url"
-                  style={styles.apiEnvBannerUrl}
-                  selectable>
-                  {apiEnvironment.url}
-                </Text>
-                {apiEnvironment.kind === 'production' && (
-                  <Text
-                    testID="subscription-api-env-hint"
-                    style={styles.apiEnvBannerHint}>
-                    Payment APIs may not be live on production yet. Use a debug
-                    build on the same Wi‑Fi as your Mac backend to test.
-                  </Text>
-                )}
-                {apiEnvironment.kind === 'development' && (
-                  <Text
-                    testID="subscription-api-env-hint"
-                    style={styles.apiEnvBannerHint}>
-                    Phone and backend must be on the same Wi‑Fi. Confirm your
-                    Mac IP matches LAN_HOST in api-config.local.ts.
-                  </Text>
-                )}
-                <Text
-                  testID="subscription-api-env-session"
-                  style={styles.apiEnvBannerHint}
-                  selectable>
-                  {tokens?.accessToken
-                    ? `Session: ${jwtSummary}`
-                    : 'Session: no token — log out and sign in again'}
-                </Text>
-                {user?.mobile ? (
-                  <Text
-                    testID="subscription-api-env-user"
-                    style={styles.apiEnvBannerHint}>
-                    Mobile: {user.mobile}
-                  </Text>
-                ) : null}
-              </VStack>
-            </Box>
-          )}
-
           <VStack
             testID="subscription-header-section"
             space="sm"
@@ -768,6 +706,7 @@ const SubscriptionScreen: React.FC = () => {
           {selectedPlan === 'premium' && canAccessPayment(user) && (
             <Button
               testID="subscription-subscribe-button"
+              size="md"
               onPress={handleSubscribe}
               disabled={isLoading || !selectedPaymentMethod}
               style={[
@@ -810,37 +749,6 @@ const getStyles = (colors: any, screenWidth: number) => {
       width: '100%',
       maxWidth: CONTENT_MAX_WIDTH,
       alignSelf: 'center',
-    },
-    apiEnvBanner: {
-      backgroundColor: colors.accentBackground ?? 'rgba(0, 122, 255, 0.08)',
-      borderWidth: 1,
-      borderColor: colors.accentAction,
-      borderRadius: 10,
-      padding: isNarrow ? 12 : 14,
-    },
-    apiEnvBannerWarning: {
-      backgroundColor: 'rgba(234, 88, 12, 0.08)',
-      borderColor: colors.subscriptionCta ?? '#EA580C',
-    },
-    apiEnvBannerMock: {
-      backgroundColor: colors.mutedBackground ?? 'rgba(0, 0, 0, 0.04)',
-      borderColor: colors.border,
-    },
-    apiEnvBannerTitle: {
-      fontSize: isNarrow ? 13 : 14,
-      fontWeight: '700',
-      color: colors.primaryText,
-    },
-    apiEnvBannerUrl: {
-      fontSize: isNarrow ? 12 : 13,
-      color: colors.accentAction,
-      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    },
-    apiEnvBannerHint: {
-      fontSize: 12,
-      color: colors.mutedText,
-      lineHeight: 17,
-      marginTop: 4,
     },
     headerSection: {
       paddingHorizontal: isNarrow ? 4 : 12,
@@ -1031,9 +939,13 @@ const getStyles = (colors: any, screenWidth: number) => {
     },
     subscribeButton: {
       backgroundColor: colors.accentAction,
-      paddingVertical: isNarrow ? 14 : 16,
       borderRadius: 12,
       width: '100%',
+      height: 48,
+      minHeight: 48,
+      paddingVertical: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     subscribeButtonText: {
       color: colors.white,
