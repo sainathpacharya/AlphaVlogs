@@ -177,7 +177,7 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: ${{ env.PACKAGE_NAME }}
           releaseFiles: android/app/build/outputs/bundle/productionRelease/app-production-release.aab
-          track: ${{ env.PLAY_STORE_TRACK }}
+          tracks: ${{ env.PLAY_STORE_TRACK }}
           status: completed
           changesNotSentForReview: false
 
