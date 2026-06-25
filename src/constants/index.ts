@@ -7,8 +7,8 @@ export const APP_CONFIG: AppConfig = {
     return resolveApiBaseUrl();
   },
   environment: __DEV__ ? 'development' : 'production',
-  version: '1.0',
-  buildNumber: '5',
+  version: '1.0.0',
+  buildNumber: '1',
 };
 
 export { resolveApiBaseUrl as getApiBaseUrl };
