@@ -81,4 +81,16 @@ describe('jwt utils', () => {
 
     expect(isJwtExpired(validToken)).toBe(false);
   });
+
+  it('treats tokens without exp as not expired', () => {
+    const payload = {role: 'student'};
+    const segment = Buffer.from(JSON.stringify(payload))
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(new RegExp('=+$'), '');
+    const token = `h.${segment}.s`;
+
+    expect(isJwtExpired(token)).toBe(false);
+  });
 });

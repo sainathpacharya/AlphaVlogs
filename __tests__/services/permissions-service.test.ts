@@ -62,6 +62,13 @@ describe('PermissionsService', () => {
   });
 
   describe('checkPermission', () => {
+    it('returns granted for null permission', async () => {
+      const status = await permissionsService.checkPermission(null);
+
+      expect(status.granted).toBe(true);
+      expect(mockCheck).not.toHaveBeenCalled();
+    });
+
     it('maps granted result', async () => {
       mockCheck.mockResolvedValue(RESULTS.GRANTED);
 
@@ -92,6 +99,13 @@ describe('PermissionsService', () => {
   });
 
   describe('requestPermission', () => {
+    it('returns granted for null permission', async () => {
+      const status = await permissionsService.requestPermission(null);
+
+      expect(status.granted).toBe(true);
+      expect(mockRequest).not.toHaveBeenCalled();
+    });
+
     it('maps request result', async () => {
       mockRequest.mockResolvedValue(RESULTS.GRANTED);
 
@@ -341,6 +355,45 @@ describe('PermissionsService', () => {
 
       expect(result).toBe(false);
       expect(Alert.alert).toHaveBeenCalled();
+    });
+
+    it('skips notification permission below Android 13', async () => {
+      Object.defineProperty(Platform, 'Version', { configurable: true, value: 32 });
+      mockCheck.mockResolvedValue(RESULTS.GRANTED);
+
+      await expect(permissionsService.requestNotificationPermission()).resolves.toBe(true);
+      expect(mockRequest).not.toHaveBeenCalled();
+    });
+
+    it('skips storage permission on Android 10+', async () => {
+      Object.defineProperty(Platform, 'Version', { configurable: true, value: 29 });
+      mockCheck.mockResolvedValue(RESULTS.GRANTED);
+
+      await expect(permissionsService.requestStoragePermission()).resolves.toBe(true);
+      expect(mockRequest).not.toHaveBeenCalled();
+    });
+
+    it('accepts partial gallery access on Android 14 when full read is denied', async () => {
+      Object.defineProperty(Platform, 'Version', { configurable: true, value: 34 });
+      mockCheck
+        .mockResolvedValueOnce(RESULTS.DENIED)
+        .mockResolvedValueOnce(RESULTS.LIMITED);
+      mockRequest.mockResolvedValue(RESULTS.DENIED);
+
+      const result = await permissionsService.requestVideoUploadPermissions();
+
+      expect(result).toBe(true);
+      expect(mockCheck).toHaveBeenCalledWith(
+        PERMISSIONS.ANDROID.READ_MEDIA_VISUAL_USER_SELECTED,
+      );
+    });
+
+    it('requests notification permission on Android 13+', async () => {
+      Object.defineProperty(Platform, 'Version', { configurable: true, value: 33 });
+      mockCheck.mockResolvedValue(RESULTS.GRANTED);
+
+      await expect(permissionsService.requestNotificationPermission()).resolves.toBe(true);
+      expect(mockCheck).toHaveBeenCalledWith(PERMISSIONS.ANDROID.POST_NOTIFICATIONS);
     });
   });
 });

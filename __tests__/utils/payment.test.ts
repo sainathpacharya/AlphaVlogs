@@ -23,6 +23,21 @@ describe('payment utils', () => {
     expect(canAccessPayment(student)).toBe(true);
   });
 
+  it('denies payment when user is missing', () => {
+    expect(canAccessPayment(null)).toBe(false);
+    expect(canAccessPayment(undefined)).toBe(false);
+  });
+
+  it('allows payment when roleId is student even if role string differs', () => {
+    expect(
+      canAccessPayment({
+        ...student,
+        role: 'admin',
+        roleId: 4,
+      }),
+    ).toBe(true);
+  });
+
   it('denies payment for influencer role', () => {
     expect(
       canAccessPayment({
@@ -37,5 +52,10 @@ describe('payment utils', () => {
     const receipt = buildPaymentReceipt('user_001');
     expect(receipt.startsWith('student_')).toBe(true);
     expect(receipt.length).toBeLessThanOrEqual(40);
+  });
+
+  it('truncates very long receipt values', () => {
+    const receipt = buildPaymentReceipt('a'.repeat(100));
+    expect(receipt.length).toBe(40);
   });
 });

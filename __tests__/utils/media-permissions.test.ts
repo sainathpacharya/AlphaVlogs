@@ -25,6 +25,20 @@ describe('media-permissions', () => {
     expect(getAndroidApiLevel()).toBe(33);
   });
 
+  it('returns zero on non-Android platforms', () => {
+    Object.defineProperty(Platform, 'OS', {configurable: true, value: 'ios'});
+    expect(getAndroidApiLevel()).toBe(0);
+  });
+
+  it('parses string Android API versions and falls back for invalid values', () => {
+    Object.defineProperty(Platform, 'OS', {configurable: true, value: 'android'});
+    Object.defineProperty(Platform, 'Version', {configurable: true, value: '31'});
+    expect(getAndroidApiLevel()).toBe(31);
+
+    Object.defineProperty(Platform, 'Version', {configurable: true, value: 'invalid'});
+    expect(getAndroidApiLevel()).toBe(0);
+  });
+
   it('uses READ_MEDIA_VIDEO on Android 13+', () => {
     setAndroidApi(33);
     expect(getAndroidVideoGalleryPermissions()).toEqual([
