@@ -196,6 +196,10 @@ module.exports = {
     removeEventListener: jest.fn(),
     fetch: jest.fn(),
   },
+  ErrorUtils: {
+    getGlobalHandler: jest.fn(() => jest.fn()),
+    setGlobalHandler: jest.fn(),
+  },
   // Push Notifications
   PushNotification: {
     configure: jest.fn(),

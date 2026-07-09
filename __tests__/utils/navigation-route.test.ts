@@ -30,4 +30,13 @@ describe('getActiveRouteName', () => {
   it('returns undefined when navigation state is missing', () => {
     expect(getActiveRouteName(undefined)).toBeUndefined();
   });
+
+  it('returns undefined when the active route is missing', () => {
+    const state = {
+      index: 3,
+      routes: [{name: 'Login'}],
+    };
+
+    expect(getActiveRouteName(state)).toBeUndefined();
+  });
 });
