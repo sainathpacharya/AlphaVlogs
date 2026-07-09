@@ -289,7 +289,7 @@ dependencies {
 
 configurations.all {
     resolutionStrategy {
-        force 'androidx.core:core:1.9.0'
+        force 'androidx.core:core:1.15.0'
         exclude group: 'com.android.support', module: 'support-compat'
     }
 }

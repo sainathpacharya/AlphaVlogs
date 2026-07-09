@@ -13,7 +13,7 @@ import {I18nextProvider} from 'react-i18next';
 import Navigation from '@/navigation';
 import {ErrorBoundary} from '@/components/ErrorBoundary';
 import {useNetwork} from '@/hooks/useNetwork';
-import {setFirebaseUser} from '@/services/firebase-service';
+import {setFirebaseUser, setupGlobalErrorHandler} from '@/services/firebase-service';
 import apiService from '@/services/api';
 import {devLog} from '@/utils/dev-log';
 import {initializeSecureStorage} from '@/stores/user-cached-store';
@@ -64,6 +64,10 @@ const AppContent = React.memo(() => {
 
   // Initialize network monitoring
   useNetwork();
+
+  useEffect(() => {
+    setupGlobalErrorHandler();
+  }, []);
 
   useEffect(() => subscribeSslPinningErrors(), []);
 
