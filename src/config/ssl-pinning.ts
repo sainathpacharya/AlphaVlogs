@@ -16,7 +16,7 @@ function shouldEnableSslPinning(): boolean {
 
   try {
     // Firebase dev distribution (.dev) skips pinning — cert rotations must not brick testers.
-    if (DeviceInfo.getBundleIdSync().endsWith('.dev')) {
+    if (DeviceInfo.getBundleId().endsWith('.dev')) {
       return false;
     }
   } catch {

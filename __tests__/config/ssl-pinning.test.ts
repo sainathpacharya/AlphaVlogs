@@ -5,7 +5,7 @@ jest.mock('@/config/api-config', () => ({
 }));
 
 jest.mock('react-native-device-info', () => ({
-  getBundleIdSync: jest.fn(() => 'com.nsnr.alphavlogs'),
+  getBundleId: jest.fn(() => 'com.nsnr.alphavlogs'),
 }));
 
 describe('ssl-pinning config', () => {
@@ -76,7 +76,7 @@ describe('ssl-pinning config', () => {
   it('skips bootstrap for dev distribution bundle ids in release', async () => {
     (global as { __DEV__?: boolean }).__DEV__ = false;
     const DeviceInfo = require('react-native-device-info');
-    DeviceInfo.getBundleIdSync.mockReturnValue('com.nsnr.alphavlogs.dev');
+    DeviceInfo.getBundleId.mockReturnValue('com.nsnr.alphavlogs.dev');
     jest.resetModules();
 
     const { bootstrapSslPinning } = require('../../src/config/ssl-pinning');
