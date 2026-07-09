@@ -4,10 +4,6 @@ jest.mock('@/config/api-config', () => ({
   isMockMode: () => mockIsMockMode(),
 }));
 
-jest.mock('react-native-device-info', () => ({
-  getBundleId: jest.fn(() => 'com.nsnr.alphavlogs'),
-}));
-
 describe('ssl-pinning config', () => {
   const originalDev = (global as { __DEV__?: boolean }).__DEV__;
 
@@ -73,16 +69,20 @@ describe('ssl-pinning config', () => {
     expect(initializeSslPinning).not.toHaveBeenCalled();
   });
 
-  it('skips bootstrap for dev distribution bundle ids in release', async () => {
+  it('skips bootstrap for production release while pinning is globally disabled', async () => {
     (global as { __DEV__?: boolean }).__DEV__ = false;
-    const DeviceInfo = require('react-native-device-info');
-    DeviceInfo.getBundleId.mockReturnValue('com.nsnr.alphavlogs.dev');
     jest.resetModules();
 
+    const { isSslPinningAvailable, initializeSslPinning } = require(
+      'react-native-ssl-public-key-pinning',
+    );
+    isSslPinningAvailable.mockReturnValue(true);
+
     const { bootstrapSslPinning } = require('../../src/config/ssl-pinning');
-    const { initializeSslPinning } = require('react-native-ssl-public-key-pinning');
 
     await bootstrapSslPinning();
+
+    expect(console.log).not.toHaveBeenCalled();
     expect(initializeSslPinning).not.toHaveBeenCalled();
   });
 
@@ -100,49 +100,6 @@ describe('ssl-pinning config', () => {
     expect(console.warn).not.toHaveBeenCalledWith(
       '[ssl-pinning] Native module unavailable; skipping.',
     );
-  });
-
-  it('initializes pinning in production without dev-only logs', async () => {
-    (global as { __DEV__?: boolean }).__DEV__ = false;
-    jest.resetModules();
-
-    const { isSslPinningAvailable, initializeSslPinning } = require(
-      'react-native-ssl-public-key-pinning',
-    );
-    isSslPinningAvailable.mockReturnValue(true);
-
-    const { bootstrapSslPinning } = require('../../src/config/ssl-pinning');
-
-    await bootstrapSslPinning();
-
-    expect(console.log).not.toHaveBeenCalled();
-    expect(initializeSslPinning).toHaveBeenCalled();
-  });
-
-  it('initializes pinning when enabled and native module is available', async () => {
-    (global as { __DEV__?: boolean }).__DEV__ = false;
-    jest.resetModules();
-
-    const {
-      isSslPinningAvailable,
-      initializeSslPinning,
-    } = require('react-native-ssl-public-key-pinning');
-    isSslPinningAvailable.mockReturnValue(true);
-
-    const {
-      bootstrapSslPinning,
-      SSL_PINNING_CONFIG,
-    } = require('../../src/config/ssl-pinning');
-
-    await bootstrapSslPinning();
-
-    expect(initializeSslPinning).toHaveBeenCalledWith({
-      [SSL_PINNING_CONFIG.HOST]: {
-        includeSubdomains: SSL_PINNING_CONFIG.INCLUDE_SUBDOMAINS,
-        publicKeyHashes: SSL_PINNING_CONFIG.PUBLIC_KEY_HASHES,
-        expirationDate: SSL_PINNING_CONFIG.EXPIRATION_DATE,
-      },
-    });
   });
 
   it('returns a no-op unsubscribe when pinning listener is unavailable', () => {
