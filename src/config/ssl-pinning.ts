@@ -14,8 +14,14 @@ export const SSL_PINNED_HOST = 'api.alphavlogs.com';
  */
 const SSL_PINNING_ENABLED = false;
 
+/** @internal Test seam only — toggles pinning on without changing production config. */
+export const __sslPinningTestState = {
+  forceEnabled: false,
+};
+
 function shouldEnableSslPinning(): boolean {
-  if (!SSL_PINNING_ENABLED || __DEV__ || isMockMode()) {
+  const enabled = SSL_PINNING_ENABLED || __sslPinningTestState.forceEnabled;
+  if (!enabled || __DEV__ || isMockMode()) {
     return false;
   }
 
@@ -47,11 +53,7 @@ export const SSL_PINNING_CONFIG = {
   PUBLIC_KEY_HASHES: [...SSL_PUBLIC_KEY_HASHES],
 };
 
-export async function bootstrapSslPinning(): Promise<void> {
-  if (!SSL_PINNING_CONFIG.ENABLED || isMockMode()) {
-    return;
-  }
-
+export async function applySslPinning(): Promise<void> {
   if (!isSslPinningAvailable()) {
     if (__DEV__) {
       console.warn('[ssl-pinning] Native module unavailable; skipping.');
@@ -73,6 +75,14 @@ export async function bootstrapSslPinning(): Promise<void> {
   if (__DEV__) {
     console.log(`[ssl-pinning] Enabled for ${HOST}`);
   }
+}
+
+export async function bootstrapSslPinning(): Promise<void> {
+  if (!SSL_PINNING_CONFIG.ENABLED || isMockMode()) {
+    return;
+  }
+
+  await applySslPinning();
 }
 
 /** Log pinning failures (e.g. MITM / wrong cert). Call once from App mount. */
