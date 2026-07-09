@@ -60,17 +60,19 @@
         </intent-filter>
       </activity>
 
-      <!-- App file sharing — authority must differ from react-native-webview's
-           RNCWebViewFileProvider (${applicationId}.fileprovider) or Android
-           crashes at startup installing duplicate ContentProviders. -->
+      <!-- WebView file uploads — re-declare so OEMs (Samsung/Vivo) cannot strip
+           FILE_PROVIDER_PATHS meta-data from the merged library manifest. -->
       <provider
-        android:name="androidx.core.content.FileProvider"
-        android:authorities="${applicationId}.appfileprovider"
+        android:name="com.reactnativecommunity.webview.RNCWebViewFileProvider"
+        android:authorities="${applicationId}.fileprovider"
         android:exported="false"
-        android:grantUriPermissions="true">
+        android:grantUriPermissions="true"
+        tools:node="merge"
+        tools:replace="android:authorities">
         <meta-data
           android:name="android.support.FILE_PROVIDER_PATHS"
-          android:resource="@xml/file_paths" />
+          android:resource="@xml/webview_file_provider_paths"
+          tools:replace="android:resource" />
       </provider>
 
       <!-- Razorpay core SDK registers DeeplinkActivity with the app package as URL host.

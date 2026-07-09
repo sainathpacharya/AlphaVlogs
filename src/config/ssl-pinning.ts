@@ -3,10 +3,28 @@ import {
   initializeSslPinning,
   isSslPinningAvailable,
 } from 'react-native-ssl-public-key-pinning';
+import DeviceInfo from 'react-native-device-info';
 import { isMockMode } from '@/config/api-config';
 
 /** Production API host (no scheme). */
 export const SSL_PINNED_HOST = 'api.alphavlogs.com';
+
+function shouldEnableSslPinning(): boolean {
+  if (__DEV__ || isMockMode()) {
+    return false;
+  }
+
+  try {
+    // Firebase dev distribution (.dev) skips pinning — cert rotations must not brick testers.
+    if (DeviceInfo.getBundleIdSync().endsWith('.dev')) {
+      return false;
+    }
+  } catch {
+    // If bundle id is unavailable, keep production pinning enabled.
+  }
+
+  return true;
+}
 
 /**
  * Base64 SHA-256 SPKI hashes. Regenerate when rotating certs:
@@ -22,8 +40,10 @@ export const SSL_PUBLIC_KEY_HASHES = [
 ] as const;
 
 export const SSL_PINNING_CONFIG = {
-  /** Off in __DEV__ so local http:// LAN backend is unaffected. */
-  ENABLED: !__DEV__,
+  /** Off in __DEV__ and dev distribution builds (com.nsnr.alphavlogs.dev). */
+  get ENABLED() {
+    return shouldEnableSslPinning();
+  },
   HOST: SSL_PINNED_HOST,
   INCLUDE_SUBDOMAINS: true,
   /** After this date pinning is disabled (TrustKit); extend via app update. */
