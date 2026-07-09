@@ -8,3 +8,7 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+
+# Firebase Crashlytics — required for readable stack traces when minify is enabled
+-keepattributes SourceFile,LineNumberTable
+-keep public class * extends java.lang.Exception

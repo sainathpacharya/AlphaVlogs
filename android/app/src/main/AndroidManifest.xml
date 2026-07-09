@@ -60,21 +60,18 @@
         </intent-filter>
       </activity>
 
-      <!-- File Provider for sharing files -->
+      <!-- App file sharing — authority must differ from react-native-webview's
+           RNCWebViewFileProvider (${applicationId}.fileprovider) or Android
+           crashes at startup installing duplicate ContentProviders. -->
       <provider
         android:name="androidx.core.content.FileProvider"
-        android:authorities="${applicationId}.fileprovider"
+        android:authorities="${applicationId}.appfileprovider"
         android:exported="false"
         android:grantUriPermissions="true">
         <meta-data
           android:name="android.support.FILE_PROVIDER_PATHS"
           android:resource="@xml/file_paths" />
       </provider>
-
-      <!-- Notification Service -->
-      <service
-        android:name=".services.NotificationService"
-        android:exported="false" />
 
       <!-- Razorpay core SDK registers DeeplinkActivity with the app package as URL host.
            Play Console cannot verify that host (it is not a real domain). Standard checkout

@@ -279,11 +279,12 @@ dependencies {
         implementation jscFlavor
     }
 
-    // Import the Firebase BoM
-    implementation platform('com.google.firebase:firebase-bom:34.7.0')
+    // Match RN Firebase BoM override in android/build.gradle (Kotlin 2.0.x compatible)
+    implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
 
-    // Firebase Analytics
-    implementation 'com.google.firebase:firebase-analytics'
+    // Crashlytics and Analytics (versions managed by BoM)
+    implementation("com.google.firebase:firebase-crashlytics")
+    implementation("com.google.firebase:firebase-analytics")
 }
 
 configurations.all {
@@ -293,4 +294,5 @@ configurations.all {
     }
 }
 apply plugin: "com.google.gms.google-services"
+apply plugin: "com.google.firebase.crashlytics"
 

@@ -14,11 +14,11 @@ export const SSL_PINNED_HOST = 'api.alphavlogs.com';
  *     | openssl x509 -pubkey -noout | openssl pkey -pubin -outform der \
  *     | openssl dgst -sha256 -binary | openssl enc -base64
  *
- * iOS requires at least two pins. Second pin: backup leaf or LE E8 intermediate.
+ * iOS requires at least two pins. Second pin: backup leaf or LE intermediate.
  */
 export const SSL_PUBLIC_KEY_HASHES = [
-  'lGdSb5AjYxuuFu2vnGATIWVR4JgJCfzEids1bLNW9os=', // api.alphavlogs.com leaf (May 2026)
-  'iFvwVyJSxnQdyaUvUERIf+8qk7gRze3612JMwoO3zdU=', // Let's Encrypt E8 intermediate (backup)
+  'NQ1K1SsiZ79ulQ9FFfA5GcpwTsYuwDsgA++l5dOd7RM=', // api.alphavlogs.com leaf (Jun 2026, LE YE2)
+  's/tdAOmUzd8syaTuqfgGvFcn6DzA5Cmb+Vby1ST+U3Y=', // Let's Encrypt YE2 intermediate (backup)
 ] as const;
 
 export const SSL_PINNING_CONFIG = {

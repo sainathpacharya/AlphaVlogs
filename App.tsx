@@ -11,7 +11,9 @@ import {GluestackUIProvider} from '@/components';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {I18nextProvider} from 'react-i18next';
 import Navigation from '@/navigation';
+import {ErrorBoundary} from '@/components/ErrorBoundary';
 import {useNetwork} from '@/hooks/useNetwork';
+import {setFirebaseUser} from '@/services/firebase-service';
 import apiService from '@/services/api';
 import {devLog} from '@/utils/dev-log';
 import {initializeSecureStorage} from '@/stores/user-cached-store';
@@ -64,6 +66,18 @@ const AppContent = React.memo(() => {
   useNetwork();
 
   useEffect(() => subscribeSslPinningErrors(), []);
+
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      void setFirebaseUser(user.id, {
+        user_role: user.role,
+        user_email: user.email,
+      });
+      return;
+    }
+
+    void setFirebaseUser(null);
+  }, [isAuthenticated, user]);
 
   // Initialize app state
   useEffect(() => {
@@ -122,15 +136,17 @@ const AppContent = React.memo(() => {
 
 function App(): React.JSX.Element {
   return (
-    <QueryClientProvider client={queryClient}>
-      <I18nextProvider i18n={i18next}>
-        <GluestackUIProvider>
-          <SafeAreaProvider>
-            <AppContent />
-          </SafeAreaProvider>
-        </GluestackUIProvider>
-      </I18nextProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <I18nextProvider i18n={i18next}>
+          <GluestackUIProvider>
+            <SafeAreaProvider>
+              <AppContent />
+            </SafeAreaProvider>
+          </GluestackUIProvider>
+        </I18nextProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

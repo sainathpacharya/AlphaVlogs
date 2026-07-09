@@ -19,8 +19,20 @@ buildscript {
         classpath("com.facebook.react:react-native-gradle-plugin")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
         classpath("com.google.gms:google-services:4.4.4")
+        classpath("com.google.firebase:firebase-crashlytics-gradle:3.0.7")
         classpath("com.google.firebase:firebase-appdistribution-gradle:5.0.0")
     }
+}
+
+// Override RN Firebase default BoM (34.15.0) — newer measurement libs require Kotlin 2.2
+project.ext {
+    set('react-native', [
+        versions: [
+            firebase: [
+                bom: '33.5.1',
+            ],
+        ],
+    ])
 }
 
 apply plugin: "com.facebook.react.rootproject"

@@ -29,6 +29,9 @@ import {AppRegistry} from 'react-native';
 import App from './App';
 import {name as appName} from './app.json';
 import {bootstrapSslPinning} from './src/config/ssl-pinning';
+import {setupGlobalErrorHandler} from './src/services/firebase-service';
+
+setupGlobalErrorHandler();
 
 // Initialize SSL pinning before any network traffic (release builds only).
 bootstrapSslPinning()

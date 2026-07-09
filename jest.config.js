@@ -60,6 +60,9 @@ module.exports = {
     '^react-native-reanimated$': '<rootDir>/__tests__/__mocks__/react-native-reanimated.js',
     '^react-native-fast-image$': '<rootDir>/__tests__/__mocks__/react-native-fast-image.js',
     '^react-native-sms-retriever$': '<rootDir>/__tests__/__mocks__/react-native-sms-retriever.js',
+    '^@react-native-firebase/app$': '<rootDir>/__tests__/__mocks__/@react-native-firebase/app.js',
+    '^@react-native-firebase/analytics$': '<rootDir>/__tests__/__mocks__/@react-native-firebase/analytics.js',
+    '^@react-native-firebase/crashlytics$': '<rootDir>/__tests__/__mocks__/@react-native-firebase/crashlytics.js',
   },
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
