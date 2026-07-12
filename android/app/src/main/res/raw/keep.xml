@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Resource shrinking only sees Java/XML references. React Native images loaded
+  via require() live under drawable* and would be stripped without this keep.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/*,@mipmap/*,@raw/*"
+    tools:shrinkMode="safe" />
