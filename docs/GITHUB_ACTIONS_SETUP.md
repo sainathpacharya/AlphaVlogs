@@ -211,7 +211,7 @@ The service account needs:
 
 ### iOS Production
 
-1. Push tag `v1.0.0` or manual dispatch
+1. Push tag `v1.0.0`, or manual dispatch with **version_name** (e.g. `1.0.0`) — same field as Android Production
 2. Confirm IPA artifact `ios-production-ipa`
 3. App Store Connect → **TestFlight** → verify processing build
 4. Confirm build is **not** submitted for App Store review automatically
