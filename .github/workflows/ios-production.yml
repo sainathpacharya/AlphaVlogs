@@ -140,9 +140,11 @@ jobs:
       - name: Archive signed IPA
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          CODE_SIGN_IDENTITY: ${{ secrets.APPLE_CODE_SIGN_IDENTITY || 'Apple Distribution' }}
         run: |
           cd ios
+          # Archive without signing so the code-signing build settings are not forced onto
+          # the CocoaPods library targets (which cannot carry a provisioning profile).
+          # The app is signed later during -exportArchive using ExportOptions.plist.
           xcodebuild clean archive \
             -workspace JackMarvelsApp.xcworkspace \
             -scheme JackMarvelsApp \
@@ -151,11 +153,8 @@ jobs:
             -archivePath "$PWD/build/AlphaVlogs-production.xcarchive" \
             PRODUCT_BUNDLE_IDENTIFIER="${{ env.BUNDLE_ID }}" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
-            CODE_SIGNING_REQUIRED=YES \
-            CODE_SIGNING_ALLOWED=YES
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
 
           if [ ! -d "$PWD/build/AlphaVlogs-production.xcarchive" ]; then
             echo "Archive not created"
@@ -179,6 +178,8 @@ jobs:
             <string>${APPLE_TEAM_ID}</string>
             <key>signingStyle</key>
             <string>manual</string>
+            <key>signingCertificate</key>
+            <string>Apple Distribution</string>
             <key>provisioningProfiles</key>
             <dict>
               <key>${{ env.BUNDLE_ID }}</key>
