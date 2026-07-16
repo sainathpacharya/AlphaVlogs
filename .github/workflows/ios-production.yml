@@ -2,6 +2,11 @@ name: iOS Production — Build & TestFlight
 
 on:
   workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Semantic version (e.g. 1.0.0). Used when not triggered by a version tag.'
+        required: false
+        type: string
   push:
     tags:
       - 'v*.*.*'
@@ -81,6 +86,39 @@ jobs:
           cd ios
           pod install --repo-update
 
+      - name: Resolve App Store version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION_NAME="${GITHUB_REF_NAME#v}"
+            echo "Version from tag: $VERSION_NAME"
+          elif [ -n "${{ github.event.inputs.version_name }}" ]; then
+            VERSION_NAME="${{ github.event.inputs.version_name }}"
+            echo "Version from workflow input: $VERSION_NAME"
+          else
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+            if [ -n "$LATEST_TAG" ] && [[ "$LATEST_TAG" == v* ]]; then
+              VERSION_NAME="${LATEST_TAG#v}"
+              echo "Version from latest tag: $VERSION_NAME"
+            else
+              echo "Manual dispatch requires version_name input or an existing git tag (v*.*.*)"
+              exit 1
+            fi
+          fi
+
+          if ! [[ "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version_name '$VERSION_NAME'. Expected format: MAJOR.MINOR.PATCH (e.g. 1.0.0)"
+            exit 1
+          fi
+
+          # TestFlight requires a unique CFBundleVersion per upload; use run number.
+          BUILD_NUMBER="${{ github.run_number }}"
+
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "Marketing version: $VERSION_NAME"
+          echo "Build number: $BUILD_NUMBER"
+
       - name: Import certificates and provisioning profile
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
@@ -158,6 +196,8 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath "$PWD/build/AlphaVlogs-production.xcarchive" \
             PRODUCT_BUNDLE_IDENTIFIER="${{ env.BUNDLE_ID }}" \
+            MARKETING_VERSION="${{ steps.version.outputs.version_name }}" \
+            CURRENT_PROJECT_VERSION="${{ steps.version.outputs.build_number }}" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO
@@ -231,6 +271,7 @@ jobs:
           {
             echo "## iOS Production — Build Summary"
             echo "- **Bundle ID:** \`${{ env.BUNDLE_ID }}\`"
+            echo "- **Version:** \`${{ steps.version.outputs.version_name }}\` (build ${{ steps.version.outputs.build_number }})"
             echo "- **Destination:** TestFlight only (not App Store production release)"
             echo "- **Commit:** \`${{ github.sha }}\`"
             echo "- **Tag:** \`${{ github.ref_name }}\`"
