@@ -12,8 +12,8 @@ Alpha Vlogs uses **three deploy workflows** plus CI. Dev Android and iOS share o
 
 | Platform | Dev | Production |
 | -------- | --- | ---------- |
-| Android package | `com.nsnr.aplhavlogs.dev` | `com.nsnr.aplhavlogs` |
-| iOS bundle ID | `com.nsnr.aplhavlogs.dev` | `com.nsnr.aplhavlogs` |
+| Android package | `com.nsnr.alphavlogs.dev` | `com.nsnr.alphavlogs` |
+| iOS bundle ID | `com.nsnr.alphavlogs.dev` | `com.nsnr.alphavlogsindia` |
 
 ---
 
@@ -110,7 +110,7 @@ base64 -i AlphaVlogs_Dev.mobileprovision | pbcopy  # IOS_DEV_PROVISIONING_PROFIL
 | ------ | -------- | ----- |
 | `APPLE_CERTIFICATE_BASE64` | Yes | **Apple Distribution** certificate (`.p12`), base64 |
 | `APPLE_CERTIFICATE_PASSWORD` | Yes | `.p12` password |
-| `APPLE_PROVISIONING_PROFILE_BASE64` | Yes | **App Store** profile for `com.nsnr.aplhavlogs` |
+| `APPLE_PROVISIONING_PROFILE_BASE64` | Yes | **App Store** profile for `com.nsnr.alphavlogsindia` |
 | `APPLE_TEAM_ID` | Yes | Apple Team ID |
 | `APPLE_KEY_ID` | Yes | App Store Connect API key ID |
 | `APPLE_ISSUER_ID` | Yes | App Store Connect issuer UUID |
@@ -182,9 +182,9 @@ The service account needs:
 
 ### Before first iOS Production run
 
-- [ ] Apple Developer App ID **`com.nsnr.aplhavlogs`** registered
+- [ ] Apple Developer App ID **`com.nsnr.alphavlogsindia`** registered
 - [ ] Distribution certificate + App Store provisioning profile
-- [ ] App created in App Store Connect with bundle ID **`com.nsnr.aplhavlogs`**
+- [ ] App created in App Store Connect with bundle ID **`com.nsnr.alphavlogsindia`**
 - [ ] All seven Apple production secrets configured
 - [ ] Create git tag `v1.0.0` for automated trigger
 

@@ -4,8 +4,8 @@ Your app now uses these identifiers:
 
 | Platform   | Production        | Develop / Dev      |
 |-----------|-------------------|--------------------|
-| **Android** (package name) | `com.nsnr.aplhavlogs`     | `com.nsnr.aplhavlogs.dev` |
-| **iOS** (bundle ID)        | `com.nsnr.aplhavlogs`     | `com.nsnr.aplhavlogs.dev` |
+| **Android** (package name) | `com.nsnr.alphavlogs`     | `com.nsnr.alphavlogs.dev` |
+| **iOS** (bundle ID)        | `com.nsnr.alphavlogsindia`| `com.nsnr.alphavlogs.dev` |
 
 Firebase identifies apps by these IDs. After renaming, you must **register the new IDs** in the Firebase project and (optionally) refresh config files.
 
@@ -67,7 +67,7 @@ In **Project settings** → **Your apps**, check the list of iOS apps.
 
 1. **Add app** → **iOS**.
 2. **Register app (1/3):**
-   - **iOS bundle ID:** `com.nsnr.aplhavlogs`
+   - **iOS bundle ID:** `com.nsnr.alphavlogsindia`
    - (Optional) App nickname: e.g. “Alpha Vlogs (Production)”
    - (Optional) App Store ID if you already have one.
 3. Click **Register app**.
@@ -92,7 +92,7 @@ Repeat for the **dev** build:
 - [ ] Firebase project **alpha-vlogs-cf60a** opened in Console.
 - [ ] Android app added with package `com.nsnr.aplhavlogs` and config downloaded.
 - [ ] Android app added with package `com.nsnr.aplhavlogs.dev` and config merged into `android/app/google-services.json` (or single file with both clients).
-- [ ] iOS app added with bundle ID `com.nsnr.aplhavlogs` → `GoogleService-Info.plist` replaced.
+- [ ] iOS app added with bundle ID `com.nsnr.alphavlogsindia` → `GoogleService-Info.plist` replaced.
 - [ ] iOS app added with bundle ID `com.nsnr.aplhavlogs.dev` → `GoogleService-Info-Develop.plist` replaced.
 - [ ] Rebuild Android and iOS apps and test (e.g. Auth, Cloud Messaging, Analytics if you use them).
 
@@ -125,7 +125,7 @@ After aligning bundle IDs in Xcode and workflows, verify in **Project settings �
 |-------|----------|
 | Android production package | `com.nsnr.aplhavlogs` → app ID `1:452248149004:android:fda0cc05fefccedbaf2229` |
 | Android develop package | `com.nsnr.aplhavlogs.dev` → app ID `1:452248149004:android:2062c0a9b5826798af2229` |
-| iOS production bundle ID | `com.nsnr.aplhavlogs` → app ID in `GoogleService-Info.plist` |
+| iOS production bundle ID | `com.nsnr.alphavlogsindia` → app ID in `GoogleService-Info.plist` |
 | iOS develop bundle ID | `com.nsnr.aplhavlogs.dev` → app ID in `GoogleService-Info-Develop.plist` |
 
 **Important:** Production and develop iOS apps must be **separate** Firebase app registrations. Each plist’s `GOOGLE_APP_ID` must match its bundle ID’s Firebase app. If both plists share the same `GOOGLE_APP_ID`, re-download `GoogleService-Info-Develop.plist` from the develop iOS app in Firebase Console.

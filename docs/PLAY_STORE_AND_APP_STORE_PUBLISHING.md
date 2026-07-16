@@ -4,8 +4,8 @@ This guide covers publishing **Alpha Vlogs** (JackMarvelsApp) to the stores, sta
 
 **Current setup (already in your project):**
 
-- **Package name (Android):** `com.nsnr.aplhavlogs` (production), `com.nsnr.aplhavlogs.dev` (develop)
-- **Bundle ID (iOS):** `com.nsnr.aplhavlogs` (production), `com.nsnr.aplhavlogs.dev` (develop)
+- **Package name (Android):** `com.nsnr.alphavlogs` (production), `com.nsnr.alphavlogs.dev` (develop)
+- **Bundle ID (iOS):** `com.nsnr.alphavlogsindia` (production), `com.nsnr.alphavlogs.dev` (develop)
 - **App name:** Alpha Vlogs
 - **Target audience:** Students from **KG (Kindergarten) to 10th class**
 - **Main motto:** **Upload their activities—by students or by their parents.** (Talent events, performances, and more.)
@@ -247,11 +247,11 @@ Do this **after** (or in parallel with) Play Store, when you’re ready for iOS.
 ### 1. Apple Developer Program
 
 - Enroll at [developer.apple.com](https://developer.apple.com) ($99/year).
-- Create an **App ID** (Bundle ID): `com.nsnr.aplhavlogs` (already used in your Xcode project).
+- Create an **App ID** (Bundle ID): `com.nsnr.alphavlogsindia` (already used in your Xcode project).
 
 ### 2. App Store Connect
 
-- Create the app in [App Store Connect](https://appstoreconnect.apple.com): name “Alpha Vlogs”, Bundle ID `com.nsnr.aplhavlogs`, SKU (e.g. `alpha-vlogs-ios`).
+- Create the app in [App Store Connect](https://appstoreconnect.apple.com): name “Alpha Vlogs”, Bundle ID `com.nsnr.alphavlogsindia`, SKU (e.g. `alpha-vlogs-ios`).
 - Fill in **Pricing**, **Privacy**, **App Privacy** (nutrition labels), **Age rating**, **App category**.
 
 ### 3. Certificates and provisioning
@@ -278,7 +278,7 @@ Do this **after** (or in parallel with) Play Store, when you’re ready for iOS.
 
 ### 7. Checklist – App Store
 
-- [ ] Apple Developer account and App ID `com.nsnr.aplhavlogs`
+- [ ] Apple Developer account and App ID `com.nsnr.alphavlogsindia`
 - [ ] App created in App Store Connect
 - [ ] Distribution certificate and App Store provisioning profile
 - [ ] Archive built with Release configuration, uploaded to App Store Connect
@@ -294,7 +294,7 @@ Do this **after** (or in parallel with) Play Store, when you’re ready for iOS.
 | ---------------------------- | ------------------------------------------------------------------------------- |
 | Android package (production) | `com.nsnr.aplhavlogs`                                                           |
 | Android package (develop)    | `com.nsnr.aplhavlogs.dev`                                                       |
-| iOS Bundle ID                | `com.nsnr.aplhavlogs` (dev: `com.nsnr.aplhavlogs.dev`)                          |
+| iOS Bundle ID                | `com.nsnr.alphavlogsindia` (dev: `com.nsnr.alphavlogs.dev`)                      |
 | App name                     | Alpha Vlogs                                                                     |
 | Target audience / motto      | Students KG–10th; **upload activities by students or by their parents**         |
 | Production AAB task          | `./gradlew bundleProductionRelease`                                             |

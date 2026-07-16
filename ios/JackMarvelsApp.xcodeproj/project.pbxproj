@@ -468,7 +468,7 @@
 					"-lc++",
 					"$(inherited)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.nsnr.alphavlogs.JackMarvelsAppTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nsnr.alphavlogsindia.JackMarvelsAppTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JackMarvelsApp.app/JackMarvelsApp";
 			};
@@ -492,7 +492,7 @@
 					"-lc++",
 					"$(inherited)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.nsnr.alphavlogs.JackMarvelsAppTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nsnr.alphavlogsindia.JackMarvelsAppTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JackMarvelsApp.app/JackMarvelsApp";
 			};
@@ -528,7 +528,7 @@
 					"-framework",
 					Razorpay,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.nsnr.alphavlogs;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nsnr.alphavlogsindia;
 				PRODUCT_NAME = JackMarvelsApp;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -568,7 +568,7 @@
 					"-framework",
 					Razorpay,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.nsnr.alphavlogs;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nsnr.alphavlogsindia;
 				PRODUCT_NAME = JackMarvelsApp;
 				STRIP_INSTALLED_PRODUCT = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
