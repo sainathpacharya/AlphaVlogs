@@ -319,6 +319,22 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN_PATH" "$HOME/Library/Keychains/login.keychain-db"
 
           echo "$IOS_DEV_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          if [ ! -s "$CERTIFICATE_PATH" ]; then
+            echo "::error::Decoded certificate is empty. IOS_DEV_CERTIFICATE_BASE64 is missing or not valid base64."
+            echo "Re-create it with:  base64 -i Certificates.p12 | pbcopy   (macOS) and paste into the secret."
+            exit 1
+          fi
+
+          # Preflight: confirm the .p12 can be opened with the provided password before importing.
+          # This surfaces a wrong IOS_DEV_CERTIFICATE_PASSWORD with a clear message instead of a cryptic keychain error.
+          if ! openssl pkcs12 -in "$CERTIFICATE_PATH" -passin pass:"$IOS_DEV_CERTIFICATE_PASSWORD" -nokeys -legacy >/dev/null 2>&1 \
+             && ! openssl pkcs12 -in "$CERTIFICATE_PATH" -passin pass:"$IOS_DEV_CERTIFICATE_PASSWORD" -nokeys >/dev/null 2>&1; then
+            echo "::error::Cannot open the certificate with IOS_DEV_CERTIFICATE_PASSWORD."
+            echo "Either the password is wrong, or the base64 does not contain a valid .p12."
+            echo "Verify locally with:  openssl pkcs12 -in Certificates.p12 -nokeys -info"
+            exit 1
+          fi
+
           security import "$CERTIFICATE_PATH" \
             -P "$IOS_DEV_CERTIFICATE_PASSWORD" \
             -A -t cert -f pkcs12 \
