@@ -118,8 +118,14 @@ target 'JackMarvelsApp' do
         # Ensure Swift interoperability is enabled
         config.build_settings['SWIFT_VERSION'] = '5.0' if config.build_settings['SWIFT_VERSION'].nil?
         
-        # Always embed Swift standard libraries for Swift-based pods
-        if target.name.include?('Lottie') || target.name.include?('lottie') || target.name.include?('Swift')
+        # Always embed Swift standard libraries for Swift-based pods.
+        # Skip resource/privacy bundles: setting this on a *.bundle makes Xcode's
+        # archive CopySwiftLibs phase look for a nonexistent executable inside the
+        # bundle (e.g. "Promises_Privacy.bundle/Promises_Privacy"), failing the archive.
+        is_resource_bundle = target.respond_to?(:product_type) &&
+          target.product_type == 'com.apple.product-type.bundle'
+        if !is_resource_bundle &&
+           (target.name.include?('Lottie') || target.name.include?('lottie') || target.name.include?('Swift'))
           config.build_settings['ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES'] = 'YES'
         end
         
