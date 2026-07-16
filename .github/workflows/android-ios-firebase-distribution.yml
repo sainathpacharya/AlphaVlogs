@@ -13,6 +13,12 @@ env:
   FIREBASE_PROJECT_ID: alpha-vlogs-cf60a
   FIREBASE_TESTER_GROUP: testers
   FIREBASE_IOS_PLIST_PATH: ios/JackMarvelsApp/GoogleService-Info-Develop.plist
+  # Xcode 26 runners default to the Metal cryptex toolchain, whose Swift lib
+  # search path lacks the back-compat archives (libswiftCompatibility56.a, etc.)
+  # that prebuilt Firebase binaries force-load, breaking the link. Pin the
+  # default Xcode toolchain so those libraries are found.
+  # https://github.com/actions/runner-images/issues/13135
+  TOOLCHAINS: com.apple.dt.toolchain.XcodeDefault
 
 jobs:
   validate:

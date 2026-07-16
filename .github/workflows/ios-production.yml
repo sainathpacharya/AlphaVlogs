@@ -12,6 +12,12 @@ concurrency:
 
 env:
   BUNDLE_ID: com.nsnr.alphavlogs
+  # Xcode 26 runners default to the Metal cryptex toolchain, whose Swift lib
+  # search path lacks the back-compat archives (libswiftCompatibility56.a, etc.)
+  # that prebuilt Firebase binaries force-load, breaking the link. Pin the
+  # default Xcode toolchain so those libraries are found.
+  # https://github.com/actions/runner-images/issues/13135
+  TOOLCHAINS: com.apple.dt.toolchain.XcodeDefault
 
 jobs:
   build-and-publish:
