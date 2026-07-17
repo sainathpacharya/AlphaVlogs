@@ -55,11 +55,6 @@
 	<string>Alpha Vlogs needs photo library access to select and upload videos for talent show events.</string>
 	<key>NSUserNotificationUsageDescription</key>
 	<string>Alpha Vlogs sends notifications for new events, quiz reminders, and results updates.</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-		<string>background-processing</string>
-	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>
