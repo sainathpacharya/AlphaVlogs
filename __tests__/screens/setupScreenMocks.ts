@@ -208,6 +208,7 @@ jest.mock('@/hooks', () => {
   const mountedRef = {current: true};
   return {
     useIsMounted: jest.fn(() => mountedRef),
+    usePreventHardwareBack: jest.fn(),
   useEventsQuery: jest.fn(() => ({
     data: [],
     isLoading: false,
@@ -312,7 +313,7 @@ jest.mock('@/hooks/usePermissions', () => ({
 
 jest.mock('@/stores', () => ({
   useUser: jest.fn(() => ({
-    id: '1',
+    id: 'user_1',
     firstName: 'Test',
     lastName: 'User',
     email: 'test@example.com',
@@ -321,13 +322,40 @@ jest.mock('@/stores', () => ({
   })),
   useUserStore: jest.fn((selector?: (state: Record<string, unknown>) => unknown) => {
     const state = {
-      user: {id: '1', firstName: 'Test', lastName: 'User'},
+      user: {id: 'user_1', firstName: 'Test', lastName: 'User'},
       setUser: jest.fn(),
       setAuthenticated: jest.fn(),
       reset: jest.fn(),
     };
     return selector ? selector(state) : state;
   }),
+  useUserCachedStore: Object.assign(
+    jest.fn((selector?: (state: Record<string, unknown>) => unknown) => {
+      const state = {
+        tokens: {accessToken: 'mock-token', refreshToken: 'mock-refresh'},
+        userData: {id: 'user_1', firstName: 'Test'},
+        linkedProfiles: [],
+        setUserData: jest.fn(),
+        setTokens: jest.fn(),
+        setLinkedProfiles: jest.fn(),
+        clearAll: jest.fn(),
+        clearCache: jest.fn(),
+      };
+      return selector ? selector(state) : state;
+    }),
+    {
+      getState: () => ({
+        tokens: {accessToken: 'mock-token', refreshToken: 'mock-refresh'},
+        userData: {id: 'user_1', firstName: 'Test'},
+        linkedProfiles: [],
+        setUserData: jest.fn(),
+        setTokens: jest.fn(),
+        setLinkedProfiles: jest.fn(),
+        clearAll: jest.fn(),
+        clearCache: jest.fn(),
+      }),
+    },
+  ),
   useTokens: jest.fn(() => ({
     accessToken: 'mock-token',
     refreshToken: 'mock-refresh',
@@ -343,9 +371,20 @@ jest.mock('@/hooks/api/use-auth-api', () => ({
 }));
 
 jest.mock('@/stores/user-cached-store', () => ({
-  useUserCachedStore: jest.fn(() => ({
-    clearLocalSession: jest.fn(),
-  })),
+  useUserCachedStore: Object.assign(
+    jest.fn(() => ({
+      clearLocalSession: jest.fn(),
+      setLinkedProfiles: jest.fn(),
+      linkedProfiles: [],
+    })),
+    {
+      getState: () => ({
+        setLinkedProfiles: jest.fn(),
+        linkedProfiles: [],
+        clearLocalSession: jest.fn(),
+      }),
+    },
+  ),
 }));
 
 jest.mock('@/services/subscription-service', () => ({

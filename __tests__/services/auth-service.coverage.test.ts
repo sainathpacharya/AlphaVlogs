@@ -36,6 +36,15 @@ jest.mock('../../src/constants', () => ({
   STORAGE_KEYS: { AUTH_TOKENS: 'auth_tokens', USER_DATA: 'user_data' },
 }));
 
+jest.mock('../../src/stores/user-cached-store', () => ({
+  useUserCachedStore: {
+    getState: () => ({
+      linkedProfiles: [],
+      setLinkedProfiles: jest.fn(),
+    }),
+  },
+}));
+
 const mockApi = apiService as jest.Mocked<typeof apiService>;
 const mockPost = publicApiRequest.publicApiPost as jest.MockedFunction<
   typeof publicApiRequest.publicApiPost
@@ -47,6 +56,11 @@ describe('AuthService coverage paths', () => {
     jest.clearAllMocks();
     mockWrapper.isMockMode.mockReturnValue(false);
     mockApi.clearStoredAuth.mockResolvedValue(undefined);
+    mockApi.ensureFreshAccessToken.mockResolvedValue({
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      expiresIn: 3600,
+    });
   });
 
   it('sendOTP handles thrown errors', async () => {

@@ -135,7 +135,9 @@ class ApiService {
     }
 
     if (!skipAuth && !this.isRefreshRequest(path)) {
-      const tokens = await this.getStoredTokens();
+      // Refresh expired access tokens before the request so Switch Student /
+      // profiles and other authed calls do not start with a guaranteed 401.
+      const tokens = await this.ensureFreshAccessToken();
       if (tokens?.accessToken) {
         headers.Authorization = `Bearer ${tokens.accessToken}`;
       }
@@ -146,18 +148,23 @@ class ApiService {
 
   private buildUrl(path: string, params?: ApiRequestConfig['params']): string {
     const baseUrl = getApiBaseUrl().replace(/\/$/, '');
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    const url = new URL(`${baseUrl}${normalizedPath}`);
+    // Keep the path exact — a trailing slash makes Spring return
+    // "Not found: api/students/switch-profile" (404) for otherwise valid routes.
+    const normalizedPath = `/${String(path).replace(/^\/+/, '').replace(/\/+$/, '')}`;
 
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          url.searchParams.set(key, String(value));
-        }
-      });
+    // Prefer string concat over URL() — some RN URL polyfills rewrite paths.
+    if (!params || Object.keys(params).length === 0) {
+      return `${baseUrl}${normalizedPath}`;
     }
 
-    return url.toString();
+    const search = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        search.set(key, String(value));
+      }
+    });
+    const query = search.toString();
+    return query ? `${baseUrl}${normalizedPath}?${query}` : `${baseUrl}${normalizedPath}`;
   }
 
   private async parseResponseBody(response: Response): Promise<unknown> {

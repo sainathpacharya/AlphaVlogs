@@ -23,6 +23,7 @@ describe('Main App Screens', () => {
     navigate: jest.fn(),
     goBack: jest.fn(),
     replace: jest.fn(),
+    dispatch: jest.fn(),
   };
 
   beforeEach(() => {
@@ -188,6 +189,35 @@ describe('Main App Screens', () => {
       await waitFor(() => {
         expect(mutateAsync).toHaveBeenCalledWith(10);
       });
+      await waitFor(() => {
+        expect(mockNavigation.dispatch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'RESET',
+            payload: {
+              index: 0,
+              routes: [{name: 'Dashboard'}],
+            },
+          }),
+        );
+      });
+    });
+
+    it('shows session expired copy when profiles load returns unauthorized', () => {
+      (useStudentProfilesQuery as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: true,
+        error: new Error('Unauthorized'),
+        refetch: jest.fn(),
+        isRefetching: false,
+      });
+
+      const {getByText} = renderScreen(SwitchProfileScreen);
+
+      expect(
+        getByText(/Your session expired\. Please go back, log out, and sign in again\./),
+      ).toBeTruthy();
+      expect(getByText('Try Again')).toBeTruthy();
     });
   });
 

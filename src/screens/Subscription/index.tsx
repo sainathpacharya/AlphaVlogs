@@ -10,7 +10,7 @@ import {
   Box,
   Pressable,
 } from '@/components';
-import {SUBSCRIPTION} from '@/constants';
+import {SUBSCRIPTION, STORAGE_KEYS} from '@/constants';
 import {useThemeColors} from '@/utils/colors';
 import {subscriptionService} from '@/services/subscription-service';
 import {PaymentApiError} from '@/services/payment-service';
@@ -18,10 +18,12 @@ import {canAccessPayment} from '@/utils/payment';
 import {devLog} from '@/utils/dev-log';
 import {getApiBaseUrl} from '@/constants';
 import {isMockMode} from '@/config/api-config';
-import {useUser, useUserStore} from '@/stores';
+import {useUser, useUserStore, useUserCachedStore} from '@/stores';
 import {useIsMounted} from '@/hooks';
 import {useLogoutMutation} from '@/hooks/api/use-auth-api';
 import {InfoScreenLayout} from '@/components/InfoScreenLayout';
+import {User} from '@/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface PaymentMethod {
   id: string;
@@ -48,6 +50,7 @@ const SubscriptionScreen: React.FC = () => {
   const isMounted = useIsMounted();
   const user = useUser();
   const setUser = useUserStore(state => state.setUser);
+  const setUserData = useUserCachedStore(state => state.setUserData);
   const logoutMutation = useLogoutMutation();
   const isStackedPlans = screenWidth < PLAN_STACK_BREAKPOINT;
   const isWideLayout = screenWidth >= 768;
@@ -66,6 +69,21 @@ const SubscriptionScreen: React.FC = () => {
     endDate?: string;
   } | null>(null);
 
+  const markUserSubscribed = useCallback(
+    async (current: User) => {
+      const next: User = {
+        ...current,
+        isSubscribed: true,
+        subscriptionStatus: 'active',
+      };
+      setUser(next);
+      setUserData(next);
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(next));
+      return next;
+    },
+    [setUser, setUserData],
+  );
+
   useEffect(() => {
     if (!user?.id) {
       return undefined;
@@ -76,7 +94,7 @@ const SubscriptionScreen: React.FC = () => {
     const load = async () => {
       try {
         setIsLoading(true);
-        const subscription = await subscriptionService.getCurrentSubscription(user.id);
+        const subscription = await subscriptionService.getStudentSubscription(user.id);
         if (cancelled) {
           return;
         }
@@ -152,7 +170,7 @@ const SubscriptionScreen: React.FC = () => {
         setIsLoading(true);
       }
 
-      const subscription = await subscriptionService.getCurrentSubscription(user.id);
+      const subscription = await subscriptionService.getStudentSubscription(user.id);
       if (!isMounted.current) {
         return;
       }
@@ -285,11 +303,13 @@ const SubscriptionScreen: React.FC = () => {
           }
 
           if (result.success) {
-            setUser({
-              ...user,
-              isSubscribed: true,
-              subscriptionStatus: 'active',
-            });
+            await markUserSubscribed(user);
+            const refreshed =
+              await subscriptionService.getStudentSubscription(user.id);
+            if (isMounted.current && refreshed) {
+              setCurrentSubscription(refreshed);
+              setSelectedPlan('premium');
+            }
 
             Alert.alert(
               '✅ Subscription Successful',
@@ -298,7 +318,7 @@ const SubscriptionScreen: React.FC = () => {
                 {
                   text: 'Continue',
                   onPress: () => {
-                    loadSubscriptionData();
+                    void loadSubscriptionData();
                     navigation.goBack();
                   },
                 },
@@ -380,11 +400,7 @@ const SubscriptionScreen: React.FC = () => {
       }
 
       if (paymentResult?.success) {
-        setUser({
-          ...user,
-          isSubscribed: true,
-          subscriptionStatus: 'active',
-        });
+        await markUserSubscribed(user);
         Alert.alert(
           '✅ Subscription Successful',
           `Welcome to Jack Marvels Premium!\n\nTransaction ID: ${(paymentResult as { transactionId?: string }).transactionId ?? 'N/A'}`,
@@ -392,7 +408,7 @@ const SubscriptionScreen: React.FC = () => {
             {
               text: 'Continue',
               onPress: () => {
-                loadSubscriptionData();
+                void loadSubscriptionData();
                 navigation.goBack();
               },
             },

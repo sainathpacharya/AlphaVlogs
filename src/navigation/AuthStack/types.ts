@@ -7,6 +7,7 @@ type AuthStackParamList = {
   ComingSoon: undefined;
   ProfileSelection: {
     mobile: string;
+    otp: string;
     profiles: import('@/types').StudentProfile[];
   };
   setIsLoggedIn?: (v: boolean) => void;

@@ -1,7 +1,9 @@
 <resources>
-    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <!-- Keep night resources aligned with light — app does not support dark theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
-        <item name="android:statusBarColor">#1A1A1A</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#FFFFFF</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:forceDarkAllowed">false</item>
     </style>
 </resources>

@@ -92,13 +92,12 @@ describe('subscription-service branch coverage', () => {
     expect(result?.id).toBe('sub_1');
   });
 
-  it('getStudentSubscription falls back when payload cannot be parsed', async () => {
+  it('getStudentSubscription returns null when payload cannot be parsed', async () => {
     mockApi.get.mockResolvedValue({ success: true, data: { unknown: true }, statusCode: 200 });
-    jest.spyOn(subscriptionService, 'getCurrentSubscription').mockResolvedValue(activeSubscription as never);
 
     const result = await subscriptionService.getStudentSubscription('user_001');
 
-    expect(result?.id).toBe('sub_1');
+    expect(result).toBeNull();
   });
 
   it('getStudentSubscription returns null on thrown error', async () => {

@@ -6,6 +6,7 @@
  */
 
 import React, {useEffect} from 'react';
+import {Appearance} from 'react-native';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {GluestackUIProvider} from '@/components';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
@@ -23,6 +24,11 @@ import {i18next} from '@/services/i18n-service';
 import {subscribeSslPinningErrors} from '@/config/ssl-pinning';
 import {getApiBaseUrl} from '@/constants';
 import {getStoredAuthApiBaseUrl} from '@/utils/auth-api-session';
+import {waitForStoreHydration} from '@/hooks/useStoreHydration';
+import {resolveAuthTokens} from '@/utils/auth-storage';
+
+// Lock the app to light theme regardless of system appearance
+Appearance.setColorScheme('light');
 
 // Create a client
 const queryClient = new QueryClient({
@@ -58,9 +64,9 @@ const useAppContentCachedStore = () =>
   );
 
 const AppContent = React.memo(() => {
-  const {setAuthenticated, setUser, isAuthenticated, user} =
-    useAppContentStore();
-  const {tokens, userData} = useAppContentCachedStore();
+  const {isAuthenticated, user} = useAppContentStore();
+  // Keep subscription so cached user/token updates re-render when needed.
+  useAppContentCachedStore();
 
   // Initialize network monitoring
   useNetwork();
@@ -83,43 +89,62 @@ const AppContent = React.memo(() => {
     void setFirebaseUser(null);
   }, [isAuthenticated, user]);
 
-  // Initialize app state
+  // Initialize only after Zustand rehydration so we never wipe tokens while
+  // isAuthenticated is still the pre-hydrate default (false).
   useEffect(() => {
     let cancelled = false;
 
     const initializeApp = async () => {
       try {
-        if (!isAuthenticated) {
-          await apiService.clearStoredAuth();
-        } else {
-          await initializeSecureStorage();
-
-          const storedApiBaseUrl = await getStoredAuthApiBaseUrl();
-          const currentApiBaseUrl = getApiBaseUrl();
-          if (
-            storedApiBaseUrl &&
-            storedApiBaseUrl !== currentApiBaseUrl
-          ) {
-            devLog('API base URL changed — clearing stale auth session', {
-              storedApiBaseUrl,
-              currentApiBaseUrl,
-            });
-            await useUserCachedStore.getState().clearAll();
-            setAuthenticated(false);
-            setUser(null);
-            return;
-          }
-        }
-
+        await waitForStoreHydration();
         if (cancelled) {
           return;
         }
 
-        if (isAuthenticated && user) {
-          // User is already authenticated from persistent store
-        } else if (tokens?.accessToken && userData) {
-          setUser(userData);
-          setAuthenticated(true);
+        const {
+          isAuthenticated: authed,
+          user: persistedUser,
+          setAuthenticated: setAuth,
+          setUser: setPersistedUser,
+        } = useUserStore.getState();
+
+        if (!authed) {
+          await apiService.clearStoredAuth();
+          return;
+        }
+
+        await initializeSecureStorage();
+        if (cancelled) {
+          return;
+        }
+
+        const storedApiBaseUrl = await getStoredAuthApiBaseUrl();
+        const currentApiBaseUrl = getApiBaseUrl();
+        if (storedApiBaseUrl && storedApiBaseUrl !== currentApiBaseUrl) {
+          devLog('API base URL changed — clearing stale auth session', {
+            storedApiBaseUrl,
+            currentApiBaseUrl,
+          });
+          await useUserCachedStore.getState().clearAll();
+          setAuth(false);
+          setPersistedUser(null);
+          return;
+        }
+
+        const restoredTokens = await resolveAuthTokens();
+        if (!restoredTokens?.accessToken) {
+          // Flag said logged-in but no Bearer tokens — force re-login.
+          devLog('Authenticated flag without tokens — clearing session');
+          await useUserCachedStore.getState().clearAll();
+          setAuth(false);
+          setPersistedUser(null);
+          return;
+        }
+
+        const cachedUser = useUserCachedStore.getState().userData;
+        if (!persistedUser && cachedUser) {
+          setPersistedUser(cachedUser);
+          setAuth(true);
         }
       } catch (error) {
         if (__DEV__) {
@@ -132,8 +157,7 @@ const AppContent = React.memo(() => {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  }, []);
 
   return <Navigation />;
 });

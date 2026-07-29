@@ -57,6 +57,20 @@ jest.mock('../../src/constants', () => ({
   },
 }));
 
+const mockLinkedProfiles: unknown[] = [];
+const mockSetLinkedProfiles = jest.fn((profiles: unknown[]) => {
+  mockLinkedProfiles.splice(0, mockLinkedProfiles.length, ...profiles);
+});
+
+jest.mock('../../src/stores/user-cached-store', () => ({
+  useUserCachedStore: {
+    getState: () => ({
+      linkedProfiles: mockLinkedProfiles,
+      setLinkedProfiles: mockSetLinkedProfiles,
+    }),
+  },
+}));
+
 const mockApiService = apiService as jest.Mocked<typeof apiService>;
 const mockPublicApiPost = publicApiRequest.publicApiPost as jest.MockedFunction<
   typeof publicApiRequest.publicApiPost
@@ -77,8 +91,14 @@ const loginPayload = {
 describe('AuthService extended', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockLinkedProfiles.splice(0, mockLinkedProfiles.length);
     mockWrapper.isMockMode.mockReturnValue(false);
     mockApiService.clearStoredAuth.mockResolvedValue(undefined);
+    mockApiService.ensureFreshAccessToken.mockResolvedValue({
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      expiresIn: 3600,
+    });
   });
 
   describe('selectProfile', () => {
@@ -107,6 +127,26 @@ describe('AuthService extended', () => {
       });
       expect(result.success).toBe(true);
       expect(result.data?.tokens?.accessToken).toBe('access');
+    });
+
+    it('includes otp in select-profile body when provided', async () => {
+      mockPublicApiPost.mockResolvedValue({
+        success: true,
+        data: loginPayload,
+        statusCode: 200,
+      });
+
+      await authService.selectProfile({
+        studentId: 101,
+        mobile: '9876543210',
+        otp: '847291',
+      });
+
+      expect(mockPublicApiPost).toHaveBeenCalledWith('/api/students/select-profile', {
+        studentId: 101,
+        mobile: '9876543210',
+        otp: '847291',
+      });
     });
 
     it('uses mock service in mock mode', async () => {
@@ -161,6 +201,33 @@ describe('AuthService extended', () => {
       const result = await authService.listProfiles();
 
       expect(result.success).toBe(false);
+      expect(result.error).toMatch(/session expired/i);
+    });
+
+    it('falls back to cached linked profiles when GET /profiles is not found', async () => {
+      mockLinkedProfiles.splice(
+        0,
+        mockLinkedProfiles.length,
+        {
+          studentId: 1,
+          firstName: 'Cached',
+          lastName: 'User',
+          className: '5',
+          schoolName: 'School',
+          verified: true,
+          isSubscribed: false,
+        },
+      );
+      mockApiService.get.mockResolvedValue({
+        success: false,
+        error: 'Not found: api/students/profiles',
+        statusCode: 404,
+      });
+
+      const result = await authService.listProfiles();
+
+      expect(result.success).toBe(true);
+      expect(result.data?.profiles[0].firstName).toBe('Cached');
     });
   });
 
@@ -187,7 +254,56 @@ describe('AuthService extended', () => {
       const result = await authService.switchProfile({ studentId: 99 });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Profile not available.');
+      expect(result.error).toMatch(/profile not available/i);
+    });
+
+    it('maps 401 to session expired message', async () => {
+      mockApiService.post.mockResolvedValue({
+        success: false,
+        error: 'Unauthorized',
+        statusCode: 401,
+      });
+
+      const result = await authService.switchProfile({ studentId: 2 });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/session expired/i);
+    });
+
+    it('does not treat business "Student not found" as missing route', async () => {
+      mockApiService.post.mockResolvedValue({
+        success: false,
+        error: 'Student not found',
+        statusCode: 400,
+      });
+
+      const result = await authService.switchProfile({ studentId: 2 });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Student not found');
+    });
+
+    it('surfaces real 404 route errors instead of a generic server message', async () => {
+      mockApiService.post.mockResolvedValue({
+        success: false,
+        error: 'Not found: api/students/switch-profile',
+        statusCode: 404,
+      });
+
+      const result = await authService.switchProfile({ studentId: 2 });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Not found: api/students/switch-profile');
+    });
+
+    it('fails fast when there is no access token', async () => {
+      mockApiService.ensureFreshAccessToken.mockResolvedValue(null);
+
+      const result = await authService.switchProfile({ studentId: 2 });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/session expired/i);
+      expect(mockApiService.post).not.toHaveBeenCalled();
     });
   });
 

@@ -44,8 +44,22 @@ describe('subscription utils', () => {
     expect(isSubscriptionActive(sub)).toBe(true);
   });
 
+  it('parses BE ACTIVE/PREMIUM subscription payload', () => {
+    const sub = parseSubscriptionPayload({
+      status: 'ACTIVE',
+      plan: 'PREMIUM',
+      startDate: '2026-07-18',
+      endDate: null,
+      isSubscribed: true,
+    });
+    expect(sub?.status).toBe('active');
+    expect(sub?.plan).toBe('premium');
+    expect(isSubscriptionActive(sub)).toBe(true);
+  });
+
   it('returns null when subscribed is false', () => {
     expect(parseSubscriptionPayload({ subscribed: false })).toBeNull();
+    expect(parseSubscriptionPayload({ isSubscribed: false })).toBeNull();
   });
 
   it('parses nested subscription object', () => {
@@ -66,6 +80,7 @@ describe('subscription utils', () => {
 
   it('detects subscribed user via subscriptionStatus', () => {
     expect(isSubscribedFromUser({ subscriptionStatus: 'active' } as User)).toBe(true);
+    expect(isSubscribedFromUser({ subscriptionStatus: 'premium' } as User)).toBe(true);
     expect(isSubscribedFromUser({ subscribed: true } as User)).toBe(true);
     expect(isSubscribedFromUser(null)).toBe(false);
   });

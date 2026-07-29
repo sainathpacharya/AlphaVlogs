@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
-import { AuthTokens, User } from '@/types';
+import { AuthTokens, StudentProfile, User } from '@/types';
 import { STORAGE_KEYS } from '@/constants';
 import { purgeAuthTokensFromDevice } from '@/utils/auth-storage';
 
@@ -19,6 +19,13 @@ interface UserCachedStore {
   // User data (stored in AsyncStorage)
   userData: User | null;
 
+  /**
+   * Sibling student profiles linked to the same mobile.
+   * Saved from verify-otp / select-profile so Switch Student still works
+   * when GET /api/students/profiles is unavailable on the active API host.
+   */
+  linkedProfiles: StudentProfile[];
+
   // App settings
   settings: {
     biometricEnabled: boolean;
@@ -33,6 +40,7 @@ interface UserCachedStore {
   // Actions
   setTokens: (tokens: AuthTokens | null) => Promise<void>;
   setUserData: (userData: User | null) => void;
+  setLinkedProfiles: (profiles: StudentProfile[]) => void;
   setSettings: (settings: Partial<UserCachedStore['settings']>) => void;
   setCachedData: (key: keyof CachedData, data: any) => void;
   clearCache: () => void;
@@ -57,6 +65,7 @@ export const useUserCachedStore = create<UserCachedStore>()(
     (set, _get) => ({
       tokens: null,
       userData: null,
+      linkedProfiles: [],
       settings: defaultSettings,
       cachedData: defaultCachedData,
 
@@ -77,6 +86,10 @@ export const useUserCachedStore = create<UserCachedStore>()(
 
       setUserData: (userData: User | null) => {
         set({ userData });
+      },
+
+      setLinkedProfiles: (profiles: StudentProfile[]) => {
+        set({ linkedProfiles: profiles });
       },
 
       setSettings: (settings: Partial<UserCachedStore['settings']>) => {
@@ -105,6 +118,7 @@ export const useUserCachedStore = create<UserCachedStore>()(
         set({
           tokens: null,
           userData: null,
+          linkedProfiles: [],
           settings: defaultSettings,
           cachedData: defaultCachedData,
         });
@@ -115,6 +129,7 @@ export const useUserCachedStore = create<UserCachedStore>()(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         userData: state.userData,
+        linkedProfiles: state.linkedProfiles,
         settings: state.settings,
         cachedData: state.cachedData,
       }),
@@ -122,6 +137,8 @@ export const useUserCachedStore = create<UserCachedStore>()(
         ...currentState,
         ...(persistedState as Partial<UserCachedStore>),
         tokens: null,
+        linkedProfiles:
+          (persistedState as Partial<UserCachedStore>)?.linkedProfiles ?? [],
       }),
     }
   )
@@ -153,6 +170,8 @@ export const initializeSecureStorage = async () => {
 // Selectors
 export const useTokens = () => useUserCachedStore(state => state.tokens);
 export const useUserData = () => useUserCachedStore(state => state.userData);
+export const useLinkedProfiles = () =>
+  useUserCachedStore(state => state.linkedProfiles);
 export const useSettings = () => useUserCachedStore(state => state.settings);
 export const useCachedData = () => useUserCachedStore(state => state.cachedData);
 export const useBiometricEnabled = () => useUserCachedStore(state => state.settings.biometricEnabled);

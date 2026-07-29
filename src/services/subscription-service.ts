@@ -14,6 +14,7 @@ export interface RazorpayCheckoutResult {
   success: boolean;
   orderId: string;
   paymentId: string;
+  isSubscribed?: boolean;
 }
 
 export interface UpdateSubscriptionRequest {
@@ -34,7 +35,7 @@ class SubscriptionService {
     return isSubscriptionActive(subscription);
   }
 
-  /** Student subscription from backend (Bearer required). */
+  /** Student subscription from GET /api/students/subscription (Bearer required). */
   async getStudentSubscription(userId?: string): Promise<Subscription | null> {
     try {
       if (MockWrapperService.isMockMode()) {
@@ -45,10 +46,7 @@ class SubscriptionService {
       if (response.success === false) {
         return null;
       }
-      return (
-        parseSubscriptionPayload(response.data ?? response) ??
-        (await this.getCurrentSubscription(userId))
-      );
+      return parseSubscriptionPayload(response.data ?? response);
     } catch (error) {
       if (__DEV__) {
         console.error('Error getting student subscription:', error);
@@ -57,7 +55,7 @@ class SubscriptionService {
     }
   }
 
-  // Get current subscription (userId optional in mock mode – defaults to static user)
+  /** Mock helper — real API uses getStudentSubscription (never legacy /subscription/update). */
   async getCurrentSubscription(userId?: string): Promise<Subscription | null> {
     try {
       if (MockWrapperService.isMockMode()) {
@@ -70,9 +68,7 @@ class SubscriptionService {
           : (data as Subscription | null);
       }
 
-      const uid = userId || '';
-      const response = await apiService.get<Subscription>(`${API_ENDPOINTS.SUBSCRIPTION.UPDATE}?userId=${uid}`);
-      return response.success ? (response.data || null) : null;
+      return this.getStudentSubscription(userId);
     } catch (error) {
       if (__DEV__) {
         console.error('Error getting subscription:', error);
@@ -173,6 +169,7 @@ class SubscriptionService {
         success: verified.verified,
         orderId: verified.orderId,
         paymentId: verified.paymentId,
+        isSubscribed: verified.isSubscribed,
       };
     } catch (error) {
       if (error instanceof PaymentApiError) {

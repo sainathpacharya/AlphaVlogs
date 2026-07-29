@@ -5,7 +5,9 @@ import {
   Dimensions,
   TouchableOpacity,
   Alert,
+  ScrollView,
 } from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   VStack,
   HStack,
@@ -25,6 +27,7 @@ import appLogo from '../../assets/png/appLogo.png';
 import {useThemeColors} from '../../utils/colors';
 import {Phone, XCircle} from 'lucide-react-native';
 import {useSendOtpMutation, useVerifyOtpMutation, useIsMounted} from '@/hooks';
+import {useUserCachedStore} from '@/stores';
 import {devLog} from '@/utils/dev-log';
 import {getApiBaseUrl} from '@/constants';
 
@@ -32,7 +35,7 @@ const {width} = Dimensions.get('window');
 
 // Memoized logo so parent re-renders (e.g. timer) don't stutter the animation
 const LoginLogo = React.memo(function LoginLogo() {
-  const logoSize = useMemo(() => width * 0.5, []);
+  const logoSize = useMemo(() => width * 0.42, []);
   return (
     <AppLogoImage
       testID="login-logo"
@@ -41,7 +44,7 @@ const LoginLogo = React.memo(function LoginLogo() {
       style={{
         width: logoSize,
         height: logoSize,
-        marginBottom: 30,
+        marginBottom: 16,
       }}
     />
   );
@@ -55,6 +58,7 @@ interface LoginScreenProps {
 
 const LoginScreen = ({navigation}: LoginScreenProps) => {
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
   const [errors, setErrors] = useState<{mobile?: string; otp?: string}>({});
@@ -69,6 +73,7 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
   const isLoading = sendOtpMutation.isPending || verifyOtpMutation.isPending;
   const otpRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const otpTextStyle = useMemo(
     () => ({
@@ -99,6 +104,17 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
       setOtp('');
     }
   }, [isMobileValid]);
+
+  // Keep OTP fields above the keyboard once the pin UI appears
+  useEffect(() => {
+    if (!isOtpSent) {
+      return;
+    }
+    const id = setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({animated: true});
+    }, Platform.OS === 'android' ? 180 : 80);
+    return () => clearTimeout(id);
+  }, [isOtpSent]);
 
   const startOtpTimer = useCallback(() => {
     if (timerRef.current) {
@@ -246,8 +262,10 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
       }
       if (response.success && response.data) {
         if (response.data.selectionRequired && response.data.profiles?.length) {
+          useUserCachedStore.getState().setLinkedProfiles(response.data.profiles);
           navigation.navigate('ProfileSelection', {
             mobile,
+            otp: otp.trim(),
             profiles: response.data.profiles,
           });
           return;
@@ -296,242 +314,268 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
     }
   };
 
+  const scrollFocusedFieldIntoView = useCallback(() => {
+    // Physical Android keyboards (with suggestion bar) need a beat before layout settles
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({animated: true});
+      }, Platform.OS === 'android' ? 120 : 0);
+    });
+  }, []);
+
   return (
     <KeyboardAvoidingView
       testID="login-screen"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       style={{flex: 1, backgroundColor: colors.primaryBackground}}>
       <StatusBar translucent={false} />
 
-      <VStack
-        testID="login-container"
-        flex={1}
-        justifyContent="center"
-        alignItems="center"
-        px="$5"
-        space="lg">
-        {/* ✅ Animated Logo (memoized to avoid stutter when timer/state updates) */}
-        <LoginLogo />
+      <ScrollView
+        ref={scrollViewRef}
+        testID="login-scroll-view"
+        style={{flex: 1}}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: 'center',
+          paddingHorizontal: 20,
+          paddingTop: insets.top + 16,
+          paddingBottom: insets.bottom + 160,
+        }}>
+        <VStack
+          testID="login-container"
+          alignItems="center"
+          space="lg"
+          w="$full">
+          {/* ✅ Animated Logo (memoized to avoid stutter when timer/state updates) */}
+          <LoginLogo />
 
-        <Text
-          testID="login-title"
-          fontSize="$3xl"
-          fontWeight="$bold"
-          mb="$5"
-          color={colors.primaryText}>
-          Login
-        </Text>
+          <Text
+            testID="login-title"
+            fontSize="$3xl"
+            fontWeight="$bold"
+            mb="$5"
+            color={colors.primaryText}>
+            Login
+          </Text>
 
-        {/* ✅ Mobile Input with icon and clear */}
-        <Input
-          testID="login-mobile-input"
-          w="$full"
-          size="lg"
-          variant="outline"
-          borderColor={colors.accentAction}
-          bg={colors.primaryBackground}
-          isInvalid={!!errors.mobile}
-          style={{
-            elevation: 0,
-            shadowColor: 'transparent',
-            shadowOffset: {width: 0, height: 0},
-            shadowOpacity: 0,
-            shadowRadius: 0,
-          }}>
-          <Box
-            testID="login-mobile-icon"
-            pl="$3"
-            justifyContent="center"
-            height="100%">
-            <Phone size={20} color={colors.accentAction} />
-          </Box>
-          <InputField
-            testID="login-mobile-field"
-            placeholder="Enter Mobile Number"
-            keyboardType="number-pad"
-            maxLength={10}
-            value={mobile}
-            editable={true}
-            onChangeText={val => {
-              // Remove all non-digit characters and limit to 10 digits
-              const digits = val.replace(/\D/g, '').slice(0, 10);
-              setMobile(digits);
-              if (otp.length > 0) {
-                setOtp('');
-              }
-              if (errors.mobile) {
-                setErrors(prev => ({...prev, mobile: ''}));
-              }
-            }}
-            placeholderTextColor={colors.mutedText}
-            color={colors.inputText}
-            onFocus={() => setIsMobileFocused(true)}
-            onBlur={() => setIsMobileFocused(false)}
-            returnKeyType="next"
-            onSubmitEditing={() => {
-              // Focus will be handled by autoFocus on OTP input
-            }}
-          />
-          {mobile?.length > 0 && isMobileFocused && (
-            <TouchableOpacity
-              testID="login-mobile-clear"
-              onPress={() => {
-                setMobile('');
-                setIsOtpSent(false);
-                setOtp('');
-                if (otpRef.current) {
-                  otpRef.current.clear();
+          {/* ✅ Mobile Input with icon and clear */}
+          <Input
+            testID="login-mobile-input"
+            w="$full"
+            size="lg"
+            variant="outline"
+            borderColor={colors.accentAction}
+            bg={colors.primaryBackground}
+            isInvalid={!!errors.mobile}
+            style={{
+              elevation: 0,
+              shadowColor: 'transparent',
+              shadowOffset: {width: 0, height: 0},
+              shadowOpacity: 0,
+              shadowRadius: 0,
+            }}>
+            <Box
+              testID="login-mobile-icon"
+              pl="$3"
+              justifyContent="center"
+              height="100%">
+              <Phone size={20} color={colors.accentAction} />
+            </Box>
+            <InputField
+              testID="login-mobile-field"
+              placeholder="Enter Mobile Number"
+              keyboardType="number-pad"
+              maxLength={10}
+              value={mobile}
+              editable={true}
+              onChangeText={val => {
+                // Remove all non-digit characters and limit to 10 digits
+                const digits = val.replace(/\D/g, '').slice(0, 10);
+                setMobile(digits);
+                if (otp.length > 0) {
+                  setOtp('');
+                }
+                if (errors.mobile) {
+                  setErrors(prev => ({...prev, mobile: ''}));
                 }
               }}
-              style={{
-                position: 'absolute',
-                right: 15,
-                top: '50%',
-                transform: [{translateY: -10}],
-              }}>
-              <XCircle size={20} color={colors.accentAction} />
-            </TouchableOpacity>
-          )}
-        </Input>
-        {errors.mobile && (
-          <Text testID="login-mobile-error" color={colors.danger} mt="$2">
-            {errors.mobile}
-          </Text>
-        )}
-
-        {/* ✅ OTP Pin View - shown after OTP is sent */}
-        {isOtpSent && (
-          <>
-            <Box testID="login-otp-container" w="$full" mt="$4">
-              <Text
-                testID="login-otp-label"
-                color={colors.primaryText}
-                fontSize={16}
-                fontWeight="$medium"
-                mb="$3"
-                textAlign="center">
-                Enter OTP
-              </Text>
-              <OTPTextInput
-                testID="login-otp-input"
-                ref={otpRef}
-                inputCount={6}
-                handleTextChange={handleOtpChange}
-                keyboardType="number-pad"
-                tintColor={colors.accentAction}
-                offTintColor={colors.mutedText}
-                defaultValue=""
-                autoFocus={true}
-                textInputStyle={otpTextStyle}
-                containerStyle={{
-                  backgroundColor: colors.transparent,
+              placeholderTextColor={colors.mutedText}
+              color={colors.inputText}
+              onFocus={() => {
+                setIsMobileFocused(true);
+                scrollFocusedFieldIntoView();
+              }}
+              onBlur={() => setIsMobileFocused(false)}
+              returnKeyType="next"
+              onSubmitEditing={() => {
+                // Focus will be handled by autoFocus on OTP input
+              }}
+            />
+            {mobile?.length > 0 && isMobileFocused && (
+              <TouchableOpacity
+                testID="login-mobile-clear"
+                onPress={() => {
+                  setMobile('');
+                  setIsOtpSent(false);
+                  setOtp('');
+                  if (otpRef.current) {
+                    otpRef.current.clear();
+                  }
                 }}
-              />
-
-              {/* Timer and Resend Section */}
-              <HStack
-                testID="login-otp-timer-container"
-                justifyContent="center"
-                alignItems="center"
-                mt="$4"
-                space="md">
-                {otpTimer > 0 ? (
-                  <Text
-                    testID="login-otp-timer"
-                    color={colors.mutedText}
-                    fontSize="$sm"
-                    textAlign="center">
-                    Resend OTP in {otpTimer}s
-                  </Text>
-                ) : (
-                  <HStack space="sm" alignItems="center">
-                    <Text
-                      testID="login-otp-resend-label"
-                      color={colors.mutedText}
-                      fontSize="$sm">
-                      Didn't receive OTP?
-                    </Text>
-                    <Pressable
-                      testID="login-otp-resend-button"
-                      onPress={handleResendOtp}
-                      $pressed={{opacity: 0.6}}>
-                      <Text
-                        testID="login-otp-resend-text"
-                        color={colors.accentAction}
-                        fontSize="$sm"
-                        fontWeight="$semibold"
-                        textDecorationLine="underline">
-                        Resend OTP
-                      </Text>
-                    </Pressable>
-                  </HStack>
-                )}
-              </HStack>
-            </Box>
-            {errors.otp && (
-              <Text
-                testID="login-otp-error"
-                color={colors.danger}
-                mt="$2"
-                textAlign="center">
-                {errors.otp}
-              </Text>
+                style={{
+                  position: 'absolute',
+                  right: 15,
+                  top: '50%',
+                  transform: [{translateY: -10}],
+                }}>
+                <XCircle size={20} color={colors.accentAction} />
+              </TouchableOpacity>
             )}
-          </>
-        )}
-
-        {/* ✅ Send/Verify Button */}
-        <Button
-          testID="login-submit-button"
-          onPress={isOtpSent ? handleLogin : handleSendOtp}
-          isDisabled={isLoading}
-          w="$full"
-          size="lg"
-          borderRadius={6}
-          mt="$6"
-          bg={colors.accentAction}
-          opacity={isLoading ? 0.6 : 1}
-          style={{
-            elevation: 0,
-            shadowColor: 'transparent',
-            shadowOffset: {width: 0, height: 0},
-            shadowOpacity: 0,
-            shadowRadius: 0,
-          }}>
-          <ButtonText
-            testID="login-submit-text"
-            color={colors.white}
-            fontWeight="$bold"
-            textAlign="center"
-            style={{width: '100%'}}>
-            {isLoading
-              ? isOtpSent
-                ? 'Verifying...'
-                : 'Sending OTP...'
-              : isOtpSent
-                ? 'Verify OTP'
-                : 'Send OTP'}
-          </ButtonText>
-        </Button>
-
-        {/* ✅ Register Prompt */}
-        <Box testID="login-register-container" flexDirection="row" mt="$5">
-          <Text testID="login-register-label" color={colors.primaryText}>
-            Not registered?{' '}
-          </Text>
-          <Pressable
-            testID="login-register-button"
-            onPress={handleRegister}
-            $pressed={{opacity: 0.6}}>
-            <Text
-              testID="login-register-text"
-              color={colors.accentAction}
-              fontWeight="$semibold">
-              Register
+          </Input>
+          {errors.mobile && (
+            <Text testID="login-mobile-error" color={colors.danger} mt="$2">
+              {errors.mobile}
             </Text>
-          </Pressable>
-        </Box>
-      </VStack>
+          )}
+
+          {/* ✅ OTP Pin View - shown after OTP is sent */}
+          {isOtpSent && (
+            <>
+              <Box testID="login-otp-container" w="$full" mt="$4">
+                <Text
+                  testID="login-otp-label"
+                  color={colors.primaryText}
+                  fontSize={16}
+                  fontWeight="$medium"
+                  mb="$3"
+                  textAlign="center">
+                  Enter OTP
+                </Text>
+                <OTPTextInput
+                  testID="login-otp-input"
+                  ref={otpRef}
+                  inputCount={6}
+                  handleTextChange={handleOtpChange}
+                  keyboardType="number-pad"
+                  tintColor={colors.accentAction}
+                  offTintColor={colors.mutedText}
+                  defaultValue=""
+                  autoFocus={true}
+                  textInputStyle={otpTextStyle}
+                  containerStyle={{
+                    backgroundColor: colors.transparent,
+                  }}
+                />
+
+                {/* Timer and Resend Section */}
+                <HStack
+                  testID="login-otp-timer-container"
+                  justifyContent="center"
+                  alignItems="center"
+                  mt="$4"
+                  space="md">
+                  {otpTimer > 0 ? (
+                    <Text
+                      testID="login-otp-timer"
+                      color={colors.mutedText}
+                      fontSize="$sm"
+                      textAlign="center">
+                      Resend OTP in {otpTimer}s
+                    </Text>
+                  ) : (
+                    <HStack space="sm" alignItems="center">
+                      <Text
+                        testID="login-otp-resend-label"
+                        color={colors.mutedText}
+                        fontSize="$sm">
+                        Didn't receive OTP?
+                      </Text>
+                      <Pressable
+                        testID="login-otp-resend-button"
+                        onPress={handleResendOtp}
+                        $pressed={{opacity: 0.6}}>
+                        <Text
+                          testID="login-otp-resend-text"
+                          color={colors.accentAction}
+                          fontSize="$sm"
+                          fontWeight="$semibold"
+                          textDecorationLine="underline">
+                          Resend OTP
+                        </Text>
+                      </Pressable>
+                    </HStack>
+                  )}
+                </HStack>
+              </Box>
+              {errors.otp && (
+                <Text
+                  testID="login-otp-error"
+                  color={colors.danger}
+                  mt="$2"
+                  textAlign="center">
+                  {errors.otp}
+                </Text>
+              )}
+            </>
+          )}
+
+          {/* ✅ Send/Verify Button */}
+          <Button
+            testID="login-submit-button"
+            onPress={isOtpSent ? handleLogin : handleSendOtp}
+            isDisabled={isLoading}
+            w="$full"
+            size="lg"
+            borderRadius={6}
+            mt="$6"
+            bg={colors.accentAction}
+            opacity={isLoading ? 0.6 : 1}
+            style={{
+              elevation: 0,
+              shadowColor: 'transparent',
+              shadowOffset: {width: 0, height: 0},
+              shadowOpacity: 0,
+              shadowRadius: 0,
+            }}>
+            <ButtonText
+              testID="login-submit-text"
+              color={colors.white}
+              fontWeight="$bold"
+              textAlign="center"
+              style={{width: '100%'}}>
+              {isLoading
+                ? isOtpSent
+                  ? 'Verifying...'
+                  : 'Sending OTP...'
+                : isOtpSent
+                  ? 'Verify OTP'
+                  : 'Send OTP'}
+            </ButtonText>
+          </Button>
+
+          {/* ✅ Register Prompt */}
+          <Box testID="login-register-container" flexDirection="row" mt="$5">
+            <Text testID="login-register-label" color={colors.primaryText}>
+              Not registered?{' '}
+            </Text>
+            <Pressable
+              testID="login-register-button"
+              onPress={handleRegister}
+              $pressed={{opacity: 0.6}}>
+              <Text
+                testID="login-register-text"
+                color={colors.accentAction}
+                fontWeight="$semibold">
+                Register
+              </Text>
+            </Pressable>
+          </Box>
+        </VStack>
+      </ScrollView>
 
       {/* ✅ Confetti Cannon 🎉 */}
       {showConfetti && (

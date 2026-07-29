@@ -158,8 +158,8 @@ target 'JackMarvelsApp' do
               config.build_settings['FRAMEWORK_SEARCH_PATHS'] << path unless config.build_settings['FRAMEWORK_SEARCH_PATHS'].include?(path)
             end
             
-            # Ensure Swift standard libraries are embedded (set to YES explicitly)
-            config.build_settings['ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES'] = 'YES'
+            # Inherit from Pods xcconfig so CocoaPods can manage Swift stdlib embedding
+            config.build_settings['ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES'] = '$(inherited)'
             
             # Ensure minimum iOS deployment target matches React Native requirements
             config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'

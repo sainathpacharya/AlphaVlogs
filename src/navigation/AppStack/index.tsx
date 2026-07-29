@@ -1,6 +1,8 @@
-import React from 'react';
+import React, {useEffect} from 'react';
+import {BackHandler, Platform} from 'react-native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import type {NativeStackNavigationOptions} from '@react-navigation/native-stack';
+import {useNavigation} from '@react-navigation/native';
 import {useStatusBarConfig} from '@/utils/colors';
 import {AppStackParamList} from './types';
 import DashboardScreen from '../../screens/Dashboard';
@@ -19,7 +21,33 @@ import PrivacyPolicyScreen from '../../screens/PrivacyPolicy';
 
 const AppStack = createNativeStackNavigator<AppStackParamList>();
 
-const AppStackScreen = () => {
+/**
+ * Global back-button guard for the authenticated stack.
+ * When a non-root screen is focused, pops it. When on Dashboard (root),
+ * the Dashboard's own usePreventHardwareBack hook shows the exit dialog.
+ * Rendered as a sibling of the navigator so it can call useNavigation().
+ */
+function AppStackBackGuard() {
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+        return true; // consumed — don't let OS handle it
+      }
+      return false; // Dashboard's usePreventHardwareBack will handle it
+    });
+    return () => handler.remove();
+  }, [navigation]);
+
+  return null;
+}
+
+const AppStackNavigator = () => {
   const {navigationStatusBarStyle, backgroundColor} = useStatusBarConfig();
 
   return (
@@ -51,5 +79,16 @@ const AppStackScreen = () => {
     </AppStack.Navigator>
   );
 };
+
+/**
+ * AppStackScreen wraps the navigator + back guard together.
+ * Both are rendered inside NavigationContainer so useNavigation() works.
+ */
+const AppStackScreen = () => (
+  <>
+    <AppStackBackGuard />
+    <AppStackNavigator />
+  </>
+);
 
 export {AppStack, AppStackScreen};

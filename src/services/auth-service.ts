@@ -8,12 +8,34 @@ import { getRegisterDeviceContext } from '@/utils/device-registration';
 import { buildRegisterApiPayload } from '@/utils/register-payload';
 import { validateRegistrationData } from '@/utils/validation';
 import { normalizeAuthTokens } from '@/utils/api-response';
+import { isTruthySubscriptionFlag } from '@/utils/subscription';
 import {
   publicApiPost,
   PUBLIC_API_CLIENT_VERSION,
   PublicApiResult,
 } from '@/utils/public-api-request';
 import { devLog } from '@/utils/dev-log';
+import { useUserCachedStore } from '@/stores/user-cached-store';
+
+/** Alternate mount path used by some backend deployments. */
+const STUDENT_PROFILES_V1 = '/api/v1/students/profiles';
+const STUDENT_SWITCH_PROFILE_V1 = '/api/v1/students/switch-profile';
+
+/**
+ * True only for a missing HTTP route (Spring: "Not found: api/..."),
+ * not business errors like "Student not found".
+ */
+function isMissingApiRoute(statusCode?: number, error?: string): boolean {
+  if (statusCode !== 404) {
+    return false;
+  }
+  const message = String(error ?? '');
+  return (
+    /^Not found:\s*/i.test(message) ||
+    /requested resource was not found/i.test(message) ||
+    message.length === 0
+  );
+}
 
 /** Last 10 digits of an Indian mobile (API expects plain 10-digit string). */
 function toIndianMobile(mobile: string): string {
@@ -91,7 +113,8 @@ function mapStudentProfile(raw: Record<string, unknown>): StudentProfile {
     isSubscribed:
       raw.isSubscribed === true ||
       raw.subscribed === true ||
-      String(raw.subscriptionStatus ?? '').toLowerCase() === 'active',
+      isTruthySubscriptionFlag(raw.subscriptionStatus) ||
+      isTruthySubscriptionFlag(raw.plan),
   };
 }
 
@@ -124,10 +147,13 @@ function mapVerifyUserToAppUser(raw: Record<string, unknown>, mobile: string): U
     isSubscribed:
       raw.isSubscribed === true ||
       raw.subscribed === true ||
-      String(raw.subscriptionStatus ?? '').toLowerCase() === 'active',
+      isTruthySubscriptionFlag(raw.subscriptionStatus) ||
+      isTruthySubscriptionFlag(raw.plan),
     subscriptionStatus: raw.subscriptionStatus
       ? String(raw.subscriptionStatus)
-      : undefined,
+      : raw.isSubscribed === true || raw.subscribed === true
+        ? 'active'
+        : undefined,
     createdAt: String(raw.createdAt ?? new Date().toISOString()),
     updatedAt: String(raw.updatedAt ?? new Date().toISOString()),
   };
@@ -416,6 +442,7 @@ class AuthService {
   async selectProfile(data: {
     studentId: number;
     mobile: string;
+    otp?: string;
   }): Promise<ApiResponse<LoginResponse>> {
     try {
       const mobile = toIndianMobile(data.mobile);
@@ -442,12 +469,18 @@ class AuthService {
         return result;
       }
 
+      const body: {studentId: number; mobile: string; otp?: string} = {
+        studentId: data.studentId,
+        mobile,
+      };
+      const otp = data.otp?.trim();
+      if (otp) {
+        body.otp = otp;
+      }
+
       const resp = await publicApiPost<LoginResponse>(
         API_ENDPOINTS.STUDENTS.SELECT_PROFILE,
-        {
-          studentId: data.studentId,
-          mobile,
-        },
+        body,
       );
 
       if (resp.success === false) {
@@ -492,17 +525,40 @@ class AuthService {
         return result;
       }
 
-      const resp = await apiService.get<StudentProfilesResponse>(API_ENDPOINTS.STUDENTS.PROFILES);
+      // Prefer live API; fall back to /api/v1 if the primary path 404s on older hosts.
+      let resp = await apiService.get<StudentProfilesResponse>(API_ENDPOINTS.STUDENTS.PROFILES);
+      if (resp.success === false && isMissingApiRoute(resp.statusCode, resp.error)) {
+        resp = await apiService.get<StudentProfilesResponse>(STUDENT_PROFILES_V1);
+      }
+
       if (resp.success === false) {
-        return {
-          success: false,
-          error: resp.error || 'Unable to load profiles.',
-          statusCode: resp.statusCode || 400,
-        };
+        // OTP already returned sibling profiles — reuse them when GET /profiles is missing.
+        const cached = useUserCachedStore.getState().linkedProfiles;
+        if (cached.length > 0) {
+          const result: ApiResponse<StudentProfilesResponse> = {
+            success: true,
+            data: { profiles: cached },
+            statusCode: 200,
+          };
+          apiLogger.logServiceCall('AuthService', 'listProfiles', {source: 'cache'}, result);
+          return result;
+        }
+
+        const statusCode = resp.statusCode || 400;
+        const error =
+          statusCode === 401 || /unauthorized/i.test(String(resp.error ?? ''))
+            ? 'Your session expired. Please log out and sign in again.'
+            : isMissingApiRoute(statusCode, resp.error)
+              ? 'Unable to load linked students from the server. Log out and sign in again to refresh profiles.'
+              : resp.error || 'Unable to load profiles.';
+        return { success: false, error, statusCode };
       }
 
       const inner = (resp.data ?? resp) as unknown as Record<string, unknown>;
       const profiles = mapStudentProfiles(inner.profiles);
+      if (profiles.length > 0) {
+        useUserCachedStore.getState().setLinkedProfiles(profiles);
+      }
       const result: ApiResponse<StudentProfilesResponse> = {
         success: true,
         data: { profiles },
@@ -511,6 +567,14 @@ class AuthService {
       apiLogger.logServiceCall('AuthService', 'listProfiles', null, result);
       return result;
     } catch (error: unknown) {
+      const cached = useUserCachedStore.getState().linkedProfiles;
+      if (cached.length > 0) {
+        return {
+          success: true,
+          data: { profiles: cached },
+          statusCode: 200,
+        };
+      }
       const message =
         error instanceof Error ? error.message : 'Unable to load profiles. Please try again.';
       const err = { success: false, error: message, statusCode: 500 };
@@ -521,8 +585,19 @@ class AuthService {
 
   async switchProfile(data: { studentId: number }): Promise<ApiResponse<LoginResponse>> {
     try {
+      const studentId = Number(data.studentId);
+      if (!Number.isFinite(studentId) || studentId <= 0) {
+        return {
+          success: false,
+          error: 'Invalid student profile.',
+          statusCode: 400,
+        };
+      }
+
       if (MockWrapperService.isMockMode()) {
-        const mockResponse = await MockWrapperService.getMockService().switchProfile(data);
+        const mockResponse = await MockWrapperService.getMockService().switchProfile({
+          studentId,
+        });
         const converted = MockWrapperService.convertMockResponse(mockResponse);
         if (!converted.success) {
           apiLogger.logMockCall('AuthService', 'switchProfile', data, converted);
@@ -538,26 +613,63 @@ class AuthService {
         return result;
       }
 
-      const resp = await apiService.post<LoginResponse>(API_ENDPOINTS.STUDENTS.SWITCH_PROFILE, {
-        studentId: data.studentId,
+      // Fail fast if we would call switch without a Bearer token.
+      const tokens = await apiService.ensureFreshAccessToken();
+      if (!tokens?.accessToken) {
+        return {
+          success: false,
+          error: 'Your session expired. Please log out and sign in again.',
+          statusCode: 401,
+        };
+      }
+
+      devLog('AuthService.switchProfile →', {
+        studentId,
+        baseUrl: getApiBaseUrl(),
+        path: API_ENDPOINTS.STUDENTS.SWITCH_PROFILE,
       });
+
+      let resp = await apiService.post<LoginResponse>(API_ENDPOINTS.STUDENTS.SWITCH_PROFILE, {
+        studentId,
+      });
+      if (resp.success === false && isMissingApiRoute(resp.statusCode, resp.error)) {
+        resp = await apiService.post<LoginResponse>(STUDENT_SWITCH_PROFILE_V1, {
+          studentId,
+        });
+      }
 
       if (resp.success === false) {
         const statusCode = resp.statusCode || 400;
+        const rawError = String(resp.error ?? '').trim();
         const error =
-          statusCode === 403
-            ? 'Profile not available.'
-            : resp.error || 'Unable to switch profile.';
+          statusCode === 401 || /unauthorized/i.test(rawError)
+            ? 'Your session expired. Please log out and sign in again.'
+            : statusCode === 403 ||
+                /profile not available|does not belong|access required/i.test(rawError)
+              ? 'Profile not available for this account.'
+              : // Never mask the real server/network error — it hides the root cause.
+                rawError || `Unable to switch profile (${statusCode}).`;
+        devLog('AuthService.switchProfile ← failed', {
+          statusCode,
+          rawError,
+          error,
+          baseUrl: getApiBaseUrl(),
+        });
         return { success: false, error, statusCode };
       }
 
+      // Support both wrapped { data: { user, tokens } } and flat bodies.
       const inner = (resp.data ?? resp) as unknown as Record<string, unknown>;
-      const rawUser = (inner.user ?? inner.student) as Record<string, unknown> | undefined;
+      const payload =
+        inner.user || inner.tokens || inner.student
+          ? inner
+          : ((inner.data as Record<string, unknown> | undefined) ?? inner);
+      const rawUser = (payload.user ?? payload.student) as Record<string, unknown> | undefined;
       const mobile = rawUser
         ? toIndianMobile(String(rawUser.mobile ?? rawUser.mobileNumber ?? ''))
         : '';
-      const result = await resolveLoginFromApiBody(inner, mobile);
-      apiLogger.logServiceCall('AuthService', 'switchProfile', data, result);
+      const result = await resolveLoginFromApiBody(payload, mobile);
+      apiLogger.logServiceCall('AuthService', 'switchProfile', {studentId}, result);
       return result;
     } catch (error: unknown) {
       const message =

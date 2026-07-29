@@ -20,6 +20,7 @@ export interface VerifyPaymentResult {
   verified: boolean;
   orderId: string;
   paymentId: string;
+  isSubscribed?: boolean;
 }
 
 export interface CreateOrderRequest {
@@ -211,6 +212,7 @@ class PaymentService {
         verified: true,
         orderId: payment.razorpay_order_id,
         paymentId: payment.razorpay_payment_id,
+        isSubscribed: true,
       };
     }
 
@@ -243,6 +245,7 @@ class PaymentService {
       verified: true,
       orderId: String(data.orderId ?? payment.razorpay_order_id),
       paymentId: String(data.paymentId ?? payment.razorpay_payment_id),
+      isSubscribed: data.isSubscribed === true || data.subscribed === true,
     };
   }
 }

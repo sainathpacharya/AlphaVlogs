@@ -10,6 +10,7 @@
     "start": "react-native start --client-logs",
     "start:reset": "react-native start --reset-cache --client-logs",
     "metro:reset": "lsof -ti:8081 | xargs kill -9 2>/dev/null || true; react-native start --reset-cache --client-logs",
+    "logs:android": "adb logcat -s AlphaVlogs ReactNativeJS ReactNative",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

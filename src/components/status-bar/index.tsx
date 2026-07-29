@@ -13,7 +13,7 @@ export type AppStatusBarProps = StatusBarProps & {
 };
 
 /**
- * Status bar that follows device light/dark mode unless overridden via props.
+ * Status bar for the app's light-only theme unless overridden via props.
  * On iOS, native-stack screen options control the status bar (Info.plist must use
  * UIViewControllerBasedStatusBarAppearance = YES). React Native's StatusBar API
  * conflicts with that and is Android-only here.

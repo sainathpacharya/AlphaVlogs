@@ -37,10 +37,14 @@ export type ApiLogError = Pick<
 };
 
 class ApiLogger {
-  private isEnabled: boolean;
+  /** Runtime override; null means follow API_CONFIG.DEV.LOG_API_CALLS. */
+  private enabledOverride: boolean | null = null;
 
-  constructor() {
-    this.isEnabled = __DEV__ && API_CONFIG.DEV.LOG_API_CALLS;
+  private get isEnabled(): boolean {
+    if (this.enabledOverride !== null) {
+      return this.enabledOverride;
+    }
+    return Boolean(__DEV__ && API_CONFIG.DEV.LOG_API_CALLS);
   }
 
   private formatTimestamp(): string {
@@ -219,7 +223,7 @@ class ApiLogger {
   }
 
   setEnabled(enabled: boolean): void {
-    this.isEnabled = enabled;
+    this.enabledOverride = enabled;
   }
 
   isLoggingEnabled(): boolean {

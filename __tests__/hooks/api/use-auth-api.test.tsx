@@ -35,10 +35,24 @@ jest.mock('@/stores', () => ({
     setUser: jest.fn(),
     reset: jest.fn(),
   }),
-  useUserCachedStore: jest.fn(() => ({
-    clearAll: jest.fn().mockResolvedValue(undefined),
-    setUserData: jest.fn(),
-  })),
+  useUserCachedStore: Object.assign(
+    jest.fn(() => ({
+      clearAll: jest.fn().mockResolvedValue(undefined),
+      setUserData: jest.fn(),
+      setLinkedProfiles: jest.fn(),
+      clearCache: jest.fn(),
+      linkedProfiles: [],
+    })),
+    {
+      getState: () => ({
+        clearAll: jest.fn().mockResolvedValue(undefined),
+        setUserData: jest.fn(),
+        setLinkedProfiles: jest.fn(),
+        clearCache: jest.fn(),
+        linkedProfiles: [],
+      }),
+    },
+  ),
 }));
 
 const mockAuthService = authService as jest.Mocked<typeof authService>;

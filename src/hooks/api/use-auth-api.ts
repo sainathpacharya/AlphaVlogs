@@ -36,6 +36,9 @@ export function useVerifyOtpMutation() {
     mutationFn: (data: VerifyOTPRequest) => authService.verifyOTP(data),
     retry: false,
     onSuccess: async response => {
+      if (response.success && response.data?.profiles?.length) {
+        useUserCachedStore.getState().setLinkedProfiles(response.data.profiles);
+      }
       if (response.success && response.data?.tokens && response.data.user) {
         await persistLoginSession(response.data.user, response.data.tokens);
         await queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
@@ -49,7 +52,7 @@ export function useSelectProfileMutation() {
 
   return useMutation({
     mutationKey: queryKeys.auth.selectProfile(),
-    mutationFn: (data: { studentId: number; mobile: string }) =>
+    mutationFn: (data: { studentId: number; mobile: string; otp?: string }) =>
       authService.selectProfile(data),
     onSuccess: async response => {
       if (await persistLoginFromResponse(response)) {
@@ -67,12 +70,16 @@ export function useStudentProfilesQuery(enabled = true) {
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Unable to load profiles.');
       }
+      if (response.data.profiles.length > 0) {
+        useUserCachedStore.getState().setLinkedProfiles(response.data.profiles);
+      }
       return response.data.profiles;
     },
     enabled,
-    staleTime: 5 * 60 * 1000,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
+    staleTime: 30 * 1000,
+    // Always refetch when opening Switch Student so a prior 401 does not stick.
+    refetchOnMount: 'always',
+    retry: false,
   });
 }
 
@@ -84,7 +91,10 @@ export function useSwitchProfileMutation() {
     mutationFn: (studentId: number) => authService.switchProfile({ studentId }),
     onSuccess: async response => {
       if (await persistLoginFromResponse(response)) {
-        await queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
+        // Drop prior student's cached queries (events, subscription, etc.).
+        // Keep linkedProfiles so Switch Student can still list siblings.
+        queryClient.clear();
+        useUserCachedStore.getState().clearCache();
       }
     },
   });

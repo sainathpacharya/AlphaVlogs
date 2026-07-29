@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {Alert, ScrollView} from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -6,6 +6,7 @@ import {Box, Pressable, StatusBar, Text, VStack} from '@/components';
 import {StudentProfileCardRow} from '@/components/StudentProfileCard';
 import {useSelectProfileMutation, useIsMounted} from '@/hooks';
 import {AuthStackParamList} from '@/navigation/AuthStack/types';
+import {useUserCachedStore} from '@/stores';
 import {useThemeColors} from '@/utils/colors';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ProfileSelection'>;
@@ -13,20 +14,33 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'ProfileSelection'>;
 const ProfileSelectionScreen = ({route, navigation}: Props) => {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
-  const {mobile, profiles} = route.params;
+  const {mobile, otp, profiles} = route.params;
   const selectProfileMutation = useSelectProfileMutation();
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const isMounted = useIsMounted();
+
+  // Persist siblings from OTP so Switch Student works even if GET /profiles 404s.
+  useEffect(() => {
+    if (profiles.length > 0) {
+      useUserCachedStore.getState().setLinkedProfiles(profiles);
+    }
+  }, [profiles]);
 
   const handleSelect = useCallback(
     async (studentId: number) => {
       setLoadingId(studentId);
       try {
-        const response = await selectProfileMutation.mutateAsync({studentId, mobile});
+        const response = await selectProfileMutation.mutateAsync({
+          studentId,
+          mobile,
+          otp,
+        });
         if (!isMounted.current) {
           return;
         }
         if (response.success && response.data) {
+          // Session is persisted by useSelectProfileMutation → RootNavigator
+          // switches to the authenticated stack (Dashboard) for this student.
           Alert.alert(
             'Login Successful',
             `Welcome ${response.data.user.firstName}!`,
@@ -35,7 +49,7 @@ const ProfileSelectionScreen = ({route, navigation}: Props) => {
         }
 
         const message = response.error || 'Unable to select profile.';
-        if (/expired|verify otp/i.test(message)) {
+        if (/expired|verify otp|verification required/i.test(message)) {
           Alert.alert('Session Expired', message, [
             {text: 'Login Again', onPress: () => navigation.navigate('Login')},
           ]);
@@ -53,7 +67,7 @@ const ProfileSelectionScreen = ({route, navigation}: Props) => {
         }
       }
     },
-    [mobile, navigation, selectProfileMutation, isMounted],
+    [mobile, otp, navigation, selectProfileMutation, isMounted],
   );
 
   return (

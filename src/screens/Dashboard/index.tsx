@@ -16,7 +16,7 @@ import {
 } from '../../components/DashboardEventCard';
 import {useNavigation} from '@react-navigation/native';
 import {useTranslation} from '../../hooks/useTranslation';
-import {useEventsQuery} from '../../hooks';
+import {useEventsQuery, usePreventHardwareBack} from '../../hooks';
 import {useThemeColors} from '../../utils/colors';
 import {useUser} from '../../stores';
 import {subscriptionService} from '../../services/subscription-service';
@@ -43,6 +43,8 @@ const DashboardEmptyList = React.memo(function DashboardEmptyList({
 const DashboardScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const colors = useThemeColors();
+  // Prevent Android hardware back from closing the app when on the root screen.
+  usePreventHardwareBack(true);
   const insets = useSafeAreaInsets();
   const user = useUser();
   const {t} = useTranslation();

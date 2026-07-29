@@ -4,7 +4,8 @@ import { devLog } from '@/utils/dev-log';
 const noop = (): void => {};
 
 /**
- * Dev: keep console + LogBox active (logs stream to Metro with `yarn start`).
+ * Dev: keep console + LogBox active (logs stream to Metro with `yarn start`
+ * which passes `--client-logs` — required on RN 0.76+ for device → terminal).
  * Release: silence debug console noise; errors still reach native crash tooling.
  */
 export function configureDevLogging(): void {
@@ -14,8 +15,10 @@ export function configureDevLogging(): void {
       // 'Require cycle:',
     ]);
 
+    // Ensure console methods are not stubbed if a previous release path ran.
+    // (No-op restore — native console is intact in __DEV__.)
     devLog(
-      'Dev logging enabled. Metro: yarn metro:reset | logcat: adb logcat -s AlphaVlogs ReactNativeJS',
+      'Dev logging enabled → Metro terminal (yarn start --client-logs) | adb: yarn logs:android',
     );
     return;
   }

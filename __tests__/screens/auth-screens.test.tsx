@@ -94,22 +94,26 @@ describe('Auth Screens', () => {
         studentId: 1,
         firstName: 'Alice',
         lastName: 'Smith',
+        className: '5',
         schoolName: 'Test School',
-        grade: '5',
+        verified: true,
+        isSubscribed: false,
       },
       {
         studentId: 2,
         firstName: 'Bob',
         lastName: 'Jones',
+        className: '6',
         schoolName: 'Test School',
-        grade: '6',
+        verified: false,
+        isSubscribed: false,
       },
     ];
 
     const route = {
       key: 'profile-selection',
       name: 'ProfileSelection' as const,
-      params: {mobile: '9876543210', profiles: mockProfiles},
+      params: {mobile: '9876543210', otp: '123456', profiles: mockProfiles},
     };
 
     it('renders profile selection screen with student profiles', () => {
@@ -126,7 +130,7 @@ describe('Auth Screens', () => {
       expect(getByText('Bob Jones')).toBeTruthy();
     });
 
-    it('calls select profile mutation when a profile is pressed', async () => {
+    it('calls select profile mutation with otp when a profile is pressed', async () => {
       const mutateAsync = jest
         .fn()
         .mockResolvedValue({success: true, data: {user: {firstName: 'Alice'}}});
@@ -150,8 +154,73 @@ describe('Auth Screens', () => {
         expect(mutateAsync).toHaveBeenCalledWith({
           studentId: 1,
           mobile: '9876543210',
+          otp: '123456',
         });
       });
+    });
+
+    it('shows session expired alert when OTP verification is required', async () => {
+      const alertSpy = jest.spyOn(require('react-native').Alert, 'alert');
+      const mutateAsync = jest.fn().mockResolvedValue({
+        success: false,
+        error: 'OTP verification required before profile selection',
+        statusCode: 400,
+      });
+      (useSelectProfileMutation as jest.Mock).mockReturnValue({
+        mutate: jest.fn(),
+        mutateAsync,
+        isPending: false,
+        isError: false,
+        error: null,
+        reset: jest.fn(),
+      });
+
+      const {getByTestId} = renderScreen(ProfileSelectionScreen, {
+        navigation: mockNavigation,
+        route,
+      });
+
+      fireEvent.press(getByTestId('profile-selection-1'));
+
+      await waitFor(() => {
+        expect(alertSpy).toHaveBeenCalledWith(
+          'Session Expired',
+          'OTP verification required before profile selection',
+          expect.any(Array),
+        );
+      });
+      alertSpy.mockRestore();
+    });
+
+    it('shows login success alert after selecting a student', async () => {
+      const alertSpy = jest.spyOn(require('react-native').Alert, 'alert');
+      const mutateAsync = jest.fn().mockResolvedValue({
+        success: true,
+        data: {user: {firstName: 'Alice'}, tokens: {accessToken: 'a', refreshToken: 'r', expiresIn: 3600}},
+      });
+      (useSelectProfileMutation as jest.Mock).mockReturnValue({
+        mutate: jest.fn(),
+        mutateAsync,
+        isPending: false,
+        isError: false,
+        error: null,
+        reset: jest.fn(),
+      });
+
+      const {getByTestId} = renderScreen(ProfileSelectionScreen, {
+        navigation: mockNavigation,
+        route,
+      });
+
+      fireEvent.press(getByTestId('profile-selection-1'));
+
+      await waitFor(() => {
+        expect(alertSpy).toHaveBeenCalledWith(
+          'Login Successful',
+          'Welcome Alice!',
+        );
+      });
+      alertSpy.mockRestore();
     });
 
     it('navigates back when back button is pressed', () => {

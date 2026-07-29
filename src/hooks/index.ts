@@ -1,5 +1,6 @@
 export { useAuth } from './useAuth';
 export { useIsMounted, useSafeAsync } from './useIsMounted';
+export { usePreventHardwareBack } from './usePreventHardwareBack';
 export { useEventsQuery } from './api/use-events-query';
 export {
   useSendOtpMutation,
