@@ -23,7 +23,9 @@ jest.mock('../../src/services/api', () => ({
 const mockCachedStoreState = {
   setTokens: jest.fn().mockResolvedValue(undefined),
   setUserData: jest.fn(),
+  setLinkedProfiles: jest.fn(),
   clearAll: jest.fn().mockResolvedValue(undefined),
+  clearCache: jest.fn(),
 };
 
 const mockUserStoreState = {
@@ -37,8 +39,13 @@ jest.mock('../../src/stores', () => ({
   useUserStore: jest.fn((selector?: (state: typeof mockUserStoreState) => unknown) =>
     selector ? selector(mockUserStoreState) : mockUserStoreState,
   ),
-  useUserCachedStore: jest.fn((selector?: (state: typeof mockCachedStoreState) => unknown) =>
-    selector ? selector(mockCachedStoreState) : mockCachedStoreState,
+  useUserCachedStore: Object.assign(
+    jest.fn((selector?: (state: typeof mockCachedStoreState) => unknown) =>
+      selector ? selector(mockCachedStoreState) : mockCachedStoreState,
+    ),
+    {
+      getState: () => mockCachedStoreState,
+    },
   ),
 }));
 

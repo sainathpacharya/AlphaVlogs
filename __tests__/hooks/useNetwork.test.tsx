@@ -1,4 +1,5 @@
 import {renderHook, act, waitFor} from '@testing-library/react-native';
+import NetInfo from '@react-native-community/netinfo';
 import {useNetwork} from '../../src/hooks/useNetwork';
 
 let listener: ((state: unknown) => void) | null = null;
@@ -69,5 +70,21 @@ describe('useNetwork Hook', () => {
 
     unmount();
     expect(listener).toBeNull();
+  });
+
+  it('defaults null fetch values to false on initial load', async () => {
+    (NetInfo.fetch as jest.Mock).mockResolvedValueOnce({
+      type: 'none',
+      isConnected: null,
+      isInternetReachable: null,
+    });
+
+    const {result} = renderHook(() => useNetwork());
+
+    await waitFor(() => {
+      expect(result.current.isConnected).toBe(false);
+      expect(result.current.isInternetReachable).toBe(false);
+      expect(result.current.type).toBe('none');
+    });
   });
 });

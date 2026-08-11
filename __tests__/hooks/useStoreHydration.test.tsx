@@ -75,4 +75,32 @@ describe('useStoreHydration', () => {
       expect(result.current).toBe(true);
     });
   });
+
+  it('useStoreHydration starts true when stores are already hydrated', () => {
+    mockUserPersist.hasHydrated.mockReturnValue(true);
+    mockCachedPersist.hasHydrated.mockReturnValue(true);
+
+    const {result} = renderHook(() => useStoreHydration());
+
+    expect(result.current).toBe(true);
+  });
+
+  it('useStoreHydration ignores hydration completion after unmount', () => {
+    const pendingCallbacks: Array<() => void> = [];
+    mockUserPersist.onFinishHydration.mockImplementation((cb: () => void) => {
+      pendingCallbacks.push(cb);
+      return jest.fn();
+    });
+    mockCachedPersist.onFinishHydration.mockImplementation((cb: () => void) => {
+      pendingCallbacks.push(cb);
+      return jest.fn();
+    });
+
+    const {unmount} = renderHook(() => useStoreHydration());
+    unmount();
+
+    expect(() => {
+      pendingCallbacks.forEach(cb => cb());
+    }).not.toThrow();
+  });
 });

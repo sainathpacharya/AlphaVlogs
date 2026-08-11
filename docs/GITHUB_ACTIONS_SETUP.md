@@ -1,12 +1,11 @@
 # GitHub Actions — Platform & Environment Workflows
 
-Alpha Vlogs uses **three deploy workflows** plus CI. Dev Android and iOS share one workflow that runs both platforms in parallel after a single validate job.
+Alpha Vlogs uses **two deploy workflows** plus CI. Dev and production each share one workflow that runs Android and iOS in parallel after a single validate job.
 
 | Workflow | File | Trigger | Deploy target |
 | -------- | ---- | ------- | ------------- |
 | Dev (Android + iOS) | `android-ios-firebase-distribution.yml` | manual only | Firebase App Distribution (both platforms) |
-| Android Production | `android-production.yml` | tag `v*.*.*`, manual | Play Console **Internal Testing** |
-| iOS Production | `ios-production.yml` | tag `v*.*.*`, manual | **TestFlight only** |
+| Production (Android + iOS) | `android-ios-production.yml` | tag `v*.*.*`, manual | Play **Internal Testing** + **TestFlight** (platform choice on manual) |
 
 **Identifiers**
 
@@ -24,9 +23,9 @@ Create four environments under **Settings → Environments**:
 | Environment | Used by | Protection rules (recommended) |
 | ----------- | ------- | ------------------------------ |
 | `android-development` | `android-ios-firebase-distribution.yml` (Android job) | Optional: require reviewer for manual dispatch |
-| `android-production` | `android-production.yml` | Required reviewers; restrict to `main` / tags |
+| `android-production` | `android-ios-production.yml` (Android job) | Required reviewers; restrict to `main` / tags |
 | `ios-development` | `android-ios-firebase-distribution.yml` (iOS job) | Optional reviewer |
-| `ios-production` | `ios-production.yml` | Required reviewers; restrict to tags |
+| `ios-production` | `android-ios-production.yml` (iOS job) | Required reviewers; restrict to tags |
 
 Store environment-specific secrets in each environment when possible (e.g. production keystore only in `android-production`).
 
@@ -50,7 +49,7 @@ Repository-level secrets are also supported if you prefer a single secret store.
 
 Firebase App ID is read automatically from `android/app/google-services.json` for package `com.nsnr.aplhavlogs.dev`.
 
-### Android Production — `android-production.yml`
+### Android Production — `android-ios-production.yml` (Android job)
 
 | Secret | Required | Notes |
 | ------ | -------- | ----- |
@@ -104,7 +103,7 @@ base64 -i dev_certificate.p12 | pbcopy          # IOS_DEV_CERTIFICATE_BASE64
 base64 -i AlphaVlogs_Dev.mobileprovision | pbcopy  # IOS_DEV_PROVISIONING_PROFILE_BASE64
 ```
 
-### iOS Production — `ios-production.yml`
+### iOS Production — `android-ios-production.yml` (iOS job)
 
 | Secret | Required | Notes |
 | ------ | -------- | ----- |
@@ -201,20 +200,13 @@ The service account needs:
 5. Verify iOS bundle ID: `unzip -p JackMarvelsApp.ipa Payload/*.app/Info.plist | plutil -p - | grep CFBundleIdentifier`
 6. Confirm both builds appear in [Firebase App Distribution](https://console.firebase.google.com/project/alpha-vlogs-cf60a/appdistribution)
 
-### Android Production
+### Production (Android + iOS)
 
-1. Tag a commit: `git tag v1.0.0 && git push origin v1.0.0`
-2. Or manual dispatch with `version_name: 1.0.0`
-3. Confirm AAB artifact uploaded
-4. Play Console → **Testing → Internal testing** → verify new release
-5. Confirm track is **internal**, not production
-
-### iOS Production
-
-1. Push tag `v1.0.0`, or manual dispatch with **version_name** (e.g. `1.0.0`) — same field as Android Production
-2. Confirm IPA artifact `ios-production-ipa`
-3. App Store Connect → **TestFlight** → verify processing build
-4. Confirm build is **not** submitted for App Store review automatically
+1. Tag a commit: `git tag v1.0.0 && git push origin v1.0.0` (runs **both** platforms)
+2. Or Actions → **Android and iOS Production** → **Run workflow** → choose platform (`both` / `android` / `ios`) and `version_name: 1.0.0`
+3. Confirm lint/type/tests pass in the **Validate** job
+4. Android: AAB artifact `android-production-aab` → Play Console → **Testing → Internal testing** (track **internal**, not production)
+5. iOS: IPA artifact `ios-production-ipa` → App Store Connect → **TestFlight** (not submitted for App Store review)
 
 ---
 
@@ -223,8 +215,7 @@ The service account needs:
 | Workflow | Rollback action |
 | -------- | --------------- |
 | Dev (Android + iOS) | Disable workflow; previous Firebase builds remain available; no store impact |
-| Android Production | Play Console → Internal testing → **Halt rollout** or promote previous release; disable workflow |
-| iOS Production | TestFlight → expire build; do not submit for review; disable workflow |
+| Production (Android + iOS) | Play Console → Internal testing → **Halt rollout**; TestFlight → expire build; disable workflow |
 
 **Emergency stop:** Repository **Settings → Actions → Disable actions** or disable individual workflow files.
 

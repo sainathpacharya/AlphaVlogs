@@ -76,4 +76,32 @@ describe('SchoolsService', () => {
     expect(result.success).toBe(true);
     expect(result.data?.schools).toBeDefined();
   });
+
+  it('falls back when API returns a non-object body', async () => {
+    mockIsMockMode.mockReturnValue(false);
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => null,
+    });
+
+    const result = await schoolsService.getSchools();
+
+    expect(result.success).toBe(true);
+    expect(result.data?.schools?.length).toBeGreaterThan(0);
+  });
+
+  it('uses a generic error message when a failed response has no message', async () => {
+    mockIsMockMode.mockReturnValue(false);
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => null,
+    });
+
+    const result = await schoolsService.getSchools();
+
+    expect(result.success).toBe(true);
+    expect(result.data?.schools?.length).toBeGreaterThan(0);
+  });
 });

@@ -29,6 +29,10 @@ jest.mock('@/services/api', () => ({
 jest.mock('@/utils/auth-session', () => ({
   persistLoginSession: jest.fn(),
 }));
+
+const mockSetLinkedProfiles = jest.fn();
+const mockClearCache = jest.fn();
+
 jest.mock('@/stores', () => ({
   useUserStore: () => ({
     setAuthenticated: jest.fn(),
@@ -39,16 +43,16 @@ jest.mock('@/stores', () => ({
     jest.fn(() => ({
       clearAll: jest.fn().mockResolvedValue(undefined),
       setUserData: jest.fn(),
-      setLinkedProfiles: jest.fn(),
-      clearCache: jest.fn(),
+      setLinkedProfiles: mockSetLinkedProfiles,
+      clearCache: mockClearCache,
       linkedProfiles: [],
     })),
     {
       getState: () => ({
         clearAll: jest.fn().mockResolvedValue(undefined),
         setUserData: jest.fn(),
-        setLinkedProfiles: jest.fn(),
-        clearCache: jest.fn(),
+        setLinkedProfiles: mockSetLinkedProfiles,
+        clearCache: mockClearCache,
         linkedProfiles: [],
       }),
     },
@@ -76,6 +80,26 @@ describe('use-auth-api hooks', () => {
     jest.clearAllMocks();
     mockPersist.mockResolvedValue(undefined);
     mockClearAuth.mockResolvedValue(undefined);
+  });
+
+  it('useVerifyOtpMutation stores linked profiles when selection is required', async () => {
+    mockAuthService.verifyOTP.mockResolvedValue({
+      success: true,
+      data: {
+        selectionRequired: true,
+        profiles: [{ studentId: 1 }],
+      },
+      statusCode: 200,
+    });
+
+    const { result } = renderHook(() => useVerifyOtpMutation(), { wrapper: createWrapper() });
+
+    await act(async () => {
+      await result.current.mutateAsync({ mobile: '9876543210', otp: '123456' });
+    });
+
+    expect(mockSetLinkedProfiles).toHaveBeenCalledWith([{ studentId: 1 }]);
+    expect(mockPersist).not.toHaveBeenCalled();
   });
 
   it('useSendOtpMutation calls authService.sendOTP', async () => {
@@ -112,6 +136,22 @@ describe('use-auth-api hooks', () => {
     expect(mockPersist).toHaveBeenCalled();
   });
 
+  it('useSelectProfileMutation skips persist when selection fails', async () => {
+    mockAuthService.selectProfile.mockResolvedValue({
+      success: false,
+      error: 'Invalid profile',
+      statusCode: 400,
+    });
+
+    const { result } = renderHook(() => useSelectProfileMutation(), { wrapper: createWrapper() });
+
+    await act(async () => {
+      await result.current.mutateAsync({ studentId: 1, mobile: '9876543210' });
+    });
+
+    expect(mockPersist).not.toHaveBeenCalled();
+  });
+
   it('useSelectProfileMutation persists when profile selected', async () => {
     mockAuthService.selectProfile.mockResolvedValue({
       success: true,
@@ -129,6 +169,22 @@ describe('use-auth-api hooks', () => {
     });
 
     expect(mockPersist).toHaveBeenCalled();
+  });
+
+  it('useStudentProfilesQuery skips cache update for empty profile list', async () => {
+    mockAuthService.listProfiles.mockResolvedValue({
+      success: true,
+      data: { profiles: [] } as any,
+      statusCode: 200,
+    });
+
+    const { result } = renderHook(() => useStudentProfilesQuery(true), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual([]);
+    expect(mockSetLinkedProfiles).not.toHaveBeenCalled();
   });
 
   it('useStudentProfilesQuery loads profiles', async () => {
@@ -158,6 +214,25 @@ describe('use-auth-api hooks', () => {
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
+  });
+
+  it('useSwitchProfileMutation clears cache on success', async () => {
+    mockAuthService.switchProfile.mockResolvedValue({
+      success: true,
+      data: {
+        user: { id: '2' } as any,
+        tokens: { accessToken: 'x', refreshToken: 'y' },
+      },
+      statusCode: 200,
+    });
+
+    const { result } = renderHook(() => useSwitchProfileMutation(), { wrapper: createWrapper() });
+
+    await act(async () => {
+      await result.current.mutateAsync(2);
+    });
+
+    expect(mockClearCache).toHaveBeenCalled();
   });
 
   it('useSwitchProfileMutation persists on success', async () => {
@@ -213,6 +288,22 @@ describe('use-auth-api hooks', () => {
     expect(mockClearAuth).toHaveBeenCalled();
   });
 
+  it('useDeleteAccountMutation does not clear auth on failure', async () => {
+    mockAuthService.deleteAccount.mockResolvedValue({
+      success: false,
+      error: 'Unable to delete',
+      statusCode: 400,
+    });
+
+    const { result } = renderHook(() => useDeleteAccountMutation(), { wrapper: createWrapper() });
+
+    await act(async () => {
+      await result.current.mutateAsync();
+    });
+
+    expect(mockClearAuth).not.toHaveBeenCalled();
+  });
+
   it('useDeleteAccountMutation clears on success only', async () => {
     mockAuthService.deleteAccount.mockResolvedValue({ success: true, statusCode: 200 });
 
@@ -239,6 +330,19 @@ describe('use-auth-api hooks', () => {
     });
 
     expect(mockAuthService.updateProfile).toHaveBeenCalledWith({ firstName: 'New' });
+  });
+
+  it('useProfileQuery fetches when enabled', async () => {
+    mockAuthService.getProfile.mockResolvedValue({
+      success: true,
+      data: { id: '1', firstName: 'Profile' } as any,
+      statusCode: 200,
+    });
+
+    const { result } = renderHook(() => useProfileQuery(true), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockAuthService.getProfile).toHaveBeenCalled();
   });
 
   it('useProfileQuery is disabled by default', () => {
