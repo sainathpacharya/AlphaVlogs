@@ -23,6 +23,7 @@ jest.mock('../../src/constants', () => ({
     PAYMENT: {
       CREATE_ORDER: '/api/create-order',
       VERIFY_PAYMENT: '/api/verify-payment',
+      VERIFY_APPLE_PURCHASE: '/api/verify-apple-purchase',
     },
   },
 }));
@@ -196,6 +197,32 @@ describe('PaymentService', () => {
       );
     });
 
+    it('maps Apple purchase already linked (409)', async () => {
+      mockMockWrapper.isMockMode.mockReturnValue(false);
+      mockPaymentApiPost.mockResolvedValue({
+        success: false,
+        error: 'already linked',
+        statusCode: 409,
+      });
+
+      await expect(paymentService.createOrder({ amount: 100 })).rejects.toThrow(
+        /already linked to another student/i,
+      );
+    });
+
+    it('maps Apple receipt rejection (422)', async () => {
+      mockMockWrapper.isMockMode.mockReturnValue(false);
+      mockPaymentApiPost.mockResolvedValue({
+        success: false,
+        error: 'invalid receipt',
+        statusCode: 422,
+      });
+
+      await expect(paymentService.createOrder({ amount: 100 })).rejects.toThrow(
+        /Apple rejected this purchase receipt/i,
+      );
+    });
+
     it('includes dev debug details in __DEV__', async () => {
       const originalDev = (global as { __DEV__?: boolean }).__DEV__;
       (global as { __DEV__?: boolean }).__DEV__ = true;
@@ -300,6 +327,87 @@ describe('PaymentService', () => {
       expect(err.name).toBe('PaymentApiError');
       expect(err.statusCode).toBe(403);
       expect(err.message).toBe('failed');
+    });
+  });
+
+  describe('verifyApplePurchase', () => {
+    const validPurchase = {
+      productId: 'com.nsnr.alphavlogsindia.annual.premium',
+      transactionId: 'tx_apple_1',
+      transactionReceipt: 'jws-or-receipt',
+    };
+
+    it('throws on incomplete purchase data', async () => {
+      await expect(
+        paymentService.verifyApplePurchase({
+          productId: '',
+          transactionId: 'tx',
+          transactionReceipt: 'r',
+        }),
+      ).rejects.toMatchObject({ statusCode: 400 });
+    });
+
+    it('returns mock verification in mock mode', async () => {
+      mockMockWrapper.isMockMode.mockReturnValue(true);
+
+      const promise = paymentService.verifyApplePurchase(validPurchase);
+      jest.advanceTimersByTime(500);
+      const result = await promise;
+
+      expect(result.verified).toBe(true);
+      expect(result.isSubscribed).toBe(true);
+      expect(result.orderId).toBe('tx_apple_1');
+    });
+
+    it('verifies Apple purchase via API', async () => {
+      mockMockWrapper.isMockMode.mockReturnValue(false);
+      mockPaymentApiPost.mockResolvedValue({
+        success: true,
+        data: {
+          verified: true,
+          orderId: 'tx_apple_1',
+          paymentId: 'tx_apple_1',
+          isSubscribed: true,
+        },
+        statusCode: 200,
+      });
+
+      const result = await paymentService.verifyApplePurchase(validPurchase);
+
+      expect(mockPaymentApiPost).toHaveBeenCalledWith('/api/verify-apple-purchase', {
+        product_id: validPurchase.productId,
+        transaction_id: validPurchase.transactionId,
+        transaction_receipt: validPurchase.transactionReceipt,
+      });
+      expect(result.verified).toBe(true);
+      expect(result.isSubscribed).toBe(true);
+    });
+
+    it('returns verified false when Apple flags fail', async () => {
+      mockMockWrapper.isMockMode.mockReturnValue(false);
+      mockPaymentApiPost.mockResolvedValue({
+        success: true,
+        data: { verified: true, isSubscribed: false, subscribed: false },
+        statusCode: 200,
+      });
+
+      const result = await paymentService.verifyApplePurchase(validPurchase);
+      expect(result.verified).toBe(true);
+      expect(result.isSubscribed).toBe(false);
+    });
+
+    it('throws PaymentApiError when API request fails', async () => {
+      mockMockWrapper.isMockMode.mockReturnValue(false);
+      mockPaymentApiPost.mockResolvedValue({
+        success: false,
+        error: 'rejected',
+        statusCode: 422,
+      });
+
+      await expect(paymentService.verifyApplePurchase(validPurchase)).rejects.toMatchObject({
+        name: 'PaymentApiError',
+        statusCode: 422,
+      });
     });
   });
 });

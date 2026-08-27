@@ -114,6 +114,9 @@ module.exports = {
       FREE: ['Basic quiz access', 'Event browsing'],
       PREMIUM: ['Full quiz access', 'Ad-free experience', 'Priority support'],
     },
+    IAP: {
+      PREMIUM_ANNUAL_PRODUCT_ID: 'com.nsnr.alphavlogsindia.annual.premium',
+    },
   },
   PAYMENT_METHODS: {
     CASH: 'cash',

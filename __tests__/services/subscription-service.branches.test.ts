@@ -21,6 +21,7 @@ jest.mock('../../src/services/payment-service', () => ({
   paymentService: {
     createOrder: jest.fn(),
     verifyPayment: jest.fn(),
+    verifyApplePurchase: jest.fn(),
   },
   PaymentApiError: class PaymentApiError extends Error {
     statusCode?: number;
@@ -37,11 +38,26 @@ jest.mock('../../src/services/razorpay-service', () => ({
   },
 }));
 
+jest.mock('../../src/services/iap-service', () => ({
+  iapService: {
+    purchasePremium: jest.fn(),
+    restorePurchases: jest.fn(),
+    finishPurchase: jest.fn(),
+  },
+}));
+
 const mockApi = apiService as jest.Mocked<typeof apiService>;
 const mockWrapper = MockWrapperService as jest.Mocked<typeof MockWrapperService>;
 const mockPayment = paymentService as jest.Mocked<typeof paymentService>;
 const { razorpayService } = jest.requireMock('../../src/services/razorpay-service') as {
   razorpayService: { openCheckout: jest.Mock };
+};
+const { iapService } = jest.requireMock('../../src/services/iap-service') as {
+  iapService: {
+    purchasePremium: jest.Mock;
+    restorePurchases: jest.Mock;
+    finishPurchase: jest.Mock;
+  };
 };
 
 const activeSubscription = {
@@ -370,6 +386,104 @@ describe('subscription-service branch coverage', () => {
 
       expect(spy).not.toHaveBeenCalled();
       spy.mockRestore();
+    });
+  });
+
+  describe('Apple IAP checkout and restore', () => {
+    const applePurchase = {
+      productId: 'com.nsnr.alphavlogsindia.annual.premium',
+      transactionId: 'tx_1',
+      verificationResultIOS: 'jws-token',
+      transactionReceipt: 'legacy-receipt',
+      transactionDate: 2000,
+    };
+
+    it('completeAppleCheckout unlocks only when verified and subscribed', async () => {
+      iapService.purchasePremium.mockResolvedValue(applePurchase);
+      mockPayment.verifyApplePurchase.mockResolvedValue({
+        verified: true,
+        orderId: 'tx_1',
+        paymentId: 'tx_1',
+        isSubscribed: true,
+      });
+
+      const result = await subscriptionService.completeAppleCheckout(user as never);
+
+      expect(mockPayment.verifyApplePurchase).toHaveBeenCalledWith({
+        productId: applePurchase.productId,
+        transactionId: 'tx_1',
+        transactionReceipt: 'jws-token',
+      });
+      expect(iapService.finishPurchase).toHaveBeenCalledWith(applePurchase);
+      expect(result.success).toBe(true);
+      expect(result.isSubscribed).toBe(true);
+    });
+
+    it('completeAppleCheckout does not unlock when isSubscribed is false', async () => {
+      iapService.purchasePremium.mockResolvedValue(applePurchase);
+      mockPayment.verifyApplePurchase.mockResolvedValue({
+        verified: true,
+        orderId: 'tx_1',
+        paymentId: 'tx_1',
+        isSubscribed: false,
+      });
+
+      const result = await subscriptionService.completeAppleCheckout(user as never);
+
+      expect(result.success).toBe(false);
+      expect(iapService.finishPurchase).not.toHaveBeenCalled();
+    });
+
+    it('completeAppleCheckout throws when receipt data is missing', async () => {
+      iapService.purchasePremium.mockResolvedValue({
+        productId: 'com.nsnr.alphavlogsindia.annual.premium',
+        transactionId: '',
+      });
+
+      await expect(
+        subscriptionService.completeAppleCheckout(user as never),
+      ).rejects.toBeInstanceOf(PaymentApiError);
+    });
+
+    it('restoreApplePurchases returns failure when no purchases', async () => {
+      iapService.restorePurchases.mockResolvedValue([]);
+
+      const result = await subscriptionService.restoreApplePurchases();
+
+      expect(result.success).toBe(false);
+      expect(result.isSubscribed).toBe(false);
+    });
+
+    it('restoreApplePurchases verifies latest purchase and finishes when unlocked', async () => {
+      iapService.restorePurchases.mockResolvedValue([
+        { ...applePurchase, transactionId: 'old', transactionDate: 1000 },
+        { ...applePurchase, transactionId: 'latest', transactionDate: 3000 },
+      ]);
+      mockPayment.verifyApplePurchase.mockResolvedValue({
+        verified: true,
+        orderId: 'latest',
+        paymentId: 'latest',
+        isSubscribed: true,
+      });
+
+      const result = await subscriptionService.restoreApplePurchases();
+
+      expect(mockPayment.verifyApplePurchase).toHaveBeenCalledWith(
+        expect.objectContaining({ transactionId: 'latest' }),
+      );
+      expect(iapService.finishPurchase).toHaveBeenCalled();
+      expect(result.success).toBe(true);
+    });
+
+    it('rethrows PaymentApiError from Apple verify', async () => {
+      iapService.purchasePremium.mockResolvedValue(applePurchase);
+      mockPayment.verifyApplePurchase.mockRejectedValue(
+        new PaymentApiError('denied', 403),
+      );
+
+      await expect(
+        subscriptionService.completeAppleCheckout(user as never),
+      ).rejects.toMatchObject({ statusCode: 403 });
     });
   });
 });
