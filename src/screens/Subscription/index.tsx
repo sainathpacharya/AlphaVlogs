@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useMemo, useCallback} from 'react';
-import {View, StyleSheet, Alert, useWindowDimensions} from 'react-native';
+import {View, StyleSheet, Alert, useWindowDimensions, Platform, Linking} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {Check, Crown} from 'lucide-react-native';
 import {
@@ -15,6 +15,8 @@ import {useThemeColors} from '@/utils/colors';
 import {subscriptionService} from '@/services/subscription-service';
 import {PaymentApiError} from '@/services/payment-service';
 import {canAccessPayment} from '@/utils/payment';
+import {shouldUseAppleIAP} from '@/utils/platform-payment';
+import {parseIapError} from '@/utils/iap-error';
 import {devLog} from '@/utils/dev-log';
 import {getApiBaseUrl} from '@/constants';
 import {isMockMode} from '@/config/api-config';
@@ -27,7 +29,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface PaymentMethod {
   id: string;
-  type: 'cash' | 'cheque' | 'razorpay' | 'stripe' | 'paytm';
+  type: 'cash' | 'cheque' | 'razorpay' | 'stripe' | 'paytm' | 'apple_iap';
   name: string;
   isEnabled: boolean;
   icon?: string;
@@ -40,7 +42,43 @@ const getPaymentDisplayName = (method: PaymentMethod) => {
   if (method.type === 'razorpay') {
     return 'Razorpay';
   }
+  if (method.type === 'apple_iap') {
+    return 'App Store';
+  }
   return method.name;
+};
+
+const buildPaymentMethods = (): PaymentMethod[] => {
+  if (shouldUseAppleIAP()) {
+    return [
+      {
+        id: 'apple_iap',
+        type: 'apple_iap',
+        name: 'App Store In-App Purchase',
+        isEnabled: true,
+        icon: '🍎',
+      },
+    ];
+  }
+
+  const defaultMethods: PaymentMethod[] = [
+    {
+      id: 'razorpay',
+      type: 'razorpay',
+      name: 'Razorpay (UPI, Cards, Net Banking)',
+      isEnabled: true,
+      icon: '💳',
+    },
+  ];
+
+  const mockOnlyMethods: PaymentMethod[] = isMockMode()
+    ? [
+        {id: 'cash', type: 'cash', name: 'Cash', isEnabled: true},
+        {id: 'cheque', type: 'cheque', name: 'Cheque', isEnabled: true},
+      ]
+    : [];
+
+  return [...defaultMethods, ...mockOnlyMethods];
 };
 
 const SubscriptionScreen: React.FC = () => {
@@ -68,6 +106,8 @@ const SubscriptionScreen: React.FC = () => {
     plan: string;
     endDate?: string;
   } | null>(null);
+  const [appleProductPrice, setAppleProductPrice] = useState<string | null>(null);
+  const usesAppleIAP = shouldUseAppleIAP();
 
   const markUserSubscribed = useCallback(
     async (current: User) => {
@@ -109,38 +149,22 @@ const SubscriptionScreen: React.FC = () => {
           return;
         }
 
-        const defaultMethods: PaymentMethod[] = [
-          {
-            id: 'razorpay',
-            type: 'razorpay',
-            name: 'Razorpay (UPI, Cards, Net Banking)',
-            isEnabled: true,
-            icon: '💳',
-          },
-        ];
-
-        const mockOnlyMethods: PaymentMethod[] = isMockMode()
-          ? [
-              {id: 'cash', type: 'cash', name: 'Cash', isEnabled: true},
-              {id: 'cheque', type: 'cheque', name: 'Cheque', isEnabled: true},
-            ]
-          : [];
-
+        const platformMethods = buildPaymentMethods();
         const finalMethods =
-          methods.length > 0
+          methods.length > 0 && !usesAppleIAP
             ? methods.filter(
                 m =>
                   m.type === 'razorpay' ||
                   (isMockMode() && (m.type === 'cash' || m.type === 'cheque')),
               )
-            : [...defaultMethods, ...mockOnlyMethods];
+            : platformMethods;
         setPaymentMethods(finalMethods);
 
-        const razorpayMethod = (finalMethods as PaymentMethod[]).find(
-          m => m?.type === 'razorpay',
+        const defaultMethod = (finalMethods as PaymentMethod[]).find(
+          m => m?.type === (usesAppleIAP ? 'apple_iap' : 'razorpay'),
         );
-        if (razorpayMethod) {
-          setSelectedPaymentMethod(razorpayMethod.id);
+        if (defaultMethod) {
+          setSelectedPaymentMethod(defaultMethod.id);
         } else if (finalMethods.length > 0 && finalMethods[0]) {
           setSelectedPaymentMethod(finalMethods[0].id);
         }
@@ -159,7 +183,34 @@ const SubscriptionScreen: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [user?.id, usesAppleIAP]);
+
+  useEffect(() => {
+    if (!usesAppleIAP) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const loadAppleProduct = async () => {
+      try {
+        const {iapService} = require('@/services/iap-service');
+        const product = await iapService.getPremiumSubscription();
+        if (!cancelled && product?.localizedPrice) {
+          setAppleProductPrice(product.localizedPrice);
+        }
+      } catch (error) {
+        if (__DEV__) {
+          console.error('Error loading App Store product:', error);
+        }
+      }
+    };
+
+    loadAppleProduct();
+    return () => {
+      cancelled = true;
+    };
+  }, [usesAppleIAP]);
 
   const loadSubscriptionData = useCallback(async () => {
     if (!user?.id) {
@@ -185,38 +236,22 @@ const SubscriptionScreen: React.FC = () => {
         return;
       }
 
-      const defaultMethods: PaymentMethod[] = [
-        {
-          id: 'razorpay',
-          type: 'razorpay',
-          name: 'Razorpay (UPI, Cards, Net Banking)',
-          isEnabled: true,
-          icon: '💳',
-        },
-      ];
-
-      const mockOnlyMethods: PaymentMethod[] = isMockMode()
-        ? [
-            {id: 'cash', type: 'cash', name: 'Cash', isEnabled: true},
-            {id: 'cheque', type: 'cheque', name: 'Cheque', isEnabled: true},
-          ]
-        : [];
-
+      const platformMethods = buildPaymentMethods();
       const finalMethods =
-        methods.length > 0
+        methods.length > 0 && !usesAppleIAP
           ? methods.filter(
               m =>
                 m.type === 'razorpay' ||
                 (isMockMode() && (m.type === 'cash' || m.type === 'cheque')),
             )
-          : [...defaultMethods, ...mockOnlyMethods];
+          : platformMethods;
       setPaymentMethods(finalMethods);
 
-      const razorpayMethod = (finalMethods as PaymentMethod[]).find(
-        m => m?.type === 'razorpay',
+      const defaultMethod = (finalMethods as PaymentMethod[]).find(
+        m => m?.type === (usesAppleIAP ? 'apple_iap' : 'razorpay'),
       );
-      if (razorpayMethod) {
-        setSelectedPaymentMethod(razorpayMethod.id);
+      if (defaultMethod) {
+        setSelectedPaymentMethod(defaultMethod.id);
       } else if (finalMethods.length > 0 && finalMethods[0]) {
         setSelectedPaymentMethod(finalMethods[0].id);
       }
@@ -282,6 +317,101 @@ const SubscriptionScreen: React.FC = () => {
       if (!paymentMethod) {
         if (isMounted.current) {
           Alert.alert('Error', 'Selected payment method not found.');
+        }
+        return;
+      }
+
+      if (paymentMethod.type === 'apple_iap') {
+        devLog('Subscription.handleSubscribe apple_iap', {
+          apiBaseUrl: getApiBaseUrl(),
+          userId: user.id,
+        });
+        try {
+          const result = await subscriptionService.completeAppleCheckout(user);
+
+          if (!isMounted.current) {
+            return;
+          }
+
+          if (result.success && result.isSubscribed === true) {
+            await markUserSubscribed(user);
+            const refreshed =
+              await subscriptionService.getStudentSubscription(user.id);
+            if (isMounted.current && refreshed) {
+              setCurrentSubscription(refreshed);
+              setSelectedPlan('premium');
+            }
+
+            Alert.alert(
+              '✅ Subscription Successful',
+              'Welcome to Jack Marvels Premium! You now have access to all quizzes and premium features.',
+              [
+                {
+                  text: 'Continue',
+                  onPress: () => {
+                    void loadSubscriptionData();
+                    navigation.goBack();
+                  },
+                },
+              ],
+            );
+          } else {
+            Alert.alert(
+              '❌ Payment Failed',
+              'Your App Store purchase could not be verified. Premium was not unlocked. Please try again or contact support.',
+            );
+          }
+        } catch (appleError: unknown) {
+          if (__DEV__) {
+            const parsed = parseIapError(appleError);
+            devLog('Apple IAP payment error', {
+              code: parsed.code,
+              message: parsed.message,
+              cancelled: parsed.cancelled,
+            });
+          }
+
+          if (!isMounted.current) {
+            return;
+          }
+
+          if (appleError instanceof PaymentApiError) {
+            if (appleError.statusCode === 401) {
+              handleSessionExpired(appleError.message);
+              return;
+            }
+            if (appleError.statusCode === 403) {
+              Alert.alert(
+                'Not authorized',
+                'Subscription is only available for student accounts.',
+              );
+              return;
+            }
+            if (appleError.statusCode === 409) {
+              Alert.alert(
+                'Purchase already linked',
+                appleError.message ||
+                  'This App Store purchase is already linked to another student account.',
+              );
+              return;
+            }
+            if (appleError.statusCode === 422) {
+              Alert.alert(
+                'Verification failed',
+                appleError.message ||
+                  'Apple rejected this purchase receipt. Premium was not unlocked.',
+              );
+              return;
+            }
+            Alert.alert('Payment Error', appleError.message);
+            return;
+          }
+
+          const parsed = parseIapError(appleError);
+          Alert.alert(
+            parsed.cancelled ? 'Payment Cancelled' : 'Payment Error',
+            parsed.userMessage,
+          );
         }
         return;
       }
@@ -437,6 +567,23 @@ const SubscriptionScreen: React.FC = () => {
   };
 
   const handleCancelSubscription = async () => {
+    if (usesAppleIAP) {
+      Alert.alert(
+        'Manage Subscription',
+        'Premium subscriptions purchased through the App Store are managed in your Apple ID subscription settings.',
+        [
+          {text: 'Not now', style: 'cancel'},
+          {
+            text: 'Open Settings',
+            onPress: () => {
+              void Linking.openURL('https://apps.apple.com/account/subscriptions');
+            },
+          },
+        ],
+      );
+      return;
+    }
+
     Alert.alert(
       'Cancel Subscription',
       'Are you sure you want to cancel your premium subscription?',
@@ -475,6 +622,100 @@ const SubscriptionScreen: React.FC = () => {
         },
       ],
     );
+  };
+
+  const handleRestorePurchases = async () => {
+    if (!user) {
+      Alert.alert('Error', 'Please log in to restore purchases.');
+      return;
+    }
+
+    if (!canAccessPayment(user)) {
+      Alert.alert(
+        'Not available',
+        'Restore purchases is only available for student accounts.',
+      );
+      return;
+    }
+
+    try {
+      if (isMounted.current) {
+        setIsLoading(true);
+      }
+
+      const result = await subscriptionService.restoreApplePurchases();
+
+      if (!isMounted.current) {
+        return;
+      }
+
+      if (result.success && result.isSubscribed === true) {
+        await markUserSubscribed(user);
+        await loadSubscriptionData();
+        Alert.alert(
+          'Purchases Restored',
+          'Your premium subscription has been restored.',
+        );
+      } else {
+        Alert.alert(
+          'No Purchases Found',
+          'We could not verify an active premium subscription for this Apple ID. Premium was not unlocked.',
+        );
+      }
+    } catch (error: unknown) {
+      if (__DEV__) {
+        const parsed = parseIapError(error);
+        devLog('Apple IAP restore error', {
+          code: parsed.code,
+          message: parsed.message,
+        });
+      }
+      if (!isMounted.current) {
+        return;
+      }
+
+      if (error instanceof PaymentApiError) {
+        if (error.statusCode === 401) {
+          handleSessionExpired(error.message);
+          return;
+        }
+        if (error.statusCode === 403) {
+          Alert.alert(
+            'Not authorized',
+            'Restore purchases is only available for student accounts.',
+          );
+          return;
+        }
+        if (error.statusCode === 409) {
+          Alert.alert(
+            'Purchase already linked',
+            error.message ||
+              'This App Store purchase is already linked to another student account.',
+          );
+          return;
+        }
+        if (error.statusCode === 422) {
+          Alert.alert(
+            'Verification failed',
+            error.message ||
+              'Apple rejected this purchase receipt. Premium was not unlocked.',
+          );
+          return;
+        }
+        Alert.alert('Restore Failed', error.message);
+        return;
+      }
+
+      const parsed = parseIapError(error);
+      Alert.alert(
+        parsed.cancelled ? 'Restore Cancelled' : 'Restore Failed',
+        parsed.userMessage,
+      );
+    } finally {
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
+    }
   };
 
   const renderPlanCard = (plan: 'free' | 'premium', isSelected: boolean) => {
@@ -551,7 +792,9 @@ const SubscriptionScreen: React.FC = () => {
                 styles.priceText,
                 isSelected && styles.selectedPriceText,
               ]}>
-              ₹{SUBSCRIPTION.PRICING.PREMIUM_ANNUAL}/year
+              {usesAppleIAP
+                ? `${appleProductPrice ?? '…'}/year`
+                : `₹${SUBSCRIPTION.PRICING.PREMIUM_ANNUAL}/year`}
             </Text>
           )}
         </VStack>
@@ -603,6 +846,11 @@ const SubscriptionScreen: React.FC = () => {
             {method.type === 'razorpay' && method.isEnabled && (
               <Text style={styles.paymentMethodHint}>
                 UPI, Cards & Net Banking
+              </Text>
+            )}
+            {method.type === 'apple_iap' && method.isEnabled && (
+              <Text style={styles.paymentMethodHint}>
+                Billed through your Apple ID
               </Text>
             )}
           </VStack>
@@ -685,7 +933,7 @@ const SubscriptionScreen: React.FC = () => {
                     <Text
                       testID="subscription-cancel-text"
                       style={{color: colors.white, fontWeight: 'bold'}}>
-                      Cancel
+                      {usesAppleIAP ? 'Manage' : 'Cancel'}
                     </Text>
                   </Button>
                 )}
@@ -732,7 +980,29 @@ const SubscriptionScreen: React.FC = () => {
               <Text
                 testID="subscription-subscribe-text"
                 style={styles.subscribeButtonText}>
-                {isLoading ? 'Processing...' : 'Subscribe Now'}
+                {isLoading
+                  ? 'Processing...'
+                  : usesAppleIAP
+                    ? 'Subscribe with Apple'
+                    : 'Subscribe Now'}
+              </Text>
+            </Button>
+          )}
+
+          {usesAppleIAP && canAccessPayment(user) && (
+            <Button
+              testID="subscription-restore-button"
+              size="md"
+              onPress={handleRestorePurchases}
+              disabled={isLoading}
+              style={[
+                styles.restoreButton,
+                isLoading && styles.disabledButton,
+              ]}>
+              <Text
+                testID="subscription-restore-text"
+                style={styles.restoreButtonText}>
+                Restore Purchases
               </Text>
             </Button>
           )}
@@ -743,8 +1013,9 @@ const SubscriptionScreen: React.FC = () => {
               Policy.
             </Text>
             <Text testID="subscription-terms-text-2" style={styles.termsText}>
-              Subscription will auto-renew annually. Cancel anytime in your
-              account settings.
+              {usesAppleIAP
+                ? 'Subscription auto-renews annually unless cancelled at least 24 hours before the end of the current period. Manage or cancel in your Apple ID subscription settings.'
+                : 'Subscription will auto-renew annually. Cancel anytime in your account settings.'}
             </Text>
           </VStack>
         </VStack>
@@ -971,6 +1242,24 @@ const getStyles = (colors: any, screenWidth: number) => {
     },
     disabledButton: {
       backgroundColor: colors.border,
+    },
+    restoreButton: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      width: '100%',
+      height: 48,
+      minHeight: 48,
+      paddingVertical: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    restoreButtonText: {
+      color: colors.primaryText,
+      fontWeight: '600',
+      fontSize: isNarrow ? 15 : 16,
+      textAlign: 'center',
     },
     termsSection: {
       paddingTop: 4,

@@ -68,6 +68,7 @@ export const API_ENDPOINTS = {
   PAYMENT: {
     CREATE_ORDER: '/api/create-order',
     VERIFY_PAYMENT: '/api/verify-payment',
+    VERIFY_APPLE_PURCHASE: '/api/verify-apple-purchase',
   },
 } as const;
 
@@ -236,6 +237,10 @@ export const SUBSCRIPTION = {
   FEATURES: {
     FREE: ['Basic quiz access', 'Event browsing'],
     PREMIUM: ['Full quiz access', 'Ad-free experience', 'Priority support'],
+  },
+  /** App Store Connect auto-renewable subscription product ID (iOS IAP). */
+  IAP: {
+    PREMIUM_ANNUAL_PRODUCT_ID: 'com.nsnr.alphavlogsindia.annual.premium',
   },
 } as const;
 

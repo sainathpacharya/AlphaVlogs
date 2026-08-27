@@ -100,7 +100,12 @@ export function parseSubscriptionPayload(payload: unknown): Subscription | null 
       userId: String(sub.userId ?? sub.studentId ?? ''),
       plan: normalizePlan(sub.plan),
       amount: Number(sub.amount ?? 0),
-      paymentMethod: (sub.paymentMethod as Subscription['paymentMethod']) ?? 'razorpay',
+      paymentMethod:
+        sub.paymentMethod === 'apple_iap' ||
+        sub.paymentMethod === 'cash' ||
+        sub.paymentMethod === 'cheque'
+          ? sub.paymentMethod
+          : 'razorpay',
       status: normalizeStatus(sub.status),
       startDate: String(sub.startDate ?? ''),
       endDate: sub.endDate == null ? '' : String(sub.endDate),

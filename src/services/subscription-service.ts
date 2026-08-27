@@ -17,6 +17,13 @@ export interface RazorpayCheckoutResult {
   isSubscribed?: boolean;
 }
 
+export interface AppleCheckoutResult {
+  success: boolean;
+  orderId: string;
+  paymentId: string;
+  isSubscribed?: boolean;
+}
+
 export interface UpdateSubscriptionRequest {
   plan: 'premium';
   paymentMethod: 'razorpay' | 'cash' | 'cheque';
@@ -177,6 +184,120 @@ class SubscriptionService {
       }
       if (__DEV__) {
         console.error('Error completing Razorpay checkout:', error);
+      }
+      throw error;
+    }
+  }
+
+  /** Full Apple IAP checkout: StoreKit purchase → server receipt validation. */
+  async completeAppleCheckout(user: User): Promise<AppleCheckoutResult> {
+    try {
+      const {iapService} = require('./iap-service');
+      const purchase = await iapService.purchasePremium();
+      const transactionId = String(purchase.transactionId ?? '').trim();
+      // Prefer StoreKit 2 JWS; fall back to classic receipt.
+      const transactionReceipt = String(
+        purchase.verificationResultIOS ??
+          purchase.transactionReceipt ??
+          '',
+      ).trim();
+
+      if (!transactionId || !transactionReceipt) {
+        throw new PaymentApiError(
+          'Incomplete purchase data from App Store (need product_id, transaction_id, transaction_receipt)',
+          400,
+        );
+      }
+
+      const verified = await paymentService.verifyApplePurchase({
+        productId: purchase.productId,
+        transactionId,
+        transactionReceipt,
+      });
+
+      const unlocked =
+        verified.verified === true && verified.isSubscribed === true;
+
+      if (unlocked) {
+        await iapService.finishPurchase(purchase);
+      }
+
+      return {
+        success: unlocked,
+        orderId: verified.orderId,
+        paymentId: verified.paymentId,
+        isSubscribed: verified.isSubscribed,
+      };
+    } catch (error) {
+      if (error instanceof PaymentApiError) {
+        throw error;
+      }
+      if (__DEV__) {
+        console.error('Error completing Apple checkout:', error);
+      }
+      throw error;
+    }
+  }
+
+  /** Restore App Store subscription and validate with the same verify-apple-purchase endpoint. */
+  async restoreApplePurchases(): Promise<AppleCheckoutResult> {
+    try {
+      const {iapService} = require('./iap-service');
+      const purchases = await iapService.restorePurchases();
+
+      if (purchases.length === 0) {
+        return {
+          success: false,
+          orderId: '',
+          paymentId: '',
+          isSubscribed: false,
+        };
+      }
+
+      const latestPurchase = purchases.sort(
+        (a: {transactionDate?: number}, b: {transactionDate?: number}) =>
+          (b.transactionDate ?? 0) - (a.transactionDate ?? 0),
+      )[0];
+
+      const transactionId = String(latestPurchase.transactionId ?? '').trim();
+      const transactionReceipt = String(
+        latestPurchase.verificationResultIOS ??
+          latestPurchase.transactionReceipt ??
+          '',
+      ).trim();
+
+      if (!transactionId || !transactionReceipt) {
+        throw new PaymentApiError(
+          'Incomplete purchase data from App Store (need product_id, transaction_id, transaction_receipt)',
+          400,
+        );
+      }
+
+      const verified = await paymentService.verifyApplePurchase({
+        productId: latestPurchase.productId,
+        transactionId,
+        transactionReceipt,
+      });
+
+      const unlocked =
+        verified.verified === true && verified.isSubscribed === true;
+
+      if (unlocked) {
+        await iapService.finishPurchase(latestPurchase);
+      }
+
+      return {
+        success: unlocked,
+        orderId: verified.orderId,
+        paymentId: verified.paymentId,
+        isSubscribed: verified.isSubscribed,
+      };
+    } catch (error) {
+      if (error instanceof PaymentApiError) {
+        throw error;
+      }
+      if (__DEV__) {
+        console.error('Error restoring Apple purchases:', error);
       }
       throw error;
     }

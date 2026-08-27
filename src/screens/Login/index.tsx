@@ -6,6 +6,9 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
+  Keyboard,
+  InputAccessoryView,
+  View,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
@@ -32,10 +35,26 @@ import {devLog} from '@/utils/dev-log';
 import {getApiBaseUrl} from '@/constants';
 
 const {width} = Dimensions.get('window');
+const OTP_KEYBOARD_ACCESSORY_ID = 'login-otp-keyboard-accessory';
+
+function OtpKeyboardAccessory({
+  nativeID,
+  children,
+}: {
+  nativeID: string;
+  children: React.ReactNode;
+}) {
+  if (Platform.OS !== 'ios' || !InputAccessoryView) {
+    return null;
+  }
+  return (
+    <InputAccessoryView nativeID={nativeID}>{children}</InputAccessoryView>
+  );
+}
 
 // Memoized logo so parent re-renders (e.g. timer) don't stutter the animation
 const LoginLogo = React.memo(function LoginLogo() {
-  const logoSize = useMemo(() => width * 0.42, []);
+  const logoSize = useMemo(() => Math.min(width * 0.32, 140), []);
   return (
     <AppLogoImage
       testID="login-logo"
@@ -44,7 +63,8 @@ const LoginLogo = React.memo(function LoginLogo() {
       style={{
         width: logoSize,
         height: logoSize,
-        marginBottom: 16,
+        marginBottom: 12,
+        marginTop: 8,
       }}
     />
   );
@@ -104,17 +124,6 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
       setOtp('');
     }
   }, [isMobileValid]);
-
-  // Keep OTP fields above the keyboard once the pin UI appears
-  useEffect(() => {
-    if (!isOtpSent) {
-      return;
-    }
-    const id = setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({animated: true});
-    }, Platform.OS === 'android' ? 180 : 80);
-    return () => clearTimeout(id);
-  }, [isOtpSent]);
 
   const startOtpTimer = useCallback(() => {
     if (timerRef.current) {
@@ -314,20 +323,15 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
     }
   };
 
-  const scrollFocusedFieldIntoView = useCallback(() => {
-    // Physical Android keyboards (with suggestion bar) need a beat before layout settles
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({animated: true});
-      }, Platform.OS === 'android' ? 120 : 0);
-    });
+  const dismissKeyboard = useCallback(() => {
+    Keyboard.dismiss?.();
   }, []);
 
   return (
     <KeyboardAvoidingView
       testID="login-screen"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
+      keyboardVerticalOffset={0}
       style={{flex: 1, backgroundColor: colors.primaryBackground}}>
       <StatusBar translucent={false} />
 
@@ -336,14 +340,14 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
         testID="login-scroll-view"
         style={{flex: 1}}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           flexGrow: 1,
-          justifyContent: 'center',
+          justifyContent: 'flex-start',
           paddingHorizontal: 20,
-          paddingTop: insets.top + 16,
-          paddingBottom: insets.bottom + 160,
+          paddingTop: insets.top + 24,
+          paddingBottom: Math.max(insets.bottom, 16) + 24,
         }}>
         <VStack
           testID="login-container"
@@ -405,12 +409,12 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
               }}
               placeholderTextColor={colors.mutedText}
               color={colors.inputText}
-              onFocus={() => {
-                setIsMobileFocused(true);
-                scrollFocusedFieldIntoView();
-              }}
+              onFocus={() => setIsMobileFocused(true)}
               onBlur={() => setIsMobileFocused(false)}
               returnKeyType="next"
+              {...(Platform.OS === 'ios'
+                ? {inputAccessoryViewID: OTP_KEYBOARD_ACCESSORY_ID}
+                : {})}
               onSubmitEditing={() => {
                 // Focus will be handled by autoFocus on OTP input
               }}
@@ -469,6 +473,9 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
                   containerStyle={{
                     backgroundColor: colors.transparent,
                   }}
+                  {...(Platform.OS === 'ios'
+                    ? {inputAccessoryViewID: OTP_KEYBOARD_ACCESSORY_ID}
+                    : {})}
                 />
 
                 {/* Timer and Resend Section */}
@@ -576,6 +583,32 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
           </Box>
         </VStack>
       </ScrollView>
+
+      <OtpKeyboardAccessory nativeID={OTP_KEYBOARD_ACCESSORY_ID}>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+            backgroundColor: colors.cardBackground ?? colors.primaryBackground,
+          }}>
+          <TouchableOpacity
+            testID="login-keyboard-dismiss"
+            onPress={dismissKeyboard}
+            hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+            <Text
+              color={colors.accentAction}
+              fontWeight="$semibold"
+              fontSize={16}>
+              Done
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </OtpKeyboardAccessory>
 
       {/* ✅ Confetti Cannon 🎉 */}
       {showConfetti && (

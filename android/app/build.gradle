@@ -188,6 +188,8 @@ android {
         // Set versionCode and versionName here - they will apply to all flavors
         versionCode buildVersionCode
         versionName buildVersionName
+        // react-native-iap exposes play/amazon store flavors; default to Google Play
+        missingDimensionStrategy "store", "play"
     }
     
     // Product Flavors: develop and production

@@ -23,6 +23,12 @@ export interface VerifyPaymentResult {
   isSubscribed?: boolean;
 }
 
+export interface VerifyApplePurchaseRequest {
+  productId: string;
+  transactionId: string;
+  transactionReceipt: string;
+}
+
 export interface CreateOrderRequest {
   amount: number;
   currency?: string;
@@ -92,6 +98,14 @@ function userFacingPaymentError(
 
   if (statusCode === 403 || code === 'FORBIDDEN') {
     return 'Your account is not allowed to make payments. Please use a student account or contact support.';
+  }
+
+  if (statusCode === 409) {
+    return 'This App Store purchase is already linked to another student account.';
+  }
+
+  if (statusCode === 422) {
+    return 'Apple rejected this purchase receipt. Premium was not unlocked. Please try again or contact support.';
   }
 
   return message;
@@ -246,6 +260,68 @@ class PaymentService {
       orderId: String(data.orderId ?? payment.razorpay_order_id),
       paymentId: String(data.paymentId ?? payment.razorpay_payment_id),
       isSubscribed: data.isSubscribed === true || data.subscribed === true,
+    };
+  }
+
+  async verifyApplePurchase(
+    purchase: VerifyApplePurchaseRequest,
+  ): Promise<VerifyPaymentResult> {
+    if (
+      !purchase.productId ||
+      !purchase.transactionId ||
+      !purchase.transactionReceipt
+    ) {
+      throw new PaymentApiError(
+        'Incomplete purchase data from App Store (need product_id, transaction_id, transaction_receipt)',
+        400,
+      );
+    }
+
+    if (MockWrapperService.isMockMode()) {
+      await new Promise<void>(resolve => {
+        setTimeout(() => resolve(), 500);
+      });
+      return {
+        verified: true,
+        orderId: purchase.transactionId,
+        paymentId: purchase.transactionId,
+        isSubscribed: true,
+      };
+    }
+
+    await assertPaymentAuth();
+
+    const path = API_ENDPOINTS.PAYMENT.VERIFY_APPLE_PURCHASE;
+    devLog('PaymentService.verifyApplePurchase →', {path, baseUrl: getApiBaseUrl()});
+
+    const response = await paymentApiPost<VerifyPaymentResult>(path, {
+      product_id: purchase.productId,
+      transaction_id: purchase.transactionId,
+      transaction_receipt: purchase.transactionReceipt,
+    });
+
+    if (!response.success || !response.data) {
+      throw new PaymentApiError(
+        formatPaymentError(path, response.error, response.statusCode, response.debug),
+        response.statusCode,
+      );
+    }
+
+    const data = response.data as VerifyPaymentResult & Record<string, unknown>;
+    const verified = data.verified === true;
+    const isSubscribed =
+      data.isSubscribed === true || data.subscribed === true;
+
+    // Never unlock unless both flags are true (caller checks success gate).
+    return {
+      verified,
+      orderId: String(
+        data.orderId ?? data.transactionId ?? purchase.transactionId,
+      ),
+      paymentId: String(
+        data.paymentId ?? data.transactionId ?? purchase.transactionId,
+      ),
+      isSubscribed,
     };
   }
 }

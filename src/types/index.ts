@@ -280,7 +280,7 @@ export interface Subscription {
   userId: string;
   plan: 'free' | 'premium';
   amount: number;
-  paymentMethod: 'razorpay' | 'cash' | 'cheque';
+  paymentMethod: 'razorpay' | 'cash' | 'cheque' | 'apple_iap';
   status: 'active' | 'expired' | 'pending' | 'cancelled';
   startDate: string;
   endDate: string;
