@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useMemo, useCallback} from 'react';
-import {View, StyleSheet, Alert, useWindowDimensions, Platform, Linking} from 'react-native';
+import {View, StyleSheet, Alert, useWindowDimensions, Linking} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {Check, Crown} from 'lucide-react-native';
 import {
@@ -264,7 +264,7 @@ const SubscriptionScreen: React.FC = () => {
         setIsLoading(false);
       }
     }
-  }, [user?.id, isMounted]);
+  }, [user?.id, isMounted, usesAppleIAP]);
 
   const handleSessionExpired = useCallback(
     (message: string) => {

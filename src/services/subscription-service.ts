@@ -190,7 +190,7 @@ class SubscriptionService {
   }
 
   /** Full Apple IAP checkout: StoreKit purchase → server receipt validation. */
-  async completeAppleCheckout(user: User): Promise<AppleCheckoutResult> {
+  async completeAppleCheckout(_user: User): Promise<AppleCheckoutResult> {
     try {
       const {iapService} = require('./iap-service');
       const purchase = await iapService.purchasePremium();
