@@ -119,14 +119,30 @@ describe('api-config', () => {
 
   it('loads optional local overrides when api-config.local is present', () => {
     jest.resetModules();
-    jest.doMock('../../src/config/api-config.local', () => ({
+
+    const factory = () => ({
       API_CONFIG_LOCAL: {
         USE_PRODUCTION_API: false,
         DEV: { LAN_HOST: '10.0.0.8', PORT: 3001, USE_LOCAL_BACKEND: false },
       },
-    }));
+    });
 
-    const { API_CONFIG, getApiBaseUrl } = require('../../src/config/api-config');
+    // File is gitignored — exists locally, missing on CI.
+    let localModuleExists = false;
+    try {
+      require.resolve('../../src/config/api-config.local');
+      localModuleExists = true;
+    } catch {
+      localModuleExists = false;
+    }
+
+    if (localModuleExists) {
+      jest.doMock('../../src/config/api-config.local', factory);
+    } else {
+      jest.doMock('../../src/config/api-config.local', factory, {virtual: true});
+    }
+
+    const {API_CONFIG, getApiBaseUrl} = require('../../src/config/api-config');
     expect(API_CONFIG.USE_PRODUCTION_API).toBe(false);
     expect(getApiBaseUrl()).toBe('http://10.0.0.8:3001');
   });
