@@ -41,20 +41,10 @@
 			</dict>
 		</dict>
 	</dict>
-	<key>NSCameraUsageDescription</key>
-	<string>Alpha Vlogs needs camera access to record videos for talent show events.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Alpha Vlogs uses location to provide school-specific features and event recommendations.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Alpha Vlogs uses location to provide school-specific features and event recommendations.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Alpha Vlogs needs microphone access to record audio for videos.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Alpha Vlogs needs permission to save videos to your photo library.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Alpha Vlogs needs photo library access to select and upload videos for talent show events.</string>
-	<key>NSUserNotificationUsageDescription</key>
-	<string>Alpha Vlogs sends notifications for new events, quiz reminders, and results updates.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>

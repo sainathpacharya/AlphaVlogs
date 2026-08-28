@@ -82,6 +82,7 @@ export const STORAGE_KEYS: AsyncStorageKeys = {
   THEME: 'theme',
   LANGUAGE: 'language',
   PUSH_TOKEN: 'push_token',
+  ANALYTICS_CONSENT: 'analytics_consent',
 };
 
 export const SECURE_STORAGE_KEYS: SecureStorageKeys = {
@@ -236,7 +237,7 @@ export const SUBSCRIPTION = {
   },
   FEATURES: {
     FREE: ['Basic quiz access', 'Event browsing'],
-    PREMIUM: ['Full quiz access', 'Ad-free experience', 'Priority support'],
+    PREMIUM: ['Full quiz access', 'Premium video uploads', 'Priority support'],
   },
   /** App Store Connect auto-renewable subscription product ID (iOS IAP). */
   IAP: {

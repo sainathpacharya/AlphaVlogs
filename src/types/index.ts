@@ -219,6 +219,7 @@ export interface AsyncStorageKeys {
   THEME: 'theme';
   LANGUAGE: 'language';
   PUSH_TOKEN: 'push_token';
+  ANALYTICS_CONSENT: 'analytics_consent';
 }
 
 export interface SecureStorageKeys {

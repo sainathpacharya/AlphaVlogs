@@ -11,6 +11,7 @@ import {
   Pressable,
 } from '@/components';
 import {SUBSCRIPTION, STORAGE_KEYS} from '@/constants';
+import {LEGAL_URLS} from '@/constants/legal';
 import {useThemeColors} from '@/utils/colors';
 import {subscriptionService} from '@/services/subscription-service';
 import {PaymentApiError} from '@/services/payment-service';
@@ -344,7 +345,7 @@ const SubscriptionScreen: React.FC = () => {
 
             Alert.alert(
               '✅ Subscription Successful',
-              'Welcome to Jack Marvels Premium! You now have access to all quizzes and premium features.',
+              'Welcome to Alpha Vlogs Premium! You now have access to all quizzes and premium features.',
               [
                 {
                   text: 'Continue',
@@ -443,7 +444,7 @@ const SubscriptionScreen: React.FC = () => {
 
             Alert.alert(
               '✅ Subscription Successful',
-              `Welcome to Jack Marvels Premium! You now have access to all quizzes and premium features.\n\nPayment ID: ${result.paymentId}`,
+              `Welcome to Alpha Vlogs Premium! You now have access to all quizzes and premium features.\n\nPayment ID: ${result.paymentId}`,
               [
                 {
                   text: 'Continue',
@@ -533,7 +534,7 @@ const SubscriptionScreen: React.FC = () => {
         await markUserSubscribed(user);
         Alert.alert(
           '✅ Subscription Successful',
-          `Welcome to Jack Marvels Premium!\n\nTransaction ID: ${(paymentResult as { transactionId?: string }).transactionId ?? 'N/A'}`,
+          `Welcome to Alpha Vlogs Premium!\n\nTransaction ID: ${(paymentResult as { transactionId?: string }).transactionId ?? 'N/A'}`,
           [
             {
               text: 'Continue',
@@ -1009,8 +1010,21 @@ const SubscriptionScreen: React.FC = () => {
 
           <VStack testID="subscription-terms" space="sm" style={styles.termsSection}>
             <Text testID="subscription-terms-text-1" style={styles.termsText}>
-              By subscribing, you agree to our Terms of Service and Privacy
-              Policy.
+              By subscribing, you agree to our{' '}
+              <Text
+                testID="subscription-terms-link"
+                style={styles.termsLink}
+                onPress={() => void Linking.openURL(LEGAL_URLS.termsOfService)}>
+                Terms of Service
+              </Text>{' '}
+              and{' '}
+              <Text
+                testID="subscription-privacy-link"
+                style={styles.termsLink}
+                onPress={() => void Linking.openURL(LEGAL_URLS.privacyPolicy)}>
+                Privacy Policy
+              </Text>
+              .
             </Text>
             <Text testID="subscription-terms-text-2" style={styles.termsText}>
               {usesAppleIAP
@@ -1270,6 +1284,11 @@ const getStyles = (colors: any, screenWidth: number) => {
       textAlign: 'center',
       lineHeight: 18,
       paddingHorizontal: 4,
+    },
+    termsLink: {
+      color: colors.accentAction,
+      textDecorationLine: 'underline',
+      fontWeight: '600',
     },
   });
 };

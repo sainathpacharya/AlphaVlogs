@@ -21,6 +21,10 @@ export type AppStackParamList = {
     AboutUs: undefined;
     TermsAndConditions: undefined;
     PrivacyPolicy: undefined;
+    ReportContent: {
+      eventId?: string;
+      eventTitle?: string;
+    } | undefined;
     MockTest: undefined;
     Permissions: undefined;
   };

@@ -3,6 +3,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import type {NativeStackNavigationOptions} from '@react-navigation/native-stack';
 import {useStatusBarConfig} from '@/utils/colors';
 import apiService from '@/services/api';
+import {screen} from '@/navigation/screen';
 import WelcomeScreen from '../../screens/Welcome';
 import {AuthStackParamList} from './types';
 import LoginScreen from '../../screens/Login';
@@ -26,11 +27,14 @@ const AuthStack = () => {
         statusBarStyle: navigationStatusBarStyle,
         statusBarBackgroundColor: backgroundColor,
       } as NativeStackNavigationOptions}>
-      <Stack.Screen name="Welcome" component={WelcomeScreen} />
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Signup" component={RegistrationScreen} />
-      <Stack.Screen name="ProfileSelection" component={ProfileSelectionScreen} />
-      <Stack.Screen name="ComingSoon" component={ComingSoonScreen} />
+      <Stack.Screen name="Welcome" component={screen(WelcomeScreen, 'WelcomeScreen')} />
+      <Stack.Screen name="Login" component={screen(LoginScreen, 'LoginScreen')} />
+      <Stack.Screen name="Signup" component={screen(RegistrationScreen, 'RegistrationScreen')} />
+      <Stack.Screen
+        name="ProfileSelection"
+        component={screen(ProfileSelectionScreen, 'ProfileSelectionScreen')}
+      />
+      <Stack.Screen name="ComingSoon" component={screen(ComingSoonScreen, 'ComingSoonScreen')} />
     </Stack.Navigator>
   );
 };

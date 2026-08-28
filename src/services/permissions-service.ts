@@ -39,12 +39,7 @@ type PermissionResultMap = Record<PermissionConstant, string>;
 class PermissionsService {
   private getRequiredPermissions(): PermissionConstant[] {
     if (Platform.OS === 'ios') {
-      return [
-        PERMISSIONS.IOS.CAMERA,
-        PERMISSIONS.IOS.PHOTO_LIBRARY,
-        PERMISSIONS.IOS.LOCATION_WHEN_IN_USE,
-        PERMISSIONS.IOS.MICROPHONE,
-      ];
+      return [getIosPhotoLibraryPermission()];
     }
 
     const permissions: PermissionConstant[] = [

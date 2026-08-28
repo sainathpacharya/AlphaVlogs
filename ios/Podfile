@@ -35,11 +35,7 @@ target 'JackMarvelsApp' do
   # Permissions handler setup for react-native-permissions
   # ⬇️ uncomment wanted permissions
   setup_permissions([
-    'Camera',
-    'PhotoLibrary', 
-    'Microphone',
-    'LocationWhenInUse',
-    'Notifications'
+    'PhotoLibrary',
   ])
 
   target 'JackMarvelsAppTests' do

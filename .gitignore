@@ -74,14 +74,11 @@ yarn-error.log
 !.yarn/sdks
 !.yarn/versions
 
-# CocoaPods Lockfile
-Podfile.lock
-
-# NPM Lockfile
+# NPM Lockfile (project uses Yarn)
 package-lock.json
-
-# Yarn Lockfile
-yarn.lock
 
 # Local API overrides (LAN backend); committed defaults use production URL
 src/config/api-config.local.ts
+
+# Android SDK path (per-developer machine)
+# Template: android/local.properties.example

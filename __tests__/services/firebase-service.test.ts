@@ -1,7 +1,18 @@
-import analytics from '@react-native-firebase/analytics';
-import crashlytics from '@react-native-firebase/crashlytics';
+import {
+  getAnalytics,
+  logEvent,
+  setUserId as setAnalyticsUserId,
+} from '@react-native-firebase/analytics';
+import {
+  getCrashlytics,
+  log as crashlyticsLog,
+  recordError as crashlyticsRecordError,
+  setAttribute as crashlyticsSetAttribute,
+  setUserId as crashlyticsSetUserId,
+} from '@react-native-firebase/crashlytics';
 import {ErrorUtils} from 'react-native';
 import {devLog} from '@/utils/dev-log';
+import {firebaseInstance} from '../../__tests__/__mocks__/@react-native-firebase/firebase-shared';
 import {
   initializeFirebaseMonitoring,
   logScreenView,
@@ -26,16 +37,13 @@ describe('firebase-service', () => {
     (global as {__DEV__?: boolean}).__DEV__ = originalDev;
   });
 
-  it('initializes analytics and crashlytics collection', async () => {
+  it('initializes Firebase monitoring without enabling collection', async () => {
     await initializeFirebaseMonitoring();
 
-    expect(crashlytics().setCrashlyticsCollectionEnabled).toHaveBeenCalledWith(
-      true,
-    );
-    expect(analytics().setAnalyticsCollectionEnabled).toHaveBeenCalledWith(
-      true,
-    );
-    expect(crashlytics().log).toHaveBeenCalledWith(
+    expect(firebaseInstance.setCrashlyticsCollectionEnabled).not.toHaveBeenCalled();
+    expect(firebaseInstance.setAnalyticsCollectionEnabled).not.toHaveBeenCalled();
+    expect(crashlyticsLog).toHaveBeenCalledWith(
+      getCrashlytics(),
       'Firebase monitoring initialized',
     );
   });
@@ -43,23 +51,28 @@ describe('firebase-service', () => {
   it('logs screen views to analytics and crashlytics', async () => {
     await logScreenView('Dashboard');
 
-    expect(analytics().logScreenView).toHaveBeenCalledWith({
+    expect(logEvent).toHaveBeenCalledWith(getAnalytics(), 'screen_view', {
       screen_name: 'Dashboard',
       screen_class: 'Dashboard',
     });
-    expect(crashlytics().setAttribute).toHaveBeenCalledWith(
+    expect(crashlyticsSetAttribute).toHaveBeenCalledWith(
+      getCrashlytics(),
       'current_screen',
       'Dashboard',
     );
-    expect(crashlytics().log).toHaveBeenCalledWith('Screen view: Dashboard');
+    expect(crashlyticsLog).toHaveBeenCalledWith(
+      getCrashlytics(),
+      'Screen view: Dashboard',
+    );
   });
 
   it('sets firebase user identifiers and attributes', async () => {
     await setFirebaseUser('user-123', {user_role: 'student'});
 
-    expect(crashlytics().setUserId).toHaveBeenCalledWith('user-123');
-    expect(analytics().setUserId).toHaveBeenCalledWith('user-123');
-    expect(crashlytics().setAttribute).toHaveBeenCalledWith(
+    expect(crashlyticsSetUserId).toHaveBeenCalledWith(getCrashlytics(), 'user-123');
+    expect(setAnalyticsUserId).toHaveBeenCalledWith(getAnalytics(), 'user-123');
+    expect(crashlyticsSetAttribute).toHaveBeenCalledWith(
+      getCrashlytics(),
       'user_role',
       'student',
     );
@@ -68,8 +81,8 @@ describe('firebase-service', () => {
   it('clears firebase user identifiers when userId is null', async () => {
     await setFirebaseUser(null);
 
-    expect(crashlytics().setUserId).toHaveBeenCalledWith('');
-    expect(analytics().setUserId).toHaveBeenCalledWith(null);
+    expect(crashlyticsSetUserId).toHaveBeenCalledWith(getCrashlytics(), '');
+    expect(setAnalyticsUserId).toHaveBeenCalledWith(getAnalytics(), null);
   });
 
   it('truncates crashlytics attribute values longer than 1024 characters', async () => {
@@ -77,7 +90,8 @@ describe('firebase-service', () => {
 
     await setFirebaseUser('user-123', {bio: longValue});
 
-    expect(crashlytics().setAttribute).toHaveBeenCalledWith(
+    expect(crashlyticsSetAttribute).toHaveBeenCalledWith(
+      getCrashlytics(),
       'bio',
       'x'.repeat(1024),
     );
@@ -88,11 +102,12 @@ describe('firebase-service', () => {
 
     await recordError(error, {error_source: 'unit_test'});
 
-    expect(crashlytics().setAttribute).toHaveBeenCalledWith(
+    expect(crashlyticsSetAttribute).toHaveBeenCalledWith(
+      getCrashlytics(),
       'error_source',
       'unit_test',
     );
-    expect(crashlytics().recordError).toHaveBeenCalledWith(error);
+    expect(crashlyticsRecordError).toHaveBeenCalledWith(getCrashlytics(), error);
   });
 
   it('records errors without optional context', async () => {
@@ -100,15 +115,15 @@ describe('firebase-service', () => {
 
     await recordError(error);
 
-    expect(crashlytics().setAttribute).not.toHaveBeenCalled();
-    expect(crashlytics().log).toHaveBeenCalledWith('Error: No context');
-    expect(crashlytics().recordError).toHaveBeenCalledWith(error);
+    expect(crashlyticsSetAttribute).not.toHaveBeenCalled();
+    expect(crashlyticsLog).toHaveBeenCalledWith(getCrashlytics(), 'Error: No context');
+    expect(crashlyticsRecordError).toHaveBeenCalledWith(getCrashlytics(), error);
   });
 
   it('logs initialization failures in __DEV__', async () => {
-    (
-      crashlytics().setCrashlyticsCollectionEnabled as jest.Mock
-    ).mockRejectedValueOnce(new Error('init failed'));
+    (firebaseInstance.log as jest.Mock).mockImplementationOnce(() => {
+      throw new Error('init failed');
+    });
 
     await initializeFirebaseMonitoring();
 
@@ -120,16 +135,16 @@ describe('firebase-service', () => {
 
   it('swallows initialization failures outside __DEV__', async () => {
     (global as {__DEV__?: boolean}).__DEV__ = false;
-    (
-      crashlytics().setCrashlyticsCollectionEnabled as jest.Mock
-    ).mockRejectedValueOnce(new Error('init failed'));
+    (firebaseInstance.log as jest.Mock).mockImplementationOnce(() => {
+      throw new Error('init failed');
+    });
 
     await expect(initializeFirebaseMonitoring()).resolves.toBeUndefined();
     expect(devLog).not.toHaveBeenCalled();
   });
 
   it('logs screen view failures in __DEV__', async () => {
-    (analytics().logScreenView as jest.Mock).mockRejectedValueOnce(
+    (logEvent as jest.Mock).mockRejectedValueOnce(
       new Error('screen failed'),
     );
 
@@ -142,7 +157,7 @@ describe('firebase-service', () => {
   });
 
   it('logs setFirebaseUser failures in __DEV__', async () => {
-    (crashlytics().setUserId as jest.Mock).mockRejectedValueOnce(
+    (crashlyticsSetUserId as jest.Mock).mockRejectedValueOnce(
       new Error('user failed'),
     );
 
@@ -155,9 +170,9 @@ describe('firebase-service', () => {
   });
 
   it('logs recordError failures in __DEV__', async () => {
-    (crashlytics().recordError as jest.Mock).mockRejectedValueOnce(
-      new Error('record failed'),
-    );
+    (crashlyticsRecordError as jest.Mock).mockImplementationOnce(() => {
+      throw new Error('record failed');
+    });
 
     await recordError(new Error('Test failure'));
 
@@ -179,12 +194,13 @@ describe('firebase-service', () => {
 
     await new Promise<void>(resolve => setImmediate(resolve));
 
-    expect(crashlytics().recordError).toHaveBeenCalledWith(error);
-    expect(crashlytics().setAttribute).toHaveBeenCalledWith(
+    expect(crashlyticsRecordError).toHaveBeenCalledWith(getCrashlytics(), error);
+    expect(crashlyticsSetAttribute).toHaveBeenCalledWith(
+      getCrashlytics(),
       'error_source',
       'global_handler',
     );
-    expect(crashlytics().setAttribute).toHaveBeenCalledWith('is_fatal', 'true');
+    expect(crashlyticsSetAttribute).toHaveBeenCalledWith(getCrashlytics(), 'is_fatal', 'true');
     expect(defaultHandler).toHaveBeenCalledWith(error, true);
   });
 
@@ -199,10 +215,11 @@ describe('firebase-service', () => {
 
     await new Promise<void>(resolve => setImmediate(resolve));
 
-    expect(crashlytics().recordError).toHaveBeenCalledWith(
+    expect(crashlyticsRecordError).toHaveBeenCalledWith(
+      getCrashlytics(),
       expect.objectContaining({message: 'plain string failure'}),
     );
-    expect(crashlytics().setAttribute).toHaveBeenCalledWith('is_fatal', 'false');
+    expect(crashlyticsSetAttribute).toHaveBeenCalledWith(getCrashlytics(), 'is_fatal', 'false');
     expect(defaultHandler).toHaveBeenCalledWith('plain string failure', false);
   });
 

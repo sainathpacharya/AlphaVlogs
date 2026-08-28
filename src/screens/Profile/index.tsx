@@ -372,6 +372,13 @@ const ProfileScreen = () => {
 
         <ProfileSection testID="profile-legal-menu" title="Legal & Support" colors={colors}>
           <ProfileMenuItem
+            testID="profile-report-content-button"
+            label="Report Content"
+            colors={colors}
+            showChevron
+            onPress={() => navigation.navigate('ReportContent')}
+          />
+          <ProfileMenuItem
             testID="profile-terms-button"
             label="Terms and Conditions"
             colors={colors}

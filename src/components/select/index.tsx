@@ -26,6 +26,7 @@ export interface SelectProps {
   error?: string;
   disabled?: boolean;
   icon?: React.ComponentType<any>;
+  testID?: string;
 }
 
 const Select = React.forwardRef<any, SelectProps>(
@@ -38,6 +39,7 @@ const Select = React.forwardRef<any, SelectProps>(
       error,
       disabled,
       icon: IconComponent,
+      testID,
     },
     ref,
   ) => {
@@ -94,6 +96,7 @@ const Select = React.forwardRef<any, SelectProps>(
             )}
             <Pressable
               ref={ref}
+              testID={testID}
               onPress={handlePress}
               style={[
                 styles.root,

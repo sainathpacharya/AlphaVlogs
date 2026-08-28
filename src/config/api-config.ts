@@ -94,7 +94,7 @@ export const getDevApiBaseUrl = (): string => {
   return DeviceInfo.isEmulatorSync() ? origin('localhost') : origin(LAN_HOST);
 };
 
-export const isMockMode = () => API_CONFIG.MODE === 'mock';
+export const isMockMode = () => __DEV__ && API_CONFIG.MODE === 'mock';
 
 export const getApiBaseUrl = (): string => {
   if (isMockMode()) {

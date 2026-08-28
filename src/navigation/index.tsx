@@ -1,9 +1,14 @@
-import React, {useCallback, useEffect, useRef} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   NavigationContainer,
   useNavigationContainerRef,
 } from '@react-navigation/native';
 import RootNavigator from './RootNavigator';
+import {AnalyticsConsentPrompt} from '@/components/AnalyticsConsentPrompt';
+import {
+  bootstrapAnalyticsConsent,
+  getAnalyticsConsent,
+} from '@/services/analytics-consent-service';
 import {
   initializeFirebaseMonitoring,
   logScreenView,
@@ -13,9 +18,17 @@ import {getActiveRouteName} from '@/utils/navigation-route';
 const Navigation = () => {
   const navigationRef = useNavigationContainerRef();
   const routeNameRef = useRef<string | undefined>(undefined);
+  const [showConsentPrompt, setShowConsentPrompt] = useState(false);
 
   useEffect(() => {
-    void initializeFirebaseMonitoring();
+    void (async () => {
+      await bootstrapAnalyticsConsent();
+      const consent = await getAnalyticsConsent();
+      if (consent === null) {
+        setShowConsentPrompt(true);
+      }
+      await initializeFirebaseMonitoring();
+    })();
   }, []);
 
   const trackCurrentScreen = useCallback(() => {
@@ -28,12 +41,18 @@ const Navigation = () => {
   }, [navigationRef]);
 
   return (
-    <NavigationContainer
-      ref={navigationRef}
-      onReady={trackCurrentScreen}
-      onStateChange={trackCurrentScreen}>
-      <RootNavigator />
-    </NavigationContainer>
+    <>
+      <NavigationContainer
+        ref={navigationRef}
+        onReady={trackCurrentScreen}
+        onStateChange={trackCurrentScreen}>
+        <RootNavigator />
+      </NavigationContainer>
+      <AnalyticsConsentPrompt
+        visible={showConsentPrompt}
+        onComplete={() => setShowConsentPrompt(false)}
+      />
+    </>
   );
 };
 

@@ -4,6 +4,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import type {NativeStackNavigationOptions} from '@react-navigation/native-stack';
 import {useNavigation} from '@react-navigation/native';
 import {useStatusBarConfig} from '@/utils/colors';
+import {screen} from '@/navigation/screen';
 import {AppStackParamList} from './types';
 import DashboardScreen from '../../screens/Dashboard';
 import ProfileScreen from '../../screens/Profile';
@@ -18,6 +19,7 @@ import ComingSoonScreen from '../../screens/ComingSoon';
 import AboutUsScreen from '../../screens/AboutUs';
 import TermsAndConditionsScreen from '../../screens/TermsAndConditions';
 import PrivacyPolicyScreen from '../../screens/PrivacyPolicy';
+import ReportContentScreen from '../../screens/ReportContent';
 
 const AppStack = createNativeStackNavigator<AppStackParamList>();
 
@@ -57,25 +59,46 @@ const AppStackNavigator = () => {
         statusBarStyle: navigationStatusBarStyle,
         statusBarBackgroundColor: backgroundColor,
       } as NativeStackNavigationOptions}>
-      <AppStack.Screen name="Dashboard" component={DashboardScreen} />
-      <AppStack.Screen name="Profile" component={ProfileScreen} />
-      <AppStack.Screen name="SwitchProfile" component={SwitchProfileScreen} />
-      <AppStack.Screen name="Quiz" component={QuizScreen} />
-      <AppStack.Screen name="Results" component={ResultsScreen} />
-      <AppStack.Screen name="Subscription" component={SubscriptionScreen} />
+      <AppStack.Screen name="Dashboard" component={screen(DashboardScreen, 'DashboardScreen')} />
+      <AppStack.Screen name="Profile" component={screen(ProfileScreen, 'ProfileScreen')} />
+      <AppStack.Screen
+        name="SwitchProfile"
+        component={screen(SwitchProfileScreen, 'SwitchProfileScreen')}
+      />
+      <AppStack.Screen name="Quiz" component={screen(QuizScreen, 'QuizScreen')} />
+      <AppStack.Screen name="Results" component={screen(ResultsScreen, 'ResultsScreen')} />
+      <AppStack.Screen
+        name="Subscription"
+        component={screen(SubscriptionScreen, 'SubscriptionScreen')}
+      />
       <AppStack.Screen
         name="VideoUpload"
-        component={VideoUploadScreen as any}
+        component={screen(VideoUploadScreen as any, 'VideoUploadScreen')}
         options={({route}) => ({
           title: route.params?.eventTitle || 'Video Upload',
         })}
       />
-      <AppStack.Screen name="MockTest" component={MockTestScreen} />
-      <AppStack.Screen name="Permissions" component={PermissionsScreen} />
-      <AppStack.Screen name="ComingSoon" component={ComingSoonScreen} />
-      <AppStack.Screen name="AboutUs" component={AboutUsScreen} />
-      <AppStack.Screen name="TermsAndConditions" component={TermsAndConditionsScreen} />
-      <AppStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+      <AppStack.Screen
+        name="ReportContent"
+        component={screen(ReportContentScreen, 'ReportContentScreen')}
+      />
+      {__DEV__ ? (
+        <AppStack.Screen name="MockTest" component={screen(MockTestScreen, 'MockTestScreen')} />
+      ) : null}
+      <AppStack.Screen
+        name="Permissions"
+        component={screen(PermissionsScreen, 'PermissionsScreen')}
+      />
+      <AppStack.Screen name="ComingSoon" component={screen(ComingSoonScreen, 'ComingSoonScreen')} />
+      <AppStack.Screen name="AboutUs" component={screen(AboutUsScreen, 'AboutUsScreen')} />
+      <AppStack.Screen
+        name="TermsAndConditions"
+        component={screen(TermsAndConditionsScreen, 'TermsAndConditionsScreen')}
+      />
+      <AppStack.Screen
+        name="PrivacyPolicy"
+        component={screen(PrivacyPolicyScreen, 'PrivacyPolicyScreen')}
+      />
     </AppStack.Navigator>
   );
 };

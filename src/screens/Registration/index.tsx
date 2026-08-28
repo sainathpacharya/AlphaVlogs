@@ -4,6 +4,7 @@ import {
   Platform,
   ScrollView,
   View,
+  Linking,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
@@ -32,6 +33,25 @@ import {
   STUDENT_CLASS_OPTIONS,
 } from '../../utils/validation';
 import { MANUAL_SCHOOL_ID } from '@/utils/register-payload';
+import {LEGAL_URLS} from '@/constants/legal';
+
+const MANUAL_SCHOOL_OPTION: School = {
+  id: 9999,
+  createdOn: '',
+  schoolCode: 'SCH_OTHER',
+  name: 'Other (Enter manually)',
+  establishedYear: 0,
+  schoolType: 'OTHER' as const,
+  boardOfAffiliation: 'N/A',
+  mediumOfInstruction: 'N/A',
+  principalName: 'N/A',
+  contactNumber: 'N/A',
+  email: 'other@school.com',
+  address: 'N/A',
+  location: 'N/A',
+  pincode: '000000',
+  updatedAt: '',
+};
 
 import {
   User,
@@ -72,6 +92,7 @@ const RegistrationScreen = ({navigation}: any) => {
   const [showCustomSchool, setShowCustomSchool] = useState(false);
   const [schools, setSchools] = useState<School[]>([]);
   const [schoolsLoading, setSchoolsLoading] = useState(true);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // Refs for input fields
   const inputRefs = useRef<Record<string, any>>({});
@@ -114,176 +135,38 @@ const RegistrationScreen = ({navigation}: any) => {
             // Add "Other" option if it doesn't exist
             const schoolsWithOther = [
               ...response.data.schools,
-              {
-                id: 9999,
-                createdOn: '',
-                schoolCode: 'SCH_OTHER',
-                name: 'Other (Enter manually)',
-                establishedYear: 0,
-                schoolType: 'OTHER' as const,
-                boardOfAffiliation: 'N/A',
-                mediumOfInstruction: 'N/A',
-                principalName: 'N/A',
-                contactNumber: 'N/A',
-                email: 'other@school.com',
-                address: 'N/A',
-                location: 'N/A',
-                pincode: '000000',
-                updatedAt: '',
-              },
+              MANUAL_SCHOOL_OPTION,
             ];
             if (!cancelled) {
               setSchools(schoolsWithOther);
             }
           }
         } else {
-          devLog('Registration: schools API unavailable, using fallback list', response.message);
+          devLog('Registration: schools API unavailable', response.message);
           if (!cancelled) {
-          setSchools([
-            {
-              id: 1,
-              createdOn: '',
-              schoolCode: 'SCH001',
-              name: 'Delhi Public School',
-              establishedYear: 1995,
-              schoolType: 'PRIVATE' as const,
-              boardOfAffiliation: 'CBSE',
-              mediumOfInstruction: 'English',
-              principalName: 'Dr. Ramesh Kumar',
-              contactNumber: '080-26543210',
-              email: 'info@dps.edu.in',
-              address: 'Delhi, India',
-              location: 'Delhi, India',
-              pincode: '110001',
-              updatedAt: '',
-            },
-            {
-              id: 2,
-              createdOn: '',
-              schoolCode: 'SCH002',
-              name: 'Kendriya Vidyalaya',
-              establishedYear: 1965,
-              schoolType: 'GOVERNMENT_AIDED' as const,
-              boardOfAffiliation: 'CBSE',
-              mediumOfInstruction: 'Hindi, English',
-              principalName: 'Mr. Rajeev Sharma',
-              contactNumber: '011-23745678',
-              email: 'principal@kendriya.gov.in',
-              address: 'New Delhi, India',
-              location: 'New Delhi, India',
-              pincode: '110001',
-              updatedAt: '',
-            },
-            {
-              id: 3,
-              createdOn: '',
-              schoolCode: 'SCH003',
-              name: "St. Mary's School",
-              establishedYear: 1980,
-              schoolType: 'PRIVATE' as const,
-              boardOfAffiliation: 'ICSE',
-              mediumOfInstruction: 'English',
-              principalName: 'Mrs. Anjali Sen',
-              contactNumber: '033-23351234',
-              email: 'contact@stmarys.edu.in',
-              address: 'Kolkata, West Bengal',
-              location: 'Kolkata, West Bengal',
-              pincode: '700091',
-              updatedAt: '',
-            },
-            {
-              id: 4,
-              createdOn: '',
-              schoolCode: 'SCH004',
-              name: 'Modern School',
-              establishedYear: 1972,
-              schoolType: 'PRIVATE' as const,
-              boardOfAffiliation: 'CBSE',
-              mediumOfInstruction: 'English',
-              principalName: 'Dr. Meera Joshi',
-              contactNumber: '020-25512345',
-              email: 'contact@modernschool.edu.in',
-              address: 'Mumbai, Maharashtra',
-              location: 'Mumbai, Maharashtra',
-              pincode: '400001',
-              updatedAt: '',
-            },
-            {
-              id: 5,
-              createdOn: '',
-              schoolCode: 'SCH005',
-              name: 'Ryan International School',
-              establishedYear: 1976,
-              schoolType: 'PRIVATE' as const,
-              boardOfAffiliation: 'CBSE',
-              mediumOfInstruction: 'English',
-              principalName: 'Mrs. Grace Pinto',
-              contactNumber: '022-25512345',
-              email: 'contact@ryaninternational.edu.in',
-              address: 'Mumbai, Maharashtra',
-              location: 'Mumbai, Maharashtra',
-              pincode: '400001',
-              updatedAt: '',
-            },
-            {
-              id: 9999,
-              createdOn: '',
-              schoolCode: 'SCH_OTHER',
-              name: 'Other (Enter manually)',
-              establishedYear: 0,
-              schoolType: 'OTHER' as const,
-              boardOfAffiliation: 'N/A',
-              mediumOfInstruction: 'N/A',
-              principalName: 'N/A',
-              contactNumber: 'N/A',
-              email: 'other@school.com',
-              address: 'N/A',
-              location: 'N/A',
-              pincode: '000000',
-              updatedAt: '',
-            },
-          ]);
+            setSchools([MANUAL_SCHOOL_OPTION]);
+            toast.show({
+              placement: 'top',
+              render: () => (
+                <Text color={colors.danger}>
+                  Unable to load schools. You can enter your school manually.
+                </Text>
+              ),
+            });
           }
         }
       } catch (error) {
-        devLog('Registration: error fetching schools, using fallback list', error);
+        devLog('Registration: error fetching schools', error);
         if (!cancelled) {
-        setSchools([
-          {
-            id: 1,
-            createdOn: '',
-            schoolCode: 'SCH001',
-            name: 'Delhi Public School',
-            establishedYear: 1995,
-            schoolType: 'PRIVATE' as const,
-            boardOfAffiliation: 'CBSE',
-            mediumOfInstruction: 'English',
-            principalName: 'Dr. Ramesh Kumar',
-            contactNumber: '080-26543210',
-            email: 'info@dps.edu.in',
-            address: 'Delhi, India',
-            location: 'Delhi, India',
-            pincode: '110001',
-            updatedAt: '',
-          },
-          {
-            id: 9999,
-            createdOn: '',
-            schoolCode: 'SCH_OTHER',
-            name: 'Other (Enter manually)',
-            establishedYear: 0,
-            schoolType: 'OTHER' as const,
-            boardOfAffiliation: 'N/A',
-            mediumOfInstruction: 'N/A',
-            principalName: 'N/A',
-            contactNumber: 'N/A',
-            email: 'other@school.com',
-            address: 'N/A',
-            location: 'N/A',
-            pincode: '000000',
-            updatedAt: '',
-          },
-        ]);
+          setSchools([MANUAL_SCHOOL_OPTION]);
+          toast.show({
+            placement: 'top',
+            render: () => (
+              <Text color={colors.danger}>
+                Unable to load schools. You can enter your school manually.
+              </Text>
+            ),
+          });
         }
       } finally {
         if (!cancelled) {
@@ -296,7 +179,7 @@ const RegistrationScreen = ({navigation}: any) => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [colors.danger, toast]);
 
   // Real-time validation for individual fields
   const validateFieldRealtime = useCallback(
@@ -391,6 +274,18 @@ const RegistrationScreen = ({navigation}: any) => {
   }, [form, showCustomSchool, validateFieldRealtime]);
 
   const handleRegister = async () => {
+    if (!acceptedTerms) {
+      toast.show({
+        placement: 'top',
+        render: () => (
+          <Text color={colors.danger}>
+            Please accept the Terms of Service and Privacy Policy to continue.
+          </Text>
+        ),
+      });
+      return;
+    }
+
     // Mark all fields as touched for validation
     const allFields = Object.keys(form) as Array<keyof typeof form>;
     setTouchedFields(new Set(allFields));
@@ -886,10 +781,51 @@ const RegistrationScreen = ({navigation}: any) => {
             </React.Fragment>
           ))}
 
+          <HStack testID="registration-terms-row" alignItems="flex-start" space="sm" mt="$4">
+            <Pressable
+              testID="registration-terms-checkbox"
+              onPress={() => setAcceptedTerms(current => !current)}
+              accessibilityRole="checkbox"
+              accessibilityState={{checked: acceptedTerms}}>
+              <Box
+                w={22}
+                h={22}
+                borderRadius={4}
+                borderWidth={2}
+                borderColor={colors.accentAction}
+                alignItems="center"
+                justifyContent="center"
+                bg={acceptedTerms ? colors.accentAction : 'transparent'}>
+                {acceptedTerms ? (
+                  <Text color={colors.white} fontSize={14} fontWeight="$bold">
+                    ✓
+                  </Text>
+                ) : null}
+              </Box>
+            </Pressable>
+            <Text flex={1} color={colors.secondaryText} fontSize={13} lineHeight={20}>
+              I agree to the{' '}
+              <Text
+                color={colors.accentAction}
+                fontWeight="$bold"
+                onPress={() => void Linking.openURL(LEGAL_URLS.termsOfService)}>
+                Terms of Service
+              </Text>{' '}
+              and{' '}
+              <Text
+                color={colors.accentAction}
+                fontWeight="$bold"
+                onPress={() => void Linking.openURL(LEGAL_URLS.privacyPolicy)}>
+                Privacy Policy
+              </Text>
+              .
+            </Text>
+          </HStack>
+
           <Button
             testID="registration-submit-button"
             onPress={handleRegister}
-            isDisabled={isLoading}
+            isDisabled={isLoading || !acceptedTerms}
             w="$full"
             borderRadius="$md"
             mt="$8"

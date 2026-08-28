@@ -1,5 +1,15 @@
-import analytics from '@react-native-firebase/analytics';
-import crashlytics from '@react-native-firebase/crashlytics';
+import {
+  getAnalytics,
+  logEvent,
+  setUserId as setAnalyticsUserId,
+} from '@react-native-firebase/analytics';
+import {
+  getCrashlytics,
+  log as crashlyticsLog,
+  recordError as crashlyticsRecordError,
+  setAttribute as crashlyticsSetAttribute,
+  setUserId as crashlyticsSetUserId,
+} from '@react-native-firebase/crashlytics';
 import {ErrorUtils} from 'react-native';
 import {devLog} from '@/utils/dev-log';
 
@@ -14,18 +24,18 @@ function truncate(value: string): string {
 async function setCrashlyticsAttributes(
   attributes: Record<string, string>,
 ): Promise<void> {
+  const crashlytics = getCrashlytics();
   await Promise.all(
     Object.entries(attributes).map(([key, value]) =>
-      crashlytics().setAttribute(key, truncate(value)),
+      crashlyticsSetAttribute(crashlytics, key, truncate(value)),
     ),
   );
 }
 
 export async function initializeFirebaseMonitoring(): Promise<void> {
   try {
-    await crashlytics().setCrashlyticsCollectionEnabled(true);
-    await analytics().setAnalyticsCollectionEnabled(true);
-    crashlytics().log('Firebase monitoring initialized');
+    // Analytics/crash collection is controlled by analytics-consent-service.
+    crashlyticsLog(getCrashlytics(), 'Firebase monitoring initialized');
   } catch (error) {
     if (__DEV__) {
       devLog('Failed to initialize Firebase monitoring', error);
@@ -35,7 +45,7 @@ export async function initializeFirebaseMonitoring(): Promise<void> {
 
 export async function logScreenView(screenName: string): Promise<void> {
   try {
-    await analytics().logScreenView({
+    await logEvent(getAnalytics(), 'screen_view', {
       screen_name: screenName,
       screen_class: screenName,
     });
@@ -43,7 +53,7 @@ export async function logScreenView(screenName: string): Promise<void> {
       current_screen: screenName,
       last_screen_viewed_at: new Date().toISOString(),
     });
-    crashlytics().log(`Screen view: ${screenName}`);
+    crashlyticsLog(getCrashlytics(), `Screen view: ${screenName}`);
   } catch (error) {
     if (__DEV__) {
       devLog('Failed to log screen view', {screenName, error});
@@ -56,16 +66,19 @@ export async function setFirebaseUser(
   attributes: Record<string, string> = {},
 ): Promise<void> {
   try {
+    const analytics = getAnalytics();
+    const crashlytics = getCrashlytics();
+
     if (userId) {
-      await crashlytics().setUserId(userId);
-      await analytics().setUserId(userId);
+      await crashlyticsSetUserId(crashlytics, userId);
+      await setAnalyticsUserId(analytics, userId);
       await setCrashlyticsAttributes(attributes);
-      crashlytics().log(`User identified: ${userId}`);
+      crashlyticsLog(crashlytics, `User identified: ${userId}`);
       return;
     }
 
-    await crashlytics().setUserId('');
-    await analytics().setUserId(null);
+    await crashlyticsSetUserId(crashlytics, '');
+    await setAnalyticsUserId(analytics, null);
   } catch (error) {
     if (__DEV__) {
       devLog('Failed to set Firebase user', error);
@@ -78,11 +91,13 @@ export async function recordError(
   context: Record<string, string> = {},
 ): Promise<void> {
   try {
+    const crashlytics = getCrashlytics();
+
     if (Object.keys(context).length > 0) {
       await setCrashlyticsAttributes(context);
     }
-    crashlytics().log(`Error: ${error.message}`);
-    await crashlytics().recordError(error);
+    crashlyticsLog(crashlytics, `Error: ${error.message}`);
+    crashlyticsRecordError(crashlytics, error);
   } catch (recordErrorFailure) {
     if (__DEV__) {
       devLog('Failed to record error in Crashlytics', recordErrorFailure);

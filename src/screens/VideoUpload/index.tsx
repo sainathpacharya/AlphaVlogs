@@ -186,7 +186,7 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
 
   const handleUploadVideo = async () => {
     if (!selectedVideo) {
-      Alert.alert('No Video', 'Please select or record a video first.');
+      Alert.alert('No Video', 'Please select a video from your library first.');
       return;
     }
 
@@ -412,6 +412,25 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
               {i18n.t('videoUpload.satisfactionWarning')}
             </Text>
           </Box>
+
+          <Pressable
+            testID="video-upload-report-content"
+            onPress={() =>
+              navigation.navigate('ReportContent', {
+                eventId,
+                eventTitle,
+              })
+            }>
+            <Text
+              style={{
+                color: colors.accentAction,
+                textAlign: 'center',
+                textDecorationLine: 'underline',
+                fontSize: 14,
+              }}>
+              Report inappropriate content
+            </Text>
+          </Pressable>
         </VStack>
       </ScrollView>
     </VStack>

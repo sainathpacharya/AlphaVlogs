@@ -6,6 +6,7 @@ import {useIsAuthenticated, useIsLoading} from '@/stores';
 import {useStoreHydration} from '@/hooks/useStoreHydration';
 import {RootStackParamList} from '@/types';
 import LoadingScreen from '@/screens/Loading';
+import {screen} from '@/navigation/screen';
 import {AuthStack} from '../AuthStack';
 import {AppStackScreen} from '../AppStack';
 
@@ -29,11 +30,11 @@ const RootNavigator = () => {
         statusBarBackgroundColor: backgroundColor,
       } as NativeStackNavigationOptions}>
       {showLoading ? (
-        <Stack.Screen name="Loading" component={LoadingScreen} />
+        <Stack.Screen name="Loading" component={screen(LoadingScreen, 'LoadingScreen')} />
       ) : isAuthenticated ? (
-        <Stack.Screen name="App" component={AppStackScreen} />
+        <Stack.Screen name="App" component={screen(AppStackScreen, 'AppStackScreen')} />
       ) : (
-        <Stack.Screen name="Auth" component={AuthStack} />
+        <Stack.Screen name="Auth" component={screen(AuthStack, 'AuthStack')} />
       )}
     </Stack.Navigator>
   );
