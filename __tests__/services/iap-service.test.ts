@@ -67,6 +67,7 @@ describe('iap-service', () => {
   });
 
   it('purchases premium subscription', async () => {
+    (getSubscriptions as jest.Mock).mockResolvedValue([{productId: PREMIUM}]);
     (requestSubscription as jest.Mock).mockResolvedValue({
       productId: PREMIUM,
       transactionId: 'tx_1',
@@ -83,6 +84,7 @@ describe('iap-service', () => {
   });
 
   it('unwraps array purchase results and rejects empty', async () => {
+    (getSubscriptions as jest.Mock).mockResolvedValue([{productId: PREMIUM}]);
     (requestSubscription as jest.Mock).mockResolvedValue([
       {productId: PREMIUM, transactionId: 'tx_arr'},
     ]);
@@ -92,6 +94,16 @@ describe('iap-service', () => {
 
     (requestSubscription as jest.Mock).mockResolvedValue([]);
     await expect(iapService.purchasePremium()).rejects.toThrow(/No purchase returned/);
+  });
+
+  it('rejects purchase when StoreKit has no matching product', async () => {
+    (getSubscriptions as jest.Mock).mockResolvedValue([]);
+
+    await expect(iapService.purchasePremium()).rejects.toMatchObject({
+      message: expect.stringMatching(/Invalid product ID/),
+      code: 'E_ITEM_UNAVAILABLE',
+    });
+    expect(requestSubscription).not.toHaveBeenCalled();
   });
 
   it('restores premium purchases and finishes them', async () => {

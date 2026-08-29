@@ -1,7 +1,17 @@
 import React, {useState, useEffect, useMemo, useCallback} from 'react';
 import {View, StyleSheet, Alert, useWindowDimensions, Linking} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
-import {Check, Crown} from 'lucide-react-native';
+import {
+  Check,
+  ChevronRight,
+  Crown,
+  GraduationCap,
+  Headphones,
+  Lock,
+  Play,
+  Sparkles,
+  Target,
+} from 'lucide-react-native';
 import {
   VStack,
   HStack,
@@ -36,8 +46,10 @@ interface PaymentMethod {
   icon?: string;
 }
 
-const PLAN_STACK_BREAKPOINT = 480;
+const PLAN_STACK_BREAKPOINT = 340;
 const CONTENT_MAX_WIDTH = 600;
+const NAVY = '#0F2C5C';
+const GOLD = '#E8B923';
 
 const getPaymentDisplayName = (method: PaymentMethod) => {
   if (method.type === 'razorpay') {
@@ -97,7 +109,7 @@ const SubscriptionScreen: React.FC = () => {
     () => getStyles(colors, screenWidth),
     [colors, screenWidth],
   );
-  const [selectedPlan, setSelectedPlan] = useState<'free' | 'premium'>('free');
+  const [selectedPlan, setSelectedPlan] = useState<'free' | 'premium'>('premium');
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<string>('');
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -719,63 +731,88 @@ const SubscriptionScreen: React.FC = () => {
     }
   };
 
+  const isCurrentPremium = currentSubscription?.plan === 'premium';
+  const premiumPriceLabel = usesAppleIAP
+    ? `${appleProductPrice ?? '…'} / year`
+    : `₹${SUBSCRIPTION.PRICING.PREMIUM_ANNUAL} / year`;
+
   const renderPlanCard = (plan: 'free' | 'premium', isSelected: boolean) => {
     const isPremium = plan === 'premium';
+    const isCurrentPlan = isPremium ? isCurrentPremium : !isCurrentPremium;
     const features =
       SUBSCRIPTION.FEATURES[
         plan.toUpperCase() as keyof typeof SUBSCRIPTION.FEATURES
       ];
+    const PlanIcon = isPremium ? Crown : GraduationCap;
 
     return (
       <Pressable
         testID={`subscription-plan-card-${plan}`}
         onPress={() => setSelectedPlan(plan)}
+        enableRipple={false}
         style={[
           styles.planCard,
           isStackedPlans && styles.planCardStacked,
+          isPremium && styles.planCardPremiumPad,
           isSelected &&
             (isPremium ? styles.selectedPremiumCard : styles.selectedFreeCard),
         ]}>
-        <VStack space="md" flex={1} justifyContent="space-between">
-          <VStack space="md" flex={1}>
-            <Text
-              testID={`subscription-plan-title-${plan}`}
-              style={[
-                styles.planTitle,
-                isSelected &&
-                  (isPremium
-                    ? styles.selectedPremiumTitle
-                    : styles.selectedFreeTitle),
-              ]}>
-              {isPremium ? 'Premium Plan' : 'Free Plan'}
-            </Text>
+        {isPremium && (
+          <View style={styles.popularBadge}>
+            <Text style={styles.popularBadgeText}>Most Popular</Text>
+          </View>
+        )}
 
-            <VStack testID={`subscription-plan-features-${plan}`} space="sm">
+        <VStack space="sm" flex={1} justifyContent="space-between">
+          <VStack space="sm">
+            <View
+              style={[
+                styles.planIconCircle,
+                isPremium ? styles.planIconCirclePremium : styles.planIconCircleFree,
+              ]}>
+              <PlanIcon
+                size={22}
+                color={isPremium ? colors.accentAction : colors.mutedText}
+                fill={isPremium ? colors.accentAction : 'transparent'}
+                strokeWidth={2}
+              />
+            </View>
+
+            <VStack space="xs">
+              <Text
+                testID={`subscription-plan-title-${plan}`}
+                style={[
+                  styles.planTitle,
+                  isSelected && isPremium && styles.selectedPremiumTitle,
+                ]}>
+                {isPremium ? 'Premium Plan' : 'Free Plan'}
+              </Text>
+              <Text style={styles.planSubtitle}>
+                {isPremium
+                  ? 'Unlock everything you need.'
+                  : 'Get started with the basics.'}
+              </Text>
+            </VStack>
+
+            <VStack testID={`subscription-plan-features-${plan}`} space="xs">
               {features.map((feature, index) => (
                 <HStack
                   key={index}
                   space="sm"
                   alignItems="flex-start"
                   style={styles.featureRow}>
-                  {isSelected ? (
-                    <View
-                      testID={`subscription-plan-checkmark-${plan}-${index}`}
-                      style={[
-                        styles.checkmarkSelected,
-                        isPremium && styles.checkmarkSelectedPremium,
-                      ]}>
-                      <Check
-                        size={10}
-                        color={colors.white}
-                        strokeWidth={3}
-                      />
-                    </View>
-                  ) : (
-                    <View
-                      testID={`subscription-plan-checkmark-${plan}-${index}`}
-                      style={styles.checkmark}
+                  <View
+                    testID={`subscription-plan-checkmark-${plan}-${index}`}
+                    style={[
+                      styles.checkmark,
+                      isPremium && styles.checkmarkPremium,
+                    ]}>
+                    <Check
+                      size={10}
+                      color={isPremium ? colors.white : colors.mutedText}
+                      strokeWidth={3}
                     />
-                  )}
+                  </View>
                   <Text
                     testID={`subscription-plan-feature-${plan}-${index}`}
                     style={styles.featureText}>
@@ -786,17 +823,25 @@ const SubscriptionScreen: React.FC = () => {
             </VStack>
           </VStack>
 
-          {isPremium && (
-            <Text
-              testID={`subscription-plan-price-${plan}`}
+          {isPremium ? (
+            <View style={styles.priceBox}>
+              <Text
+                testID={`subscription-plan-price-${plan}`}
+                style={styles.priceText}>
+                {premiumPriceLabel}
+              </Text>
+              <Text style={styles.priceHint}>Best value for serious learners</Text>
+            </View>
+          ) : (
+            <View
               style={[
-                styles.priceText,
-                isSelected && styles.selectedPriceText,
+                styles.currentPlanPill,
+                !isCurrentPlan && styles.currentPlanPillInactive,
               ]}>
-              {usesAppleIAP
-                ? `${appleProductPrice ?? '…'}/year`
-                : `₹${SUBSCRIPTION.PRICING.PREMIUM_ANNUAL}/year`}
-            </Text>
+              <Text style={styles.currentPlanPillText}>
+                {isCurrentPlan ? 'Current Plan' : 'Free'}
+              </Text>
+            </View>
           )}
         </VStack>
       </Pressable>
@@ -805,12 +850,14 @@ const SubscriptionScreen: React.FC = () => {
 
   const renderPaymentMethod = (method: PaymentMethod) => {
     const isSelected = selectedPaymentMethod === method.id;
+    const isApple = method.type === 'apple_iap';
 
     return (
       <Pressable
         key={method.id}
         testID={`subscription-payment-method-${method.id}`}
         onPress={() => setSelectedPaymentMethod(method.id)}
+        enableRipple={false}
         style={[
           styles.paymentMethodCard,
           isSelected && styles.selectedPaymentMethod,
@@ -821,11 +868,12 @@ const SubscriptionScreen: React.FC = () => {
             testID={`subscription-payment-icon-${method.id}`}
             style={[
               styles.paymentIcon,
+              isApple && styles.paymentIconApple,
               !method.isEnabled && styles.disabledIcon,
             ]}>
-            {method.icon ? (
-              <Text style={styles.paymentIconEmoji}>{method.icon}</Text>
-            ) : null}
+            <Text style={styles.paymentIconEmoji}>
+              {isApple ? '' : method.icon ?? '💳'}
+            </Text>
           </View>
           <VStack flex={1} style={styles.paymentTextContainer}>
             <Text
@@ -869,6 +917,12 @@ const SubscriptionScreen: React.FC = () => {
   };
 
   const PlanContainer = isStackedPlans ? VStack : HStack;
+  const subscribeDisabled = isLoading || !selectedPaymentMethod;
+  const highlights = [
+    {key: 'video', label: 'Premium Video Content', Icon: Play},
+    {key: 'quiz', label: 'Unlimited Quiz Access', Icon: Target},
+    {key: 'support', label: 'Priority Customer Support', Icon: Headphones},
+  ] as const;
 
   return (
     <InfoScreenLayout
@@ -882,23 +936,29 @@ const SubscriptionScreen: React.FC = () => {
             space="sm"
             alignItems="center"
             style={styles.headerSection}>
-            <Crown
-              testID="subscription-icon"
-              size={isWideLayout ? 80 : 64}
-              color={colors.accentAction}
-              strokeWidth={1.75}
-            />
+            <View testID="subscription-icon" style={styles.heroIconWrap}>
+              <View style={styles.sparkleTop}>
+                <Sparkles size={14} color={GOLD} />
+              </View>
+              <View style={styles.crownCircle}>
+                <Crown size={40} color={GOLD} fill={GOLD} strokeWidth={1.5} />
+              </View>
+              <View style={styles.sparkleBottom}>
+                <Sparkles size={12} color={GOLD} />
+              </View>
+            </View>
             <Text testID="subscription-header-title" style={styles.headerTitle}>
-              Choose Your Plan
+              Unlock Your Full Potential
             </Text>
             <Text
               testID="subscription-header-subtitle"
               style={styles.headerSubtitle}>
-              Unlock premium features and access to all quizzes
+              Go Premium and get unlimited access to all quizzes and exclusive
+              content.
             </Text>
           </VStack>
 
-          {currentSubscription && (
+          {isCurrentPremium && currentSubscription && (
             <Box
               testID="subscription-current-status"
               style={styles.currentSubscriptionCard}>
@@ -911,41 +971,44 @@ const SubscriptionScreen: React.FC = () => {
                   <Text
                     testID="subscription-current-plan"
                     style={styles.currentPlanText}>
-                    Current Plan:{' '}
-                    {currentSubscription.plan === 'premium' ? 'Premium' : 'Free'}
+                    You're on Premium
                   </Text>
-                  {currentSubscription.plan === 'premium' &&
-                    currentSubscription.endDate && (
-                      <Text
-                        testID="subscription-expiry-date"
-                        style={styles.expiryText}>
-                        Expires:{' '}
-                        {new Date(
-                          currentSubscription.endDate,
-                        ).toLocaleDateString()}
-                      </Text>
-                    )}
-                </VStack>
-                {currentSubscription.plan === 'premium' && (
-                  <Button
-                    testID="subscription-cancel-button"
-                    onPress={handleCancelSubscription}
-                    style={styles.cancelButton}>
+                  {currentSubscription.endDate && (
                     <Text
-                      testID="subscription-cancel-text"
-                      style={{color: colors.white, fontWeight: 'bold'}}>
-                      {usesAppleIAP ? 'Manage' : 'Cancel'}
+                      testID="subscription-expiry-date"
+                      style={styles.expiryText}>
+                      Renews{' '}
+                      {new Date(currentSubscription.endDate).toLocaleDateString()}
                     </Text>
-                  </Button>
-                )}
+                  )}
+                </VStack>
+                <Button
+                  testID="subscription-cancel-button"
+                  onPress={handleCancelSubscription}
+                  style={styles.manageButton}>
+                  <Text
+                    testID="subscription-cancel-text"
+                    style={styles.manageButtonText}>
+                    {usesAppleIAP ? 'Manage' : 'Cancel'}
+                  </Text>
+                </Button>
               </HStack>
             </Box>
           )}
 
           <VStack testID="subscription-plan-selection" space="md">
-            <Text testID="subscription-plan-title" style={styles.sectionTitle}>
-              Select Plan
-            </Text>
+            <HStack
+              alignItems="center"
+              justifyContent="space-between"
+              flexWrap="wrap"
+              space="sm">
+              <Text testID="subscription-plan-title" style={styles.sectionTitle}>
+                Choose Your Plan
+              </Text>
+              <View style={styles.smarterBadge}>
+                <Text style={styles.smarterBadgeText}>✨ Start learning smarter</Text>
+              </View>
+            </HStack>
             <PlanContainer
               space="md"
               alignItems={isStackedPlans ? 'stretch' : 'stretch'}
@@ -955,13 +1018,33 @@ const SubscriptionScreen: React.FC = () => {
             </PlanContainer>
           </VStack>
 
+          <HStack style={styles.highlightsRow} alignItems="stretch">
+            {highlights.map((item, index) => (
+              <React.Fragment key={item.key}>
+                {index > 0 && <View style={styles.highlightDivider} />}
+                <VStack flex={1} alignItems="center" space="xs" style={styles.highlightItem}>
+                  <View style={styles.highlightIcon}>
+                    <item.Icon size={18} color={colors.accentAction} strokeWidth={2.2} />
+                  </View>
+                  <Text style={styles.highlightLabel}>{item.label}</Text>
+                </VStack>
+              </React.Fragment>
+            ))}
+          </HStack>
+
           {selectedPlan === 'premium' && (
             <VStack testID="subscription-payment-methods" space="md">
-              <Text
-                testID="subscription-payment-title"
-                style={styles.sectionTitle}>
-                Payment Method
-              </Text>
+              <HStack alignItems="center" justifyContent="space-between">
+                <Text
+                  testID="subscription-payment-title"
+                  style={styles.sectionTitle}>
+                  Payment Method
+                </Text>
+                <HStack space="xs" alignItems="center">
+                  <Lock size={12} color={colors.mutedText} />
+                  <Text style={styles.secureHint}>Secure & encrypted</Text>
+                </HStack>
+              </HStack>
               <VStack space="sm">
                 {paymentMethods.map(renderPaymentMethod)}
               </VStack>
@@ -969,43 +1052,52 @@ const SubscriptionScreen: React.FC = () => {
           )}
 
           {selectedPlan === 'premium' && canAccessPayment(user) && (
-            <Button
+            <Pressable
               testID="subscription-subscribe-button"
-              size="md"
               onPress={handleSubscribe}
-              disabled={isLoading || !selectedPaymentMethod}
+              disabled={subscribeDisabled}
+              enableRipple={false}
               style={[
                 styles.subscribeButton,
-                (isLoading || !selectedPaymentMethod) && styles.disabledButton,
+                subscribeDisabled && styles.disabledButtonWrap,
               ]}>
-              <Text
-                testID="subscription-subscribe-text"
-                style={styles.subscribeButtonText}>
-                {isLoading
-                  ? 'Processing...'
-                  : usesAppleIAP
-                    ? 'Subscribe with Apple'
-                    : 'Subscribe Now'}
-              </Text>
-            </Button>
+                <HStack space="sm" alignItems="center" justifyContent="center">
+                  {usesAppleIAP && !isLoading && (
+                    <Text style={styles.subscribeAppleMark}></Text>
+                  )}
+                  <Text
+                    testID="subscription-subscribe-text"
+                    style={styles.subscribeButtonText}>
+                    {isLoading
+                      ? 'Processing...'
+                      : usesAppleIAP
+                        ? 'Subscribe with Apple'
+                        : 'Subscribe Now'}
+                  </Text>
+                  {!isLoading && (
+                    <ChevronRight size={18} color={colors.white} strokeWidth={2.5} />
+                  )}
+                </HStack>
+            </Pressable>
+          )}
+
+          {usesAppleIAP && (
+            <Text style={styles.cancelAnytimeText}>
+              You can cancel anytime from your Apple ID settings.
+            </Text>
           )}
 
           {usesAppleIAP && canAccessPayment(user) && (
-            <Button
+            <Pressable
               testID="subscription-restore-button"
-              size="md"
               onPress={handleRestorePurchases}
-              disabled={isLoading}
-              style={[
-                styles.restoreButton,
-                isLoading && styles.disabledButton,
-              ]}>
+              disabled={isLoading}>
               <Text
                 testID="subscription-restore-text"
                 style={styles.restoreButtonText}>
                 Restore Purchases
               </Text>
-            </Button>
+            </Pressable>
           )}
 
           <VStack testID="subscription-terms" space="sm" style={styles.termsSection}>
@@ -1052,27 +1144,59 @@ const getStyles = (colors: any, screenWidth: number) => {
       alignSelf: 'center',
     },
     headerSection: {
-      paddingHorizontal: isNarrow ? 4 : 12,
+      paddingHorizontal: isNarrow ? 4 : 8,
+      paddingTop: 8,
+    },
+    heroIconWrap: {
+      width: 96,
+      height: 96,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 4,
+    },
+    crownCircle: {
+      width: 76,
+      height: 76,
+      borderRadius: 38,
+      backgroundColor: '#FFF6D8',
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: GOLD,
+      shadowOffset: {width: 0, height: 6},
+      shadowOpacity: 0.28,
+      shadowRadius: 12,
+      elevation: 4,
+    },
+    sparkleTop: {
+      position: 'absolute',
+      top: 4,
+      right: 8,
+    },
+    sparkleBottom: {
+      position: 'absolute',
+      bottom: 8,
+      left: 6,
     },
     headerTitle: {
       fontSize: isWide ? 28 : isNarrow ? 22 : 24,
-      fontWeight: '700',
-      color: colors.primaryText,
+      fontWeight: '800',
+      color: NAVY,
       textAlign: 'center',
+      letterSpacing: -0.3,
     },
     headerSubtitle: {
-      fontSize: isNarrow ? 14 : 16,
+      fontSize: isNarrow ? 14 : 15,
       color: colors.mutedText,
       textAlign: 'center',
-      lineHeight: isNarrow ? 20 : 24,
-      paddingHorizontal: 8,
+      lineHeight: isNarrow ? 20 : 22,
+      paddingHorizontal: 12,
     },
     currentSubscriptionCard: {
-      backgroundColor: colors.cardBackground,
+      backgroundColor: colors.accentBackground,
       padding: isNarrow ? 14 : 16,
-      borderRadius: 12,
+      borderRadius: 16,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: '#BFD9FF',
     },
     currentPlanInfo: {
       minWidth: 0,
@@ -1080,25 +1204,41 @@ const getStyles = (colors: any, screenWidth: number) => {
     },
     currentPlanText: {
       fontSize: isNarrow ? 15 : 16,
-      fontWeight: '600',
-      color: colors.primaryText,
+      fontWeight: '700',
+      color: NAVY,
     },
     expiryText: {
-      fontSize: 14,
+      fontSize: 13,
       color: colors.mutedText,
       marginTop: 4,
     },
-    cancelButton: {
-      backgroundColor: colors.danger,
+    manageButton: {
+      backgroundColor: NAVY,
       paddingHorizontal: 16,
       paddingVertical: 8,
-      borderRadius: 8,
+      borderRadius: 10,
       flexShrink: 0,
+    },
+    manageButtonText: {
+      color: colors.white,
+      fontWeight: '700',
+      fontSize: 13,
     },
     sectionTitle: {
       fontSize: isNarrow ? 17 : 18,
+      fontWeight: '700',
+      color: NAVY,
+    },
+    smarterBadge: {
+      backgroundColor: '#EEE8FF',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 999,
+    },
+    smarterBadgeText: {
+      fontSize: 11,
       fontWeight: '600',
-      color: colors.primaryText,
+      color: '#5B4B8A',
     },
     planRow: {
       width: '100%',
@@ -1108,96 +1248,186 @@ const getStyles = (colors: any, screenWidth: number) => {
       width: isNarrow ? '100%' : undefined,
       minWidth: isNarrow ? undefined : 0,
       backgroundColor: colors.cardBackground,
-      padding: isNarrow ? 16 : 18,
-      borderRadius: 14,
+      padding: isNarrow ? 14 : 16,
+      borderRadius: 18,
       borderWidth: 2,
       borderColor: colors.border,
-      minHeight: isNarrow ? undefined : 220,
+      minHeight: isNarrow ? undefined : 268,
+      overflow: 'visible',
     },
     planCardStacked: {
       width: '100%',
     },
+    planCardPremiumPad: {
+      paddingTop: 20,
+    },
     selectedFreeCard: {
       borderColor: colors.accentAction,
-      backgroundColor: colors.accentBackground ?? colors.cardBackground,
     },
     selectedPremiumCard: {
-      borderColor: colors.success,
-      backgroundColor: 'rgba(40, 167, 69, 0.06)',
+      borderColor: colors.accentAction,
+      backgroundColor: '#F7FBFF',
+      shadowColor: colors.accentAction,
+      shadowOffset: {width: 0, height: 8},
+      shadowOpacity: 0.18,
+      shadowRadius: 14,
+      elevation: 6,
+    },
+    popularBadge: {
+      position: 'absolute',
+      top: -10,
+      right: 12,
+      backgroundColor: NAVY,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 8,
+      zIndex: 2,
+    },
+    popularBadgeText: {
+      color: colors.white,
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    planIconCircle: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    planIconCircleFree: {
+      backgroundColor: '#F1F3F5',
+    },
+    planIconCirclePremium: {
+      backgroundColor: colors.accentBackground,
     },
     planTitle: {
-      fontSize: isNarrow ? 17 : 18,
-      fontWeight: '700',
-      color: colors.primaryText,
-    },
-    selectedFreeTitle: {
-      color: colors.accentAction,
+      fontSize: isNarrow ? 16 : 17,
+      fontWeight: '800',
+      color: NAVY,
     },
     selectedPremiumTitle: {
-      color: colors.accentAction,
+      color: NAVY,
+    },
+    planSubtitle: {
+      fontSize: 12,
+      color: colors.mutedText,
+      lineHeight: 16,
     },
     featureRow: {
       width: '100%',
     },
     checkmark: {
-      width: 18,
-      height: 18,
-      borderRadius: 9,
-      backgroundColor: colors.border,
-      marginTop: 1,
-      flexShrink: 0,
-    },
-    checkmarkSelected: {
-      width: 18,
-      height: 18,
-      borderRadius: 9,
-      backgroundColor: colors.accentAction,
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: '#E9ECEF',
       marginTop: 1,
       flexShrink: 0,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    checkmarkSelectedPremium: {
+    checkmarkPremium: {
       backgroundColor: colors.accentAction,
     },
     featureText: {
       flex: 1,
       flexShrink: 1,
-      fontSize: isNarrow ? 13 : 14,
+      fontSize: isNarrow ? 12 : 13,
       color: colors.primaryText,
-      lineHeight: isNarrow ? 18 : 20,
+      lineHeight: 18,
+    },
+    priceBox: {
+      marginTop: 8,
+      backgroundColor: colors.accentBackground,
+      borderRadius: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 10,
+      alignItems: 'center',
     },
     priceText: {
-      fontSize: isNarrow ? 18 : 20,
-      fontWeight: '700',
-      color: colors.success,
-      marginTop: 12,
+      fontSize: isNarrow ? 16 : 18,
+      fontWeight: '800',
+      color: NAVY,
     },
-    selectedPriceText: {
-      color: colors.success,
+    priceHint: {
+      fontSize: 10,
+      color: colors.mutedText,
+      marginTop: 2,
+      textAlign: 'center',
+    },
+    currentPlanPill: {
+      marginTop: 8,
+      backgroundColor: '#EEF1F4',
+      borderRadius: 10,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    currentPlanPillInactive: {
+      opacity: 0.7,
+    },
+    currentPlanPillText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.mutedText,
+    },
+    highlightsRow: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingVertical: 14,
+      paddingHorizontal: 6,
+    },
+    highlightItem: {
+      paddingHorizontal: 6,
+    },
+    highlightDivider: {
+      width: 1,
+      backgroundColor: colors.border,
+      marginVertical: 4,
+    },
+    highlightIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.accentBackground,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    highlightLabel: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: NAVY,
+      textAlign: 'center',
+      lineHeight: 14,
     },
     paymentMethodCard: {
       backgroundColor: colors.cardBackground,
       padding: isNarrow ? 14 : 16,
-      borderRadius: 12,
+      borderRadius: 16,
       borderWidth: 2,
       borderColor: colors.border,
     },
     selectedPaymentMethod: {
       borderColor: colors.accentAction,
-      backgroundColor: colors.accentBackground ?? colors.cardBackground,
+      backgroundColor: '#F7FBFF',
     },
     paymentIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.border,
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: '#F1F3F5',
       alignItems: 'center',
       justifyContent: 'center',
       flexShrink: 0,
     },
+    paymentIconApple: {
+      backgroundColor: '#111111',
+    },
     paymentIconEmoji: {
       fontSize: 18,
+      color: colors.white,
     },
     disabledIcon: {
       opacity: 0.5,
@@ -1208,8 +1438,8 @@ const getStyles = (colors: any, screenWidth: number) => {
     },
     paymentMethodName: {
       fontSize: isNarrow ? 15 : 16,
-      fontWeight: '600',
-      color: colors.primaryText,
+      fontWeight: '700',
+      color: NAVY,
     },
     paymentMethodHint: {
       fontSize: 13,
@@ -1238,42 +1468,46 @@ const getStyles = (colors: any, screenWidth: number) => {
       borderRadius: 6,
       backgroundColor: colors.accentAction,
     },
+    secureHint: {
+      fontSize: 11,
+      color: colors.mutedText,
+      fontWeight: '600',
+    },
     subscribeButton: {
-      backgroundColor: colors.accentAction,
-      borderRadius: 12,
+      borderRadius: 14,
       width: '100%',
-      height: 48,
-      minHeight: 48,
-      paddingVertical: 0,
+      height: 54,
+      minHeight: 54,
       alignItems: 'center',
       justifyContent: 'center',
+      backgroundColor: '#1577F0',
     },
     subscribeButtonText: {
       color: colors.white,
-      fontWeight: '700',
+      fontWeight: '800',
       fontSize: isNarrow ? 15 : 16,
       textAlign: 'center',
     },
-    disabledButton: {
-      backgroundColor: colors.border,
+    subscribeAppleMark: {
+      color: colors.white,
+      fontSize: 20,
+      fontWeight: '700',
+      marginTop: -2,
     },
-    restoreButton: {
-      backgroundColor: colors.cardBackground,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.border,
-      width: '100%',
-      height: 48,
-      minHeight: 48,
-      paddingVertical: 0,
-      alignItems: 'center',
-      justifyContent: 'center',
+    disabledButtonWrap: {
+      opacity: 0.65,
+    },
+    cancelAnytimeText: {
+      fontSize: 12,
+      color: colors.mutedText,
+      textAlign: 'center',
     },
     restoreButtonText: {
-      color: colors.primaryText,
+      color: colors.accentAction,
       fontWeight: '600',
-      fontSize: isNarrow ? 15 : 16,
+      fontSize: 14,
       textAlign: 'center',
+      textDecorationLine: 'underline',
     },
     termsSection: {
       paddingTop: 4,

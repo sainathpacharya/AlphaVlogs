@@ -7,7 +7,6 @@ import {
   Alert,
   ScrollView,
   Keyboard,
-  InputAccessoryView,
   View,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -35,22 +34,8 @@ import {devLog} from '@/utils/dev-log';
 import {getApiBaseUrl} from '@/constants';
 
 const {width} = Dimensions.get('window');
-const OTP_KEYBOARD_ACCESSORY_ID = 'login-otp-keyboard-accessory';
-
-function OtpKeyboardAccessory({
-  nativeID,
-  children,
-}: {
-  nativeID: string;
-  children: React.ReactNode;
-}) {
-  if (Platform.OS !== 'ios' || !InputAccessoryView) {
-    return null;
-  }
-  return (
-    <InputAccessoryView nativeID={nativeID}>{children}</InputAccessoryView>
-  );
-}
+const OTP_LENGTH = 6;
+const KEYBOARD_DONE_BAR_HEIGHT = 44;
 
 // Memoized logo so parent re-renders (e.g. timer) don't stutter the animation
 const LoginLogo = React.memo(function LoginLogo() {
@@ -94,6 +79,7 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
   const otpRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const otpTextStyle = useMemo(
     () => ({
@@ -114,6 +100,21 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const onShow = Keyboard.addListener(showEvent, e => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const onHide = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      onShow.remove();
+      onHide.remove();
     };
   }, []);
 
@@ -317,9 +318,16 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
   };
 
   const handleOtpChange = (text: string) => {
-    setOtp(text);
+    const digits = text.replace(/\D/g, '').slice(0, OTP_LENGTH);
+    setOtp(digits);
     if (errors.otp) {
       setErrors(prev => ({...prev, otp: ''}));
+    }
+    // iOS number-pad has no dismiss key; close as soon as the OTP is complete.
+    if (digits.length >= OTP_LENGTH) {
+      requestAnimationFrame(() => {
+        Keyboard.dismiss();
+      });
     }
   };
 
@@ -331,7 +339,7 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
     <KeyboardAvoidingView
       testID="login-screen"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={0}
+      keyboardVerticalOffset={keyboardHeight > 0 ? KEYBOARD_DONE_BAR_HEIGHT : 0}
       style={{flex: 1, backgroundColor: colors.primaryBackground}}>
       <StatusBar translucent={false} />
 
@@ -340,14 +348,17 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
         testID="login-scroll-view"
         style={{flex: 1}}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           flexGrow: 1,
           justifyContent: 'flex-start',
           paddingHorizontal: 20,
           paddingTop: insets.top + 24,
-          paddingBottom: Math.max(insets.bottom, 16) + 24,
+          paddingBottom:
+            Math.max(insets.bottom, 16) +
+            24 +
+            (keyboardHeight > 0 ? KEYBOARD_DONE_BAR_HEIGHT : 0),
         }}>
         <VStack
           testID="login-container"
@@ -411,13 +422,8 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
               color={colors.inputText}
               onFocus={() => setIsMobileFocused(true)}
               onBlur={() => setIsMobileFocused(false)}
-              returnKeyType="next"
-              {...(Platform.OS === 'ios'
-                ? {inputAccessoryViewID: OTP_KEYBOARD_ACCESSORY_ID}
-                : {})}
-              onSubmitEditing={() => {
-                // Focus will be handled by autoFocus on OTP input
-              }}
+              returnKeyType="done"
+              onSubmitEditing={dismissKeyboard}
             />
             {mobile?.length > 0 && isMobileFocused && (
               <TouchableOpacity
@@ -462,7 +468,7 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
                 <OTPTextInput
                   testID="login-otp-input"
                   ref={otpRef}
-                  inputCount={6}
+                  inputCount={OTP_LENGTH}
                   handleTextChange={handleOtpChange}
                   keyboardType="number-pad"
                   tintColor={colors.accentAction}
@@ -473,9 +479,6 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
                   containerStyle={{
                     backgroundColor: colors.transparent,
                   }}
-                  {...(Platform.OS === 'ios'
-                    ? {inputAccessoryViewID: OTP_KEYBOARD_ACCESSORY_ID}
-                    : {})}
                 />
 
                 {/* Timer and Resend Section */}
@@ -584,14 +587,19 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
         </VStack>
       </ScrollView>
 
-      <OtpKeyboardAccessory nativeID={OTP_KEYBOARD_ACCESSORY_ID}>
+      {keyboardHeight > 0 && (
         <View
+          pointerEvents="box-none"
           style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: keyboardHeight,
+            height: KEYBOARD_DONE_BAR_HEIGHT,
             flexDirection: 'row',
             justifyContent: 'flex-end',
             alignItems: 'center',
-            paddingHorizontal: 12,
-            paddingVertical: 8,
+            paddingHorizontal: 16,
             borderTopWidth: 1,
             borderTopColor: colors.border,
             backgroundColor: colors.cardBackground ?? colors.primaryBackground,
@@ -608,7 +616,7 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
             </Text>
           </TouchableOpacity>
         </View>
-      </OtpKeyboardAccessory>
+      )}
 
       {/* ✅ Confetti Cannon 🎉 */}
       {showConfetti && (

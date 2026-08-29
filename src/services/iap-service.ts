@@ -40,6 +40,15 @@ class IapService {
 
   async purchasePremium(): Promise<SubscriptionPurchase> {
     await this.init();
+    const product = await this.getPremiumSubscription();
+    if (!product) {
+      const error = new Error(
+        `Invalid product ID: ${PREMIUM_SKU} is not available from App Store`,
+      );
+      (error as Error & {code?: string}).code = 'E_ITEM_UNAVAILABLE';
+      throw error;
+    }
+
     const result = await requestSubscription({
       sku: PREMIUM_SKU,
       andDangerouslyFinishTransactionAutomaticallyIOS: false,

@@ -9,6 +9,7 @@ import {
 } from '@/utils/subscription';
 import { buildPaymentReceipt } from '@/utils/payment';
 import { paymentService, PaymentApiError } from './payment-service';
+import { parseIapError } from '@/utils/iap-error';
 
 export interface RazorpayCheckoutResult {
   success: boolean;
@@ -233,7 +234,15 @@ class SubscriptionService {
         throw error;
       }
       if (__DEV__) {
-        console.error('Error completing Apple checkout:', error);
+        const parsed = parseIapError(error);
+        if (
+          parsed.code === 'E_ITEM_UNAVAILABLE' ||
+          parsed.code === 'E_IAP_NOT_AVAILABLE'
+        ) {
+          console.warn('Apple checkout unavailable:', parsed.message);
+        } else {
+          console.error('Error completing Apple checkout:', error);
+        }
       }
       throw error;
     }

@@ -54,21 +54,9 @@ export function parseIapError(error: unknown): ParsedIapError {
   }
 
   if (
-    code === 'E_IAP_NOT_AVAILABLE' ||
-    lower.includes('not available') ||
-    lower.includes('storekit')
-  ) {
-    return {
-      code: code || 'E_IAP_NOT_AVAILABLE',
-      message,
-      cancelled: false,
-      userMessage:
-        'App Store purchases are not available here. Use a real iPhone with a Sandbox Apple ID (Settings → App Store → Sandbox Account), not only the Simulator.',
-    };
-  }
-
-  if (
     code === 'E_ITEM_UNAVAILABLE' ||
+    lower.includes('invalid product id') ||
+    lower.includes('invalid productid') ||
     lower.includes('product not available') ||
     lower.includes('could not be found')
   ) {
@@ -77,7 +65,21 @@ export function parseIapError(error: unknown): ParsedIapError {
       message,
       cancelled: false,
       userMessage:
-        'Premium product is not available from App Store yet. Confirm the product ID and Paid Apps Agreement in App Store Connect.',
+        'Apple does not recognize this subscription. The iOS Simulator cannot load live App Store products (that is why the price shows “… / year”). Test on a real iPhone with a Sandbox Apple ID, and confirm the product ID exists in App Store Connect.',
+    };
+  }
+
+  if (
+    code === 'E_IAP_NOT_AVAILABLE' ||
+    lower.includes('storekit') ||
+    lower.includes('iap not available')
+  ) {
+    return {
+      code: code || 'E_IAP_NOT_AVAILABLE',
+      message,
+      cancelled: false,
+      userMessage:
+        'App Store purchases are not available here. Use a real iPhone with a Sandbox Apple ID (Settings → App Store → Sandbox Account), not only the Simulator.',
     };
   }
 

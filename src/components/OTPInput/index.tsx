@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {View, Text, StyleSheet, Alert} from 'react-native';
+import {View, Text, StyleSheet, Alert, Keyboard} from 'react-native';
 import OTPTextInput from 'react-native-otp-textinput';
 import {useOTPAutoRead} from '@/hooks/useOTPAutoRead';
 
@@ -51,6 +51,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
       onChange?.(receivedOTP);
 
       if (receivedOTP.length === length) {
+        Keyboard.dismiss();
         onComplete?.(receivedOTP);
       }
     },
@@ -86,6 +87,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
     onChange?.(text);
 
     if (text.length === length) {
+      Keyboard.dismiss();
       onComplete?.(text);
     }
   };
