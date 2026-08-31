@@ -196,9 +196,6 @@ jobs:
             exit 1
           fi
 
-          $FB appdistribution:group:create "Testers" "${{ env.FIREBASE_TESTER_GROUP }}" \
-            --project "${{ env.FIREBASE_PROJECT_ID }}" 2>/dev/null || true
-
           DISTRIBUTE_ARGS=(
             --app "${{ steps.firebase_app.outputs.app_id }}"
             --release-notes "$RELEASE_NOTES"
@@ -218,7 +215,17 @@ jobs:
             exit 1
           fi
 
-          $FB appdistribution:distribute "$APK_PATH" "${DISTRIBUTE_ARGS[@]}"
+          for attempt in 1 2 3; do
+            echo "Uploading APK to Firebase App Distribution (attempt ${attempt}/3)"
+            if $FB appdistribution:distribute "$APK_PATH" "${DISTRIBUTE_ARGS[@]}"; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Firebase APK upload failed after 3 attempts"
+              exit 1
+            fi
+            sleep $((attempt * 15))
+          done
 
       - name: Build summary
         if: always()
@@ -570,9 +577,6 @@ jobs:
           fi
           echo "IPA bundle ID: $IPA_BUNDLE_ID"
 
-          $FB appdistribution:group:create "Testers" "${{ env.FIREBASE_TESTER_GROUP }}" \
-            --project "${{ env.FIREBASE_PROJECT_ID }}" 2>/dev/null || true
-
           DISTRIBUTE_ARGS=(
             --app "${{ steps.firebase_app.outputs.app_id }}"
             --release-notes "$RELEASE_NOTES"
@@ -592,7 +596,17 @@ jobs:
             exit 1
           fi
 
-          $FB appdistribution:distribute "$IPA_PATH" "${DISTRIBUTE_ARGS[@]}"
+          for attempt in 1 2 3; do
+            echo "Uploading IPA to Firebase App Distribution (attempt ${attempt}/3)"
+            if $FB appdistribution:distribute "$IPA_PATH" "${DISTRIBUTE_ARGS[@]}"; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Firebase IPA upload failed after 3 attempts"
+              exit 1
+            fi
+            sleep $((attempt * 15))
+          done
 
       - name: Build summary
         if: always()
