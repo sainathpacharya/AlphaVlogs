@@ -260,9 +260,7 @@ jobs:
           xcode-version: 'latest-stable'
 
       - name: Install CocoaPods
-        run: |
-          cd ios
-          pod install --repo-update
+        run: bash .github/scripts/ios-pod-install.sh
 
       - name: Resolve Firebase iOS App ID
         id: firebase_app
