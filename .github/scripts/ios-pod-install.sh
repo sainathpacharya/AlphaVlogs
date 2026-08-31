@@ -3,6 +3,8 @@
 # jsDelivr (CocoaPods CDN) currently 400s some specs, including
 # GoogleAppMeasurement 12.9.0. Pre-seed those files from GitHub Specs so
 # CocoaPods does not have to download them from the CDN.
+# Do not use --deployment: GitHub's macOS image ships CocoaPods 1.17, while
+# Podfile.lock was generated with 1.16.2, which rewrites SPEC CHECKSUMS.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -49,7 +51,7 @@ seed_from_install_log() {
 run_pod_install() {
   local log="$1"
   set +e
-  pod install --deployment >"$log" 2>&1
+  pod install >"$log" 2>&1
   local status=$?
   set -e
   cat "$log"
