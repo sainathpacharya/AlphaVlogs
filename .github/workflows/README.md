@@ -8,7 +8,7 @@ Platform-specific and environment-specific workflows for independent validation.
 | ---- | ------- | ------- |
 | `ci.yml` | PR / push to `main`, `develop` | Lint, type-check, test (non-deploying) |
 | `android-ios-firebase-distribution.yml` | manual only | **Android and iOS Firebase Distribution** |
-| `android-ios-production.yml` | tag `v*.*.*`, manual | Signed AAB → Play **Internal Testing** + IPA → **TestFlight** (choose platform on manual) |
+| `android-ios-production.yml` | tag `v*.*.*`, manual | Signed AAB → Play **Internal Testing** + IPA → **TestFlight**. Version auto-bumps from live store if needed. |
 
 Full setup, secrets, validation, and rollback: **[docs/GITHUB_ACTIONS_SETUP.md](../../docs/GITHUB_ACTIONS_SETUP.md)**
 

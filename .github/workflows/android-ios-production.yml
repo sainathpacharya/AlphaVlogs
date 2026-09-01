@@ -13,7 +13,7 @@ on:
           - ios
         default: both
       version_name:
-        description: 'Semantic version (e.g. 1.0.0). Used when not triggered by a version tag.'
+        description: 'Optional marketing version (e.g. 1.0.4). If omitted or not higher than the live store version, CI auto-bumps the patch.'
         required: false
         type: string
   push:
@@ -156,44 +156,11 @@ jobs:
 
       - name: Calculate Play Store version
         id: version
-        run: |
-          if [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            VERSION_NAME="${GITHUB_REF_NAME#v}"
-            echo "Version from tag: $VERSION_NAME"
-          elif [ -n "${{ github.event.inputs.version_name }}" ]; then
-            VERSION_NAME="${{ github.event.inputs.version_name }}"
-            echo "Version from workflow input: $VERSION_NAME"
-          else
-            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
-            if [ -n "$LATEST_TAG" ] && [[ "$LATEST_TAG" == v* ]]; then
-              VERSION_NAME="${LATEST_TAG#v}"
-              echo "Version from latest tag: $VERSION_NAME"
-            else
-              VERSION_NAME=$(node -p "require('./package.json').version")
-              echo "Version from package.json: $VERSION_NAME"
-            fi
-          fi
-
-          if ! [[ "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid version_name '$VERSION_NAME'. Expected format: MAJOR.MINOR.PATCH (e.g. 1.0.0)"
-            exit 1
-          fi
-
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NAME"
-          MAJOR=${MAJOR:-1}
-          MINOR=${MINOR:-0}
-          PATCH=${PATCH:-0}
-          VERSION_CODE=$((MAJOR * 1000000 + MINOR * 1000 + PATCH))
-
-          if [ "$VERSION_CODE" -le 0 ]; then
-            echo "Invalid version code: $VERSION_CODE"
-            exit 1
-          fi
-
-          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
-          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
-          echo "Version name: $VERSION_NAME"
-          echo "Version code: $VERSION_CODE"
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          ANDROID_PACKAGE_NAME: ${{ env.ANDROID_PACKAGE_NAME }}
+          VERSION_INPUT: ${{ github.event.inputs.version_name }}
+        run: node .github/scripts/resolve-store-version.js android
 
       - name: Build signed production AAB
         run: |
@@ -236,6 +203,8 @@ jobs:
             echo "- **Version name:** \`${{ steps.version.outputs.version_name }}\`"
             echo "- **Version code:** \`${{ steps.version.outputs.version_code }}\`"
             echo "- **Play Store track:** \`${{ env.PLAY_STORE_TRACK }}\` (not production)"
+            echo "- **Store before upload:** \`${{ steps.version.outputs.store_version_name || 'none' }}\` (${{ steps.version.outputs.store_version_code || '0' }})"
+            echo "- **Auto-bumped:** \`${{ steps.version.outputs.bumped }}\`"
             echo "- **Commit:** \`${{ github.sha }}\`"
             echo "- **Tag:** \`${{ github.ref_name }}\`"
             echo "- **Artifact:** \`android-production-aab\`"
@@ -291,6 +260,16 @@ jobs:
           fi
           echo "All required secrets are present"
 
+      - name: Resolve App Store version
+        id: version
+        env:
+          APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
+          APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
+          APPLE_PRIVATE_KEY: ${{ secrets.APPLE_PRIVATE_KEY }}
+          IOS_BUNDLE_ID: ${{ env.IOS_BUNDLE_ID }}
+          VERSION_INPUT: ${{ github.event.inputs.version_name }}
+        run: node .github/scripts/resolve-store-version.js ios
+
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -298,39 +277,6 @@ jobs:
 
       - name: Install CocoaPods
         run: bash .github/scripts/ios-pod-install.sh
-
-      - name: Resolve App Store version
-        id: version
-        run: |
-          if [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            VERSION_NAME="${GITHUB_REF_NAME#v}"
-            echo "Version from tag: $VERSION_NAME"
-          elif [ -n "${{ github.event.inputs.version_name }}" ]; then
-            VERSION_NAME="${{ github.event.inputs.version_name }}"
-            echo "Version from workflow input: $VERSION_NAME"
-          else
-            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
-            if [ -n "$LATEST_TAG" ] && [[ "$LATEST_TAG" == v* ]]; then
-              VERSION_NAME="${LATEST_TAG#v}"
-              echo "Version from latest tag: $VERSION_NAME"
-            else
-              VERSION_NAME=$(node -p "require('./package.json').version")
-              echo "Version from package.json: $VERSION_NAME"
-            fi
-          fi
-
-          if ! [[ "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid version_name '$VERSION_NAME'. Expected format: MAJOR.MINOR.PATCH (e.g. 1.0.0)"
-            exit 1
-          fi
-
-          # TestFlight requires a unique CFBundleVersion per upload; use run number.
-          BUILD_NUMBER="${{ github.run_number }}"
-
-          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
-          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
-          echo "Marketing version: $VERSION_NAME"
-          echo "Build number: $BUILD_NUMBER"
 
       - name: Import certificates and provisioning profile
         env:
@@ -485,6 +431,8 @@ jobs:
             echo "## iOS Production — Build Summary"
             echo "- **Bundle ID:** \`${{ env.IOS_BUNDLE_ID }}\`"
             echo "- **Version:** \`${{ steps.version.outputs.version_name }}\` (build ${{ steps.version.outputs.build_number }})"
+            echo "- **Store before upload:** \`${{ steps.version.outputs.store_version_name || 'none' }}\` (build ${{ steps.version.outputs.store_build_number || '0' }})"
+            echo "- **Auto-bumped:** \`${{ steps.version.outputs.bumped }}\`"
             echo "- **Destination:** TestFlight only (not App Store production release)"
             echo "- **Commit:** \`${{ github.sha }}\`"
             echo "- **Tag:** \`${{ github.ref_name }}\`"

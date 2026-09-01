@@ -203,7 +203,7 @@ The service account needs:
 ### Production (Android + iOS)
 
 1. Tag a commit: `git tag v1.0.0 && git push origin v1.0.0` (runs **both** platforms)
-2. Or Actions → **Android and iOS Production** → **Run workflow** → choose platform (`both` / `android` / `ios`) and `version_name: 1.0.0`
+2. Or Actions → **Android and iOS Production** → **Run workflow** → choose platform (`both` / `android` / `ios`). `version_name` is optional; CI reads Play Console / App Store Connect and auto-bumps the patch (and Android `versionCode` / iOS build) so every upload is higher than the live store version.
 3. Confirm lint/type/tests pass in the **Validate** job
 4. Android: AAB artifact `android-production-aab` → Play Console → **Testing → Internal testing** (track **internal**, not production)
 5. iOS: IPA artifact `ios-production-ipa` → App Store Connect → **TestFlight** (not submitted for App Store review)
@@ -243,4 +243,5 @@ The service account needs:
 - **No Fastlane** — native Gradle / xcodebuild / Firebase CLI / store actions only
 - **Android production** deploys to **internal** track only (not production track)
 - **iOS production** uploads to **TestFlight** only (not App Store release)
+- Each production upload **auto-bumps** marketing version / `versionCode` / iOS build when Play Console or App Store Connect already has the same or higher version
 - Firebase App IDs are resolved from repo config files, not hardcoded in workflows
