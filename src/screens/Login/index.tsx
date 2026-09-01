@@ -1,6 +1,5 @@
 import React, {useState, useRef, useEffect, useCallback, useMemo} from 'react';
 import {
-  KeyboardAvoidingView,
   Platform,
   Dimensions,
   TouchableOpacity,
@@ -35,7 +34,6 @@ import {getApiBaseUrl} from '@/constants';
 
 const {width} = Dimensions.get('window');
 const OTP_LENGTH = 6;
-const KEYBOARD_DONE_BAR_HEIGHT = 44;
 
 // Memoized logo so parent re-renders (e.g. timer) don't stutter the animation
 const LoginLogo = React.memo(function LoginLogo() {
@@ -79,7 +77,6 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
   const otpRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
   const scrollViewRef = useRef<ScrollView>(null);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const otpTextStyle = useMemo(
     () => ({
@@ -100,21 +97,6 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
-    };
-  }, []);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const onShow = Keyboard.addListener(showEvent, e => {
-      setKeyboardHeight(e.endCoordinates.height);
-    });
-    const onHide = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0);
-    });
-    return () => {
-      onShow.remove();
-      onHide.remove();
     };
   }, []);
 
@@ -331,15 +313,9 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
     }
   };
 
-  const dismissKeyboard = useCallback(() => {
-    Keyboard.dismiss?.();
-  }, []);
-
   return (
-    <KeyboardAvoidingView
+    <View
       testID="login-screen"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={keyboardHeight > 0 ? KEYBOARD_DONE_BAR_HEIGHT : 0}
       style={{flex: 1, backgroundColor: colors.primaryBackground}}>
       <StatusBar translucent={false} />
 
@@ -348,17 +324,15 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
         testID="login-scroll-view"
         style={{flex: 1}}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           flexGrow: 1,
           justifyContent: 'flex-start',
           paddingHorizontal: 20,
           paddingTop: insets.top + 24,
-          paddingBottom:
-            Math.max(insets.bottom, 16) +
-            24 +
-            (keyboardHeight > 0 ? KEYBOARD_DONE_BAR_HEIGHT : 0),
+          paddingBottom: Math.max(insets.bottom, 16) + 24,
         }}>
         <VStack
           testID="login-container"
@@ -411,6 +385,9 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
                 // Remove all non-digit characters and limit to 10 digits
                 const digits = val.replace(/\D/g, '').slice(0, 10);
                 setMobile(digits);
+                if (digits.length === 10) {
+                  Keyboard.dismiss();
+                }
                 if (otp.length > 0) {
                   setOtp('');
                 }
@@ -422,8 +399,6 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
               color={colors.inputText}
               onFocus={() => setIsMobileFocused(true)}
               onBlur={() => setIsMobileFocused(false)}
-              returnKeyType="done"
-              onSubmitEditing={dismissKeyboard}
             />
             {mobile?.length > 0 && isMobileFocused && (
               <TouchableOpacity
@@ -587,37 +562,6 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
         </VStack>
       </ScrollView>
 
-      {keyboardHeight > 0 && (
-        <View
-          pointerEvents="box-none"
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: keyboardHeight,
-            height: KEYBOARD_DONE_BAR_HEIGHT,
-            flexDirection: 'row',
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            paddingHorizontal: 16,
-            borderTopWidth: 1,
-            borderTopColor: colors.border,
-            backgroundColor: colors.cardBackground ?? colors.primaryBackground,
-          }}>
-          <TouchableOpacity
-            testID="login-keyboard-dismiss"
-            onPress={dismissKeyboard}
-            hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-            <Text
-              color={colors.accentAction}
-              fontWeight="$semibold"
-              fontSize={16}>
-              Done
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
       {/* ✅ Confetti Cannon 🎉 */}
       {showConfetti && (
         <ConfettiCannon
@@ -630,7 +574,7 @@ const LoginScreen = ({navigation}: LoginScreenProps) => {
           onAnimationEnd={() => setShowConfetti(false)}
         />
       )}
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 

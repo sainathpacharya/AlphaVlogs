@@ -25,17 +25,21 @@ describe('parseIapError', () => {
   it('maps E_IAP_NOT_AVAILABLE and storekit messages', () => {
     expect(parseIapError({ code: 'E_IAP_NOT_AVAILABLE' }).userMessage).toMatch(/not available/i);
     expect(parseIapError({ message: 'StoreKit is unavailable' }).code).toBe('E_IAP_NOT_AVAILABLE');
-    expect(parseIapError('IAP not available on this device').userMessage).toMatch(/real iPhone/i);
+    expect(parseIapError('IAP not available on this device').userMessage).toMatch(/TestFlight|Sandbox/i);
   });
 
   it('maps E_ITEM_UNAVAILABLE and missing product messages', () => {
-    expect(parseIapError({ code: 'E_ITEM_UNAVAILABLE' }).userMessage).toMatch(/not available|does not recognize/i);
+    expect(parseIapError({ code: 'E_ITEM_UNAVAILABLE' }).userMessage).toMatch(
+      /could not load this subscription|TestFlight/i,
+    );
     expect(parseIapError({ message: 'SKU could not be found' }).code).toBe('E_ITEM_UNAVAILABLE');
     expect(parseIapError({ message: 'product not available for purchase' }).userMessage).toMatch(
-      /Paid Apps Agreement|real iPhone|Simulator/i,
+      /TestFlight|com\.nsnr\.alphavlogsindia/i,
     );
     expect(parseIapError(new Error('Invalid product ID.')).code).toBe('E_ITEM_UNAVAILABLE');
-    expect(parseIapError(new Error('Invalid product ID.')).userMessage).toMatch(/Simulator/i);
+    expect(parseIapError(new Error('Invalid product ID.')).userMessage).toMatch(
+      /Firebase\/dev|TestFlight/i,
+    );
   });
 
   it('maps E_UNKNOWN / unknown error wording', () => {

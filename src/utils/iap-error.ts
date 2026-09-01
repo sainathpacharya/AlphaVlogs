@@ -65,7 +65,7 @@ export function parseIapError(error: unknown): ParsedIapError {
       message,
       cancelled: false,
       userMessage:
-        'Apple does not recognize this subscription. The iOS Simulator cannot load live App Store products (that is why the price shows “… / year”). Test on a real iPhone with a Sandbox Apple ID, and confirm the product ID exists in App Store Connect.',
+        'Apple could not load this subscription for this app. In-app purchases only work on the App Store app com.nsnr.alphavlogsindia (TestFlight or App Store), not the Firebase/dev build (com.nsnr.alphavlogs.dev). Use a TestFlight install, sign in with a Sandbox Apple ID (Settings → App Store → Sandbox Account), and confirm the product is cleared for sale in App Store Connect.',
     };
   }
 
@@ -79,7 +79,7 @@ export function parseIapError(error: unknown): ParsedIapError {
       message,
       cancelled: false,
       userMessage:
-        'App Store purchases are not available here. Use a real iPhone with a Sandbox Apple ID (Settings → App Store → Sandbox Account), not only the Simulator.',
+        'App Store purchases are not available on this install. Use a TestFlight or App Store build of com.nsnr.alphavlogsindia and a Sandbox Apple ID (Settings → App Store → Sandbox Account).',
     };
   }
 

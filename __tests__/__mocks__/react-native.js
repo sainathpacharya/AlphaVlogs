@@ -64,6 +64,7 @@ module.exports = {
   SectionList: mockComponent('SectionList'),
   VirtualizedList: mockComponent('VirtualizedList'),
   KeyboardAvoidingView: mockComponent('KeyboardAvoidingView'),
+  InputAccessoryView: mockComponent('InputAccessoryView'),
   Keyboard: {
     addListener: jest.fn(() => ({remove: jest.fn()})),
     removeListener: jest.fn(),

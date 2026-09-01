@@ -32,7 +32,7 @@ describe('Auth Screens', () => {
 
   describe('LoginScreen', () => {
     it('renders login screen with key elements', () => {
-      const {getByTestId, getByText} = renderScreen(LoginScreen, {
+      const {getByTestId, getByText, queryByTestId} = renderScreen(LoginScreen, {
         navigation: mockNavigation,
       });
 
@@ -41,6 +41,7 @@ describe('Auth Screens', () => {
       expect(getByTestId('login-mobile-field')).toBeTruthy();
       expect(getByTestId('login-submit-button')).toBeTruthy();
       expect(getByText('Register')).toBeTruthy();
+      expect(queryByTestId('login-keyboard-dismiss')).toBeNull();
     });
 
     it('navigates to Registration when register link is pressed', () => {

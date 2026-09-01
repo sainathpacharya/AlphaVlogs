@@ -474,6 +474,7 @@ const RegistrationScreen = ({navigation}: any) => {
     <KeyboardAvoidingView
       testID="registration-screen"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      enabled={!Platform.isPad}
       keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       style={{flex: 1, backgroundColor: colors.primaryBackground}}>
       <StatusBar translucent={false} />
@@ -518,7 +519,8 @@ const RegistrationScreen = ({navigation}: any) => {
         testID="registration-scroll-view"
         style={{flex: 1}}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         contentContainerStyle={{
           paddingBottom: insets.bottom + 140,
         }}
