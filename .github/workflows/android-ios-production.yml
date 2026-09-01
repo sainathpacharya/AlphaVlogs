@@ -77,6 +77,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -166,9 +169,14 @@ jobs:
               VERSION_NAME="${LATEST_TAG#v}"
               echo "Version from latest tag: $VERSION_NAME"
             else
-              echo "Manual dispatch requires version_name input or an existing git tag (v*.*.*)"
-              exit 1
+              VERSION_NAME=$(node -p "require('./package.json').version")
+              echo "Version from package.json: $VERSION_NAME"
             fi
+          fi
+
+          if ! [[ "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version_name '$VERSION_NAME'. Expected format: MAJOR.MINOR.PATCH (e.g. 1.0.0)"
+            exit 1
           fi
 
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NAME"
@@ -247,6 +255,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -303,8 +314,8 @@ jobs:
               VERSION_NAME="${LATEST_TAG#v}"
               echo "Version from latest tag: $VERSION_NAME"
             else
-              echo "Manual dispatch requires version_name input or an existing git tag (v*.*.*)"
-              exit 1
+              VERSION_NAME=$(node -p "require('./package.json').version")
+              echo "Version from package.json: $VERSION_NAME"
             fi
           fi
 

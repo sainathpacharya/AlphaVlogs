@@ -90,6 +90,7 @@ module.exports = {
   })),
   Platform: {
     OS: 'ios',
+    isPad: false,
     select: jest.fn((obj) => obj.ios),
   },
   StyleSheet: {

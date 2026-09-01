@@ -35,6 +35,10 @@ import {
 import { MANUAL_SCHOOL_ID } from '@/utils/register-payload';
 import {LEGAL_URLS} from '@/constants/legal';
 
+// Platform.isPad exists at runtime on iOS but is not on the Platform union type.
+const isIPad =
+  Platform.OS === 'ios' && (Platform as {isPad?: boolean}).isPad === true;
+
 const MANUAL_SCHOOL_OPTION: School = {
   id: 9999,
   createdOn: '',
@@ -474,7 +478,7 @@ const RegistrationScreen = ({navigation}: any) => {
     <KeyboardAvoidingView
       testID="registration-screen"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      enabled={!Platform.isPad}
+      enabled={!isIPad}
       keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       style={{flex: 1, backgroundColor: colors.primaryBackground}}>
       <StatusBar translucent={false} />
