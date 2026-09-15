@@ -103,6 +103,7 @@ module.exports = {
     },
   },
   SUBSCRIPTION: {
+    PAYWALL_ENABLED: false,
     PLANS: {
       FREE: 'free',
       PREMIUM: 'premium',

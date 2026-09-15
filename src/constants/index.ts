@@ -225,6 +225,11 @@ export const ANIMATION = {
 
 // Subscription Constants
 export const SUBSCRIPTION = {
+  /**
+   * App Store IAP is paused for this submission.
+   * Flip to true when Annual Premium is included in App Review again.
+   */
+  PAYWALL_ENABLED: false,
   PLANS: {
     FREE: 'free',
     PREMIUM: 'premium',

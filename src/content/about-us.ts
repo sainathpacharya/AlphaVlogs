@@ -19,7 +19,7 @@ export const ABOUT_US_CONTENT: AboutUsContent = {
       icon: 'video',
       title: 'Showcase Your Talent',
       description:
-        'Browse events, prepare performances, and upload videos directly from your phone when you are ready to participate.',
+        'Browse school events and prepare performances. Video upload will return in a later update.',
     },
     {
       icon: 'sparkles',
@@ -29,9 +29,9 @@ export const ABOUT_US_CONTENT: AboutUsContent = {
     },
     {
       icon: 'crown',
-      title: 'Unlock Premium Experiences',
+      title: 'More Features Coming',
       description:
-        'Subscribed students can access exclusive content, advanced features, and a richer participation experience.',
+        'We are adding more participation tools in upcoming updates. Premium subscriptions are not offered in this version.',
     },
     {
       icon: 'shield',
@@ -44,8 +44,8 @@ export const ABOUT_US_CONTENT: AboutUsContent = {
   features: [
     'Sign in quickly with mobile OTP verification',
     'Browse curated student events from your dashboard',
-    'Upload performance videos for selected events',
-    'Track subscription status and premium access',
+    'View event details and prepare for upcoming activities',
+    'Report inappropriate content from your profile',
     'Manage your profile and account information',
   ],
   trustTitle: 'Built with Care',

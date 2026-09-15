@@ -13,6 +13,7 @@ Static pages in this folder are ready to publish on your website. After hosting,
 | Delete account | `https://alphavlogs.com/delete-account` | `delete-account.html` |
 | Privacy policy | `https://alphavlogs.com/privacy-policy` | `privacy-policy.html` |
 | Terms of service | `https://alphavlogs.com/terms` | `terms.html` |
+| Terms of Use (EULA) | `https://www.apple.com/legal/internet-services/itunes/dev/stdeula/` | Apple standard EULA (required in App Description) |
 
 ## How to publish
 
@@ -21,7 +22,19 @@ Static pages in this folder are ready to publish on your website. After hosting,
 3. Enter the live URL in Play Console **Data safety → Delete account URL**.
 4. Re-run store submission checklists in `docs/PLAY_STORE_AND_APP_STORE_PUBLISHING.md`.
 
-## Notes
+## App Store Connect (Apple 3.1.2)
+
+For auto-renewable subscriptions, add **both**:
+
+1. **Privacy Policy** field: `https://alphavlogs.com/privacy-policy`
+2. **App Description** (or custom EULA field) must include a working Terms of Use link:
+
+`https://www.apple.com/legal/internet-services/itunes/dev/stdeula/`
+
+Suggested App Description sentence:
+
+> Annual Premium is auto-renewable (1 year). The price is shown in the app before purchase. Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/ Privacy Policy: https://alphavlogs.com/privacy-policy
+
 
 - Contact emails use `support@alphavlogs.com` and `privacy@alphavlogs.com` from the app.
 - Developer name **NSNR Technologies** matches `src/constants/legal.ts`.

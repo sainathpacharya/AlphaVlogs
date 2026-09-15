@@ -61,5 +61,12 @@ describe('Content files', () => {
         ).toBe(true);
       });
     });
+
+    it('includes Apple EULA for auto-renewable subscriptions', () => {
+      const subscriptionSection = TERMS_AND_CONDITIONS.sections.find(section =>
+        section.title.toLowerCase().includes('subscription'),
+      );
+      expect(subscriptionSection?.bullets?.join(' ')).toMatch(/stdeula/i);
+    });
   });
 });

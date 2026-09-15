@@ -19,6 +19,7 @@ import {useTranslation} from '../../hooks/useTranslation';
 import {useEventsQuery, usePreventHardwareBack} from '../../hooks';
 import {useThemeColors} from '../../utils/colors';
 import {useUser} from '../../stores';
+import {SUBSCRIPTION} from '../../constants';
 import {subscriptionService} from '../../services/subscription-service';
 import {canAccessPayment} from '../../utils/payment';
 import {isSubscribedFromUser} from '../../utils/subscription';
@@ -83,6 +84,9 @@ const DashboardScreen: React.FC = () => {
   );
 
   const handleSubscriptionPress = useCallback(() => {
+    if (!SUBSCRIPTION.PAYWALL_ENABLED) {
+      return;
+    }
     navigation.navigate('Subscription');
   }, [navigation]);
 
@@ -91,6 +95,10 @@ const DashboardScreen: React.FC = () => {
   }, [navigation]);
 
   useEffect(() => {
+    if (!SUBSCRIPTION.PAYWALL_ENABLED) {
+      return undefined;
+    }
+
     let cancelled = false;
 
     const checkSubscription = async () => {
@@ -215,7 +223,7 @@ const DashboardScreen: React.FC = () => {
         </Pressable>
       </HStack>
 
-      {canAccessPayment(user) && !isSubscribed && (
+      {SUBSCRIPTION.PAYWALL_ENABLED && canAccessPayment(user) && !isSubscribed && (
         <Box
           testID="dashboard-subscription-banner"
           mx="$4"

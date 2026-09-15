@@ -42,6 +42,15 @@ describe('parseIapError', () => {
     );
   });
 
+  it('maps window-scene purchase failures on iPad', () => {
+    const result = parseIapError({
+      code: 'E_DEVELOPER_ERROR',
+      message: 'Could not find window scene',
+    });
+    expect(result.cancelled).toBe(false);
+    expect(result.userMessage).toMatch(/purchase sheet/i);
+  });
+
   it('maps E_UNKNOWN / unknown error wording', () => {
     const unknown = parseIapError({
       code: 'E_UNKNOWN',

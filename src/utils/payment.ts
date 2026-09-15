@@ -6,7 +6,11 @@ export function canAccessPayment(user: User | null | undefined): boolean {
     return false;
   }
   const role = String(user.role ?? '').toLowerCase();
-  return role === 'student' || user.roleId === 4;
+  if (role === 'influencer' || user.roleId === 3) {
+    return false;
+  }
+  // Allow student accounts and reviewer/demo logins that omit role fields.
+  return true;
 }
 
 export function buildPaymentReceipt(userId: string): string {

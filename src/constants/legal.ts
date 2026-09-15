@@ -8,5 +8,8 @@ export const LEGAL_CONTACT = {
 export const LEGAL_URLS = {
   privacyPolicy: 'https://alphavlogs.com/privacy-policy',
   termsOfService: 'https://alphavlogs.com/terms',
+  /** Apple's standard EULA — required for auto-renewable subscriptions (guideline 3.1.2). */
+  termsOfUseEula:
+    'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
   deleteAccount: 'https://alphavlogs.com/delete-account',
 } as const;

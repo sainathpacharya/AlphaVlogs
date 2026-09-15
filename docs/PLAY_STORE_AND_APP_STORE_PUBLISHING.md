@@ -270,6 +270,33 @@ Do this **after** (or in parallel with) Play Store, when you’re ready for iOS.
 - In App Store Connect: **App Store** tab – screenshots (6.7", 6.5", 5.5" etc. as required), description, keywords, icon, Privacy Policy URL, etc.
 - Create a **version** (e.g. 1.0.0), attach the uploaded build, fill “What’s New”, then **Submit for Review**.
 
+### 5b. Auto-renewable subscription metadata (guideline 3.1.2)
+
+Apple rejects the binary if this metadata is missing, even when the in-app paywall is correct.
+
+**App Privacy Policy URL**
+
+`https://alphavlogs.com/privacy-policy`
+
+**Terms of Use (EULA)** — paste this in the **App Description** (or set a custom EULA in App Store Connect):
+
+```
+Annual Premium is an auto-renewable subscription. Length: 1 year. Price is shown in the app before purchase (localized App Store price; ₹100/year in India). Payment is charged to your Apple ID at confirmation of purchase and renews unless cancelled at least 24 hours before the end of the current period. Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/ Privacy Policy: https://alphavlogs.com/privacy-policy
+```
+
+**App Review Information → Notes** (include for every resubmission):
+
+```
+Purchase path: log in as a student → Dashboard “Subscribe” banner, or Profile → Premium Subscription.
+Product: Annual Premium (com.nsnr.alphavlogsindia.annual.premium), 1 year, auto-renewable.
+The paywall shows title, length, localized price, price per unit, Terms of Use (EULA), and Privacy Policy before purchase.
+Paid Apps Agreement, tax, and banking must be active so sandbox IAP works during review.
+```
+
+Keep **Annual Premium** and the **Premium** subscription group in the same submission as the app version.
+
+**Business:** Account Holder must accept the Paid Apps Agreement (App Store Connect → Business). Incomplete tax/banking is a common cause of 2.1(b) purchase-flow errors.
+
 ### 6. Versioning (iOS)
 
 - **CFBundleShortVersionString** = Marketing version (e.g. 1.0.0). Shown to users.

@@ -98,9 +98,19 @@ describe('subscription utils', () => {
   it('handles inactive status and invalid end dates', () => {
     expect(isSubscriptionActive(null)).toBe(false);
     expect(isSubscriptionActive({ ...activeSub, status: 'cancelled' })).toBe(false);
+    expect(isSubscriptionActive({ ...activeSub, status: 'canceled' })).toBe(false);
+    expect(isSubscriptionActive({ ...activeSub, status: 'expired' })).toBe(false);
+    expect(isSubscriptionActive({ ...activeSub, status: 'pending' })).toBe(false);
+    expect(isSubscriptionActive({ ...activeSub, status: 'unknown-status' as never })).toBe(true);
     expect(isSubscriptionActive({ ...activeSub, endDate: 'not-a-date', plan: 'premium' })).toBe(
       true,
     );
+  });
+
+  it('returns null when both subscribed flags are false', () => {
+    expect(
+      parseSubscriptionPayload({ subscribed: false, isSubscribed: false }),
+    ).toBeNull();
   });
 
   it('parses inferred subscription from boolean flags', () => {

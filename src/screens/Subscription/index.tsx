@@ -28,6 +28,10 @@ import {PaymentApiError} from '@/services/payment-service';
 import {canAccessPayment} from '@/utils/payment';
 import {shouldUseAppleIAP} from '@/utils/platform-payment';
 import {parseIapError} from '@/utils/iap-error';
+import {
+  getSubscriptionDisplayInfo,
+  StoreSubscriptionFields,
+} from '@/utils/iap-product';
 import {devLog} from '@/utils/dev-log';
 import {getApiBaseUrl} from '@/constants';
 import {isMockMode} from '@/config/api-config';
@@ -111,16 +115,24 @@ const SubscriptionScreen: React.FC = () => {
   );
   const [selectedPlan, setSelectedPlan] = useState<'free' | 'premium'>('premium');
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
-    useState<string>('');
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+    useState<string>(shouldUseAppleIAP() ? 'apple_iap' : '');
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(() =>
+    shouldUseAppleIAP() ? buildPaymentMethods() : [],
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [currentSubscription, setCurrentSubscription] = useState<{
     id: string;
     plan: string;
     endDate?: string;
   } | null>(null);
-  const [appleProductPrice, setAppleProductPrice] = useState<string | null>(null);
+  const [appleProduct, setAppleProduct] = useState<StoreSubscriptionFields | null>(
+    null,
+  );
   const usesAppleIAP = shouldUseAppleIAP();
+  const appleSubscriptionInfo = useMemo(
+    () => getSubscriptionDisplayInfo(appleProduct),
+    [appleProduct],
+  );
 
   const markUserSubscribed = useCallback(
     async (current: User) => {
@@ -146,7 +158,6 @@ const SubscriptionScreen: React.FC = () => {
 
     const load = async () => {
       try {
-        setIsLoading(true);
         const subscription = await subscriptionService.getStudentSubscription(user.id);
         if (cancelled) {
           return;
@@ -185,9 +196,12 @@ const SubscriptionScreen: React.FC = () => {
         if (__DEV__) {
           console.error('Error loading subscription data:', error);
         }
-      } finally {
         if (!cancelled) {
-          setIsLoading(false);
+          const platformMethods = buildPaymentMethods();
+          setPaymentMethods(platformMethods);
+          if (platformMethods[0]) {
+            setSelectedPaymentMethod(platformMethods[0].id);
+          }
         }
       }
     };
@@ -209,8 +223,8 @@ const SubscriptionScreen: React.FC = () => {
       try {
         const {iapService} = require('@/services/iap-service');
         const product = await iapService.getPremiumSubscription();
-        if (!cancelled && product?.localizedPrice) {
-          setAppleProductPrice(product.localizedPrice);
+        if (!cancelled && product) {
+          setAppleProduct(product);
         }
       } catch (error) {
         if (__DEV__) {
@@ -230,10 +244,6 @@ const SubscriptionScreen: React.FC = () => {
       return;
     }
     try {
-      if (isMounted.current) {
-        setIsLoading(true);
-      }
-
       const subscription = await subscriptionService.getStudentSubscription(user.id);
       if (!isMounted.current) {
         return;
@@ -272,9 +282,12 @@ const SubscriptionScreen: React.FC = () => {
       if (__DEV__) {
         console.error('Error loading subscription data:', error);
       }
-    } finally {
       if (isMounted.current) {
-        setIsLoading(false);
+        const platformMethods = buildPaymentMethods();
+        setPaymentMethods(platformMethods);
+        if (platformMethods[0]) {
+          setSelectedPaymentMethod(platformMethods[0].id);
+        }
       }
     }
   }, [user?.id, isMounted, usesAppleIAP]);
@@ -733,8 +746,15 @@ const SubscriptionScreen: React.FC = () => {
 
   const isCurrentPremium = currentSubscription?.plan === 'premium';
   const premiumPriceLabel = usesAppleIAP
-    ? `${appleProductPrice ?? '…'} / year`
+    ? appleSubscriptionInfo.priceLine
     : `₹${SUBSCRIPTION.PRICING.PREMIUM_ANNUAL} / year`;
+  const premiumPlanTitle = usesAppleIAP
+    ? appleSubscriptionInfo.title
+    : 'Premium Plan';
+  const showApplePurchaseActions = usesAppleIAP || canAccessPayment(user);
+  const openLegalUrl = (url: string) => {
+    void Linking.openURL(url);
+  };
 
   const renderPlanCard = (plan: 'free' | 'premium', isSelected: boolean) => {
     const isPremium = plan === 'premium';
@@ -785,7 +805,7 @@ const SubscriptionScreen: React.FC = () => {
                   styles.planTitle,
                   isSelected && isPremium && styles.selectedPremiumTitle,
                 ]}>
-                {isPremium ? 'Premium Plan' : 'Free Plan'}
+                {isPremium ? premiumPlanTitle : 'Free Plan'}
               </Text>
               <Text style={styles.planSubtitle}>
                 {isPremium
@@ -830,7 +850,11 @@ const SubscriptionScreen: React.FC = () => {
                 style={styles.priceText}>
                 {premiumPriceLabel}
               </Text>
-              <Text style={styles.priceHint}>Best value for serious learners</Text>
+              <Text style={styles.priceHint}>
+                {usesAppleIAP
+                  ? `${appleSubscriptionInfo.lengthLabel}, auto-renewable · ${appleSubscriptionInfo.pricePerUnit}`
+                  : 'Best value for serious learners'}
+              </Text>
             </View>
           ) : (
             <View
@@ -1051,7 +1075,48 @@ const SubscriptionScreen: React.FC = () => {
             </VStack>
           )}
 
-          {selectedPlan === 'premium' && canAccessPayment(user) && (
+          {selectedPlan === 'premium' && usesAppleIAP && (
+            <VStack
+              testID="subscription-apple-disclosure"
+              space="sm"
+              style={styles.disclosureCard}>
+              <Text testID="subscription-apple-title" style={styles.disclosureTitle}>
+                {appleSubscriptionInfo.title}
+              </Text>
+              <Text testID="subscription-apple-length" style={styles.disclosureText}>
+                Length: {appleSubscriptionInfo.lengthLabel}, auto-renewable
+              </Text>
+              <Text testID="subscription-apple-price" style={styles.disclosurePrice}>
+                Price: {appleSubscriptionInfo.priceLine} ({appleSubscriptionInfo.pricePerUnit})
+              </Text>
+              <Text style={styles.disclosureText}>
+                Payment is charged to your Apple ID at confirmation of purchase.
+                The subscription automatically renews unless cancelled at least 24
+                hours before the end of the current period.
+              </Text>
+              <HStack
+                space="md"
+                alignItems="center"
+                justifyContent="center"
+                flexWrap="wrap">
+                <Text
+                  testID="subscription-eula-link"
+                  style={styles.termsLink}
+                  onPress={() => openLegalUrl(LEGAL_URLS.termsOfUseEula)}>
+                  Terms of Use (EULA)
+                </Text>
+                <Text style={styles.disclosureDot}>·</Text>
+                <Text
+                  testID="subscription-privacy-link"
+                  style={styles.termsLink}
+                  onPress={() => openLegalUrl(LEGAL_URLS.privacyPolicy)}>
+                  Privacy Policy
+                </Text>
+              </HStack>
+            </VStack>
+          )}
+
+          {selectedPlan === 'premium' && showApplePurchaseActions && (
             <Pressable
               testID="subscription-subscribe-button"
               onPress={handleSubscribe}
@@ -1071,7 +1136,7 @@ const SubscriptionScreen: React.FC = () => {
                     {isLoading
                       ? 'Processing...'
                       : usesAppleIAP
-                        ? 'Subscribe with Apple'
+                        ? `Subscribe for ${appleSubscriptionInfo.priceLine}`
                         : 'Subscribe Now'}
                   </Text>
                   {!isLoading && (
@@ -1087,7 +1152,7 @@ const SubscriptionScreen: React.FC = () => {
             </Text>
           )}
 
-          {usesAppleIAP && canAccessPayment(user) && (
+          {usesAppleIAP && showApplePurchaseActions && (
             <Pressable
               testID="subscription-restore-button"
               onPress={handleRestorePurchases}
@@ -1106,21 +1171,27 @@ const SubscriptionScreen: React.FC = () => {
               <Text
                 testID="subscription-terms-link"
                 style={styles.termsLink}
-                onPress={() => void Linking.openURL(LEGAL_URLS.termsOfService)}>
-                Terms of Service
+                onPress={() =>
+                  openLegalUrl(
+                    usesAppleIAP
+                      ? LEGAL_URLS.termsOfUseEula
+                      : LEGAL_URLS.termsOfService,
+                  )
+                }>
+                {usesAppleIAP ? 'Terms of Use (EULA)' : 'Terms of Service'}
               </Text>{' '}
               and{' '}
               <Text
-                testID="subscription-privacy-link"
+                testID="subscription-privacy-footer-link"
                 style={styles.termsLink}
-                onPress={() => void Linking.openURL(LEGAL_URLS.privacyPolicy)}>
+                onPress={() => openLegalUrl(LEGAL_URLS.privacyPolicy)}>
                 Privacy Policy
               </Text>
               .
             </Text>
             <Text testID="subscription-terms-text-2" style={styles.termsText}>
               {usesAppleIAP
-                ? 'Subscription auto-renews annually unless cancelled at least 24 hours before the end of the current period. Manage or cancel in your Apple ID subscription settings.'
+                ? `${appleSubscriptionInfo.title} is ${appleSubscriptionInfo.priceLine} (${appleSubscriptionInfo.pricePerUnit}). It auto-renews every ${appleSubscriptionInfo.lengthLabel} unless cancelled at least 24 hours before the end of the current period. Manage or cancel in your Apple ID subscription settings.`
                 : 'Subscription will auto-renew annually. Cancel anytime in your account settings.'}
             </Text>
           </VStack>
@@ -1508,6 +1579,36 @@ const getStyles = (colors: any, screenWidth: number) => {
       fontSize: 14,
       textAlign: 'center',
       textDecorationLine: 'underline',
+    },
+    disclosureCard: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingVertical: 16,
+      paddingHorizontal: 16,
+    },
+    disclosureTitle: {
+      fontSize: isNarrow ? 16 : 17,
+      fontWeight: '800',
+      color: NAVY,
+      textAlign: 'center',
+    },
+    disclosurePrice: {
+      fontSize: isNarrow ? 15 : 16,
+      fontWeight: '700',
+      color: NAVY,
+      textAlign: 'center',
+    },
+    disclosureText: {
+      fontSize: 12,
+      color: colors.mutedText,
+      textAlign: 'center',
+      lineHeight: 18,
+    },
+    disclosureDot: {
+      color: colors.mutedText,
+      fontSize: 12,
     },
     termsSection: {
       paddingTop: 4,

@@ -1,6 +1,7 @@
 import React, {useCallback} from 'react';
 import {ActivityIndicator, StyleSheet} from 'react-native';
 import {Box, HStack, Pressable, Text, VStack} from '@/components';
+import {SUBSCRIPTION} from '@/constants';
 import {StudentProfile} from '@/types';
 import {CheckCircle2, GraduationCap, School} from 'lucide-react-native';
 
@@ -86,7 +87,7 @@ export const StudentProfileCard = React.memo(function StudentProfileCard({
                 </HStack>
               </Box>
             ) : null}
-            {profile.isSubscribed ? (
+            {SUBSCRIPTION.PAYWALL_ENABLED && profile.isSubscribed ? (
               <Box
                 style={[
                   styles.badge,

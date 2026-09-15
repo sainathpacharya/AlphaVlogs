@@ -10,6 +10,7 @@ import {
 import { buildPaymentReceipt } from '@/utils/payment';
 import { paymentService, PaymentApiError } from './payment-service';
 import { parseIapError } from '@/utils/iap-error';
+import { extractIapReceipt, readStoreProductId } from '@/utils/iap-product';
 
 export interface RazorpayCheckoutResult {
   success: boolean;
@@ -196,12 +197,9 @@ class SubscriptionService {
       const {iapService} = require('./iap-service');
       const purchase = await iapService.purchasePremium();
       const transactionId = String(purchase.transactionId ?? '').trim();
-      // Prefer StoreKit 2 JWS; fall back to classic receipt.
-      const transactionReceipt = String(
-        purchase.verificationResultIOS ??
-          purchase.transactionReceipt ??
-          '',
-      ).trim();
+      const transactionReceipt = extractIapReceipt(
+        purchase as unknown as Record<string, unknown>,
+      );
 
       if (!transactionId || !transactionReceipt) {
         throw new PaymentApiError(
@@ -211,7 +209,7 @@ class SubscriptionService {
       }
 
       const verified = await paymentService.verifyApplePurchase({
-        productId: purchase.productId,
+        productId: readStoreProductId(purchase) || purchase.productId,
         transactionId,
         transactionReceipt,
       });
@@ -269,11 +267,9 @@ class SubscriptionService {
       )[0];
 
       const transactionId = String(latestPurchase.transactionId ?? '').trim();
-      const transactionReceipt = String(
-        latestPurchase.verificationResultIOS ??
-          latestPurchase.transactionReceipt ??
-          '',
-      ).trim();
+      const transactionReceipt = extractIapReceipt(
+        latestPurchase as unknown as Record<string, unknown>,
+      );
 
       if (!transactionId || !transactionReceipt) {
         throw new PaymentApiError(
@@ -283,7 +279,7 @@ class SubscriptionService {
       }
 
       const verified = await paymentService.verifyApplePurchase({
-        productId: latestPurchase.productId,
+        productId: readStoreProductId(latestPurchase) || latestPurchase.productId,
         transactionId,
         transactionReceipt,
       });

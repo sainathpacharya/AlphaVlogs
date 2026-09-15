@@ -6,7 +6,7 @@
  */
 
 import React, {useEffect} from 'react';
-import {Appearance} from 'react-native';
+import {Appearance, Platform} from 'react-native';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {GluestackUIProvider} from '@/components';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
@@ -22,7 +22,7 @@ import {useUserStore, useUserCachedStore} from '@/stores';
 import {useShallow} from 'zustand/react/shallow';
 import {i18next} from '@/services/i18n-service';
 import {subscribeSslPinningErrors} from '@/config/ssl-pinning';
-import {getApiBaseUrl} from '@/constants';
+import {getApiBaseUrl, SUBSCRIPTION} from '@/constants';
 import {getStoredAuthApiBaseUrl} from '@/utils/auth-api-session';
 import {waitForStoreHydration} from '@/hooks/useStoreHydration';
 import {resolveAuthTokens} from '@/utils/auth-storage';
@@ -73,6 +73,30 @@ const AppContent = React.memo(() => {
 
   useEffect(() => {
     setupGlobalErrorHandler();
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios' || !SUBSCRIPTION.PAYWALL_ENABLED) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    const warmStoreKit = async () => {
+      try {
+        const {iapService} = require('@/services/iap-service');
+        await iapService.init();
+        if (!cancelled) {
+          await iapService.getPremiumSubscription();
+        }
+      } catch {
+        // Catalog warm-up is best-effort; the paywall retries on open.
+      }
+    };
+
+    void warmStoreKit();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => subscribeSslPinningErrors(), []);

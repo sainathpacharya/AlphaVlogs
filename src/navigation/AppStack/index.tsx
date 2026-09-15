@@ -5,6 +5,7 @@ import type {NativeStackNavigationOptions} from '@react-navigation/native-stack'
 import {useNavigation} from '@react-navigation/native';
 import {useStatusBarConfig} from '@/utils/colors';
 import {screen} from '@/navigation/screen';
+import {SUBSCRIPTION} from '@/constants';
 import {AppStackParamList} from './types';
 import DashboardScreen from '../../screens/Dashboard';
 import ProfileScreen from '../../screens/Profile';
@@ -67,10 +68,12 @@ const AppStackNavigator = () => {
       />
       <AppStack.Screen name="Quiz" component={screen(QuizScreen, 'QuizScreen')} />
       <AppStack.Screen name="Results" component={screen(ResultsScreen, 'ResultsScreen')} />
-      <AppStack.Screen
-        name="Subscription"
-        component={screen(SubscriptionScreen, 'SubscriptionScreen')}
-      />
+      {SUBSCRIPTION.PAYWALL_ENABLED ? (
+        <AppStack.Screen
+          name="Subscription"
+          component={screen(SubscriptionScreen, 'SubscriptionScreen')}
+        />
+      ) : null}
       <AppStack.Screen
         name="VideoUpload"
         component={screen(VideoUploadScreen as any, 'VideoUploadScreen')}

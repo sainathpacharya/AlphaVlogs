@@ -32,6 +32,10 @@ function readMessage(error: unknown): string {
   return 'Purchase failed';
 }
 
+function withDevDetail(userMessage: string, detail: string): string {
+  return __DEV__ ? `${userMessage} ${detail}` : userMessage;
+}
+
 export function parseIapError(error: unknown): ParsedIapError {
   const code = readCode(error);
   const message = readMessage(error);
@@ -54,18 +58,36 @@ export function parseIapError(error: unknown): ParsedIapError {
   }
 
   if (
+    lower.includes('could not find window scene') ||
+    lower.includes('window scene')
+  ) {
+    return {
+      code: code || 'E_DEVELOPER_ERROR',
+      message,
+      cancelled: false,
+      userMessage: withDevDetail(
+        'Apple could not show the purchase sheet. Please try again.',
+        'This can happen on iPad if StoreKit cannot find the active window. Retry from the Subscription screen.',
+      ),
+    };
+  }
+
+  if (
     code === 'E_ITEM_UNAVAILABLE' ||
     lower.includes('invalid product id') ||
     lower.includes('invalid productid') ||
     lower.includes('product not available') ||
-    lower.includes('could not be found')
+    lower.includes('could not be found') ||
+    lower.includes('did you call getproducts')
   ) {
     return {
       code: code || 'E_ITEM_UNAVAILABLE',
       message,
       cancelled: false,
-      userMessage:
-        'Apple could not load this subscription for this app. In-app purchases only work on the App Store app com.nsnr.alphavlogsindia (TestFlight or App Store), not the Firebase/dev build (com.nsnr.alphavlogs.dev). Use a TestFlight install, sign in with a Sandbox Apple ID (Settings → App Store → Sandbox Account), and confirm the product is cleared for sale in App Store Connect.',
+      userMessage: withDevDetail(
+        'The App Store could not load Annual Premium. Please try again in a moment.',
+        'In-app purchases only work on the App Store app com.nsnr.alphavlogsindia (TestFlight or App Store), not the Firebase/dev build (com.nsnr.alphavlogs.dev). Use a TestFlight install, sign in with a Sandbox Apple ID (Settings → App Store → Sandbox Account), and confirm the product is cleared for sale in App Store Connect.',
+      ),
     };
   }
 
@@ -78,8 +100,10 @@ export function parseIapError(error: unknown): ParsedIapError {
       code: code || 'E_IAP_NOT_AVAILABLE',
       message,
       cancelled: false,
-      userMessage:
-        'App Store purchases are not available on this install. Use a TestFlight or App Store build of com.nsnr.alphavlogsindia and a Sandbox Apple ID (Settings → App Store → Sandbox Account).',
+      userMessage: withDevDetail(
+        'App Store purchases are not available right now. Please try again.',
+        'Use a TestFlight or App Store build of com.nsnr.alphavlogsindia and a Sandbox Apple ID (Settings → App Store → Sandbox Account).',
+      ),
     };
   }
 
@@ -92,8 +116,10 @@ export function parseIapError(error: unknown): ParsedIapError {
       code: code || 'E_UNKNOWN',
       message,
       cancelled: false,
-      userMessage:
-        'Apple could not complete the purchase. Sign in with the Sandbox tester (Settings → App Store → Sandbox Account) on a real device, then try again. Canceling the Apple ID sheet also causes this.',
+      userMessage: withDevDetail(
+        'Apple could not complete the purchase. Please try again.',
+        'Sign in with the Sandbox tester (Settings → App Store → Sandbox Account) on a real device, then try again. Canceling the Apple ID sheet also causes this.',
+      ),
     };
   }
 

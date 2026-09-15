@@ -81,15 +81,15 @@ describe('Main App Screens', () => {
       expect(mockNavigation.navigate).toHaveBeenCalledWith('Profile');
     });
 
-    it('shows subscription banner when payment is accessible and not subscribed', () => {
+    it('does not show the subscription banner while the paywall is paused', () => {
       (canAccessPayment as jest.Mock).mockReturnValue(true);
       (subscriptionService.isStudentSubscribed as jest.Mock).mockResolvedValue(
         false,
       );
 
-      const {getByTestId} = renderScreen(DashboardScreen);
+      const {queryByTestId} = renderScreen(DashboardScreen);
 
-      expect(getByTestId('dashboard-subscription-banner')).toBeTruthy();
+      expect(queryByTestId('dashboard-subscription-banner')).toBeNull();
     });
   });
 
@@ -112,6 +112,12 @@ describe('Main App Screens', () => {
       expect(getByTestId('profile-privacy-button')).toBeTruthy();
       expect(getByTestId('profile-about-button')).toBeTruthy();
       expect(getByTestId('profile-logout-button')).toBeTruthy();
+    });
+
+    it('does not show premium subscription while the paywall is paused', () => {
+      const {queryByTestId} = renderScreen(ProfileScreen);
+
+      expect(queryByTestId('profile-subscription-button')).toBeNull();
     });
 
     it('navigates to SwitchProfile when switch student is pressed', () => {
@@ -237,6 +243,21 @@ describe('Main App Screens', () => {
       expect(getByTestId('subscription-plan-card-free')).toBeTruthy();
       expect(getByTestId('subscription-plan-card-premium')).toBeTruthy();
     });
+
+    it('shows Apple subscription price, length, and EULA links', async () => {
+      const {getByTestId, getAllByText} = renderScreen(SubscriptionScreen);
+
+      await waitFor(() => {
+        expect(getByTestId('subscription-apple-disclosure')).toBeTruthy();
+      });
+
+      expect(getByTestId('subscription-apple-title')).toBeTruthy();
+      expect(getByTestId('subscription-apple-length')).toBeTruthy();
+      expect(getByTestId('subscription-apple-price')).toBeTruthy();
+      expect(getByTestId('subscription-eula-link')).toBeTruthy();
+      expect(getAllByText('Terms of Use (EULA)').length).toBeGreaterThan(0);
+      expect(getAllByText(/₹100/).length).toBeGreaterThan(0);
+    });
   });
 
   describe('PermissionsScreen', () => {
@@ -278,7 +299,33 @@ describe('Main App Screens', () => {
 
       await waitFor(() => {
         expect(getByText('Singing Competition')).toBeTruthy();
+        expect(getByText('Uploads paused')).toBeTruthy();
+        expect(
+          getByText(
+            'Video uploads will resume shortly. You can still browse events and manage your profile.',
+          ),
+        ).toBeTruthy();
       });
+    });
+
+    it('tells reviewers uploads will resume shortly', async () => {
+      const alertSpy = jest.spyOn(Alert, 'alert');
+      const {getByTestId, getByText} = renderScreen(VideoUploadScreen, {
+        navigation: mockNavigation,
+        route,
+      });
+
+      await waitFor(() => {
+        expect(getByText('Uploads paused')).toBeTruthy();
+        expect(getByTestId('video-upload-select-video')).toBeTruthy();
+      });
+
+      fireEvent.press(getByTestId('video-upload-select-video'));
+
+      expect(alertSpy).toHaveBeenCalledWith(
+        'Uploads paused',
+        'Video uploads will resume shortly. You can still browse events and manage your profile.',
+      );
     });
 
     it('is a valid React component', () => {

@@ -50,8 +50,8 @@ export function AnalyticsConsentPrompt({
             </Text>
             <Text color={colors.secondaryText} fontSize={14} lineHeight={22}>
               We use privacy-friendly analytics and crash reports to keep the app
-              reliable for students and schools. You can change this later in Profile
-              settings. See our Privacy Policy for details.
+              reliable for students and schools. You can choose Allow or Not now.
+              See our Privacy Policy for details.
             </Text>
             <Text color={colors.mutedText} fontSize={12} lineHeight={18}>
               {PRIVACY_POLICY.title} — last updated {PRIVACY_POLICY.lastUpdated}

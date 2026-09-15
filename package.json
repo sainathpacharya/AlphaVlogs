@@ -24,7 +24,7 @@
     "test:report": "jest --coverage --coverageReporters=text --coverageReporters=html --coverageReporters=json",
     "test:ci": "jest --ci --coverage --watchAll=false",
     "type-check": "tsc --noEmit",
-    "postinstall": "if [ -f 'Gemfile' ] && command -v brew >/dev/null 2>&1; then export PATH=\"$(brew --prefix ruby 2>/dev/null)/bin:$PATH\"; fi; if [ -f 'Gemfile' ] && command -v bundle >/dev/null 2>&1 && bundle -v >/dev/null 2>&1; then bundle check >/dev/null 2>&1 || bundle install || true; fi; if [ -d 'ios' ] && command -v pod >/dev/null 2>&1; then cd ios && pod install; elif [ -d 'ios' ] && command -v bundle >/dev/null 2>&1; then cd ios && bundle exec pod install; fi",
+    "postinstall": "node scripts/patch-rn-iap-ipad.js; if [ -f 'Gemfile' ] && command -v brew >/dev/null 2>&1; then export PATH=\"$(brew --prefix ruby 2>/dev/null)/bin:$PATH\"; fi; if [ -f 'Gemfile' ] && command -v bundle >/dev/null 2>&1 && bundle -v >/dev/null 2>&1; then bundle check >/dev/null 2>&1 || bundle install || true; fi; if [ -d 'ios' ] && command -v pod >/dev/null 2>&1; then cd ios && pod install; elif [ -d 'ios' ] && command -v bundle >/dev/null 2>&1; then cd ios && bundle exec pod install; fi",
     "clean": "rm -rf node_modules && yarn install",
     "clean:metro": "npx react-native start --reset-cache --client-logs",
     "clean:android": "find node_modules -path '*/android/build' -type d -exec rm -rf {} + 2>/dev/null; rm -rf android/app/build android/build android/.gradle && cd android && ./gradlew clean",

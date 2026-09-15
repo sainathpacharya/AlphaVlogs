@@ -5,12 +5,18 @@ jest.mock('react-native-iap', () => ({
   requestSubscription: jest.fn(),
   getAvailablePurchases: jest.fn(),
   finishTransaction: jest.fn(() => Promise.resolve(true)),
+  setup: jest.fn(),
+  purchaseUpdatedListener: jest.fn(() => ({remove: jest.fn()})),
+  purchaseErrorListener: jest.fn(() => ({remove: jest.fn()})),
 }));
 
 jest.mock('@/constants', () => ({
   SUBSCRIPTION: {
     IAP: {
       PREMIUM_ANNUAL_PRODUCT_ID: 'com.nsnr.alphavlogsindia.annual.premium',
+    },
+    PRICING: {
+      PREMIUM_ANNUAL: 100,
     },
   },
 }));
@@ -60,6 +66,29 @@ describe('iap-service', () => {
     expect(product?.localizedPrice).toBe('₹100');
   });
 
+  it('matches StoreKit 2 products that expose id instead of productId', async () => {
+    (getSubscriptions as jest.Mock).mockResolvedValue([
+      {id: PREMIUM, localizedPrice: '₹100'},
+    ]);
+
+    await expect(iapService.getPremiumSubscription()).resolves.toMatchObject({
+      id: PREMIUM,
+      localizedPrice: '₹100',
+    });
+  });
+
+  it('retries StoreKit catalog when the first fetch is empty', async () => {
+    (getSubscriptions as jest.Mock)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{productId: PREMIUM, localizedPrice: '₹100'}]);
+
+    await expect(iapService.getPremiumSubscription()).resolves.toMatchObject({
+      productId: PREMIUM,
+      localizedPrice: '₹100',
+    });
+    expect(getSubscriptions).toHaveBeenCalledTimes(2);
+  });
+
   it('returns null when premium product is missing', async () => {
     (getSubscriptions as jest.Mock).mockResolvedValue([{productId: 'other'}]);
 
@@ -98,12 +127,15 @@ describe('iap-service', () => {
 
   it('rejects purchase when StoreKit has no matching product', async () => {
     (getSubscriptions as jest.Mock).mockResolvedValue([]);
+    (requestSubscription as jest.Mock).mockRejectedValue({
+      code: 'E_DEVELOPER_ERROR',
+      message: 'Invalid product ID. Did you call getProducts/Subscriptions',
+    });
 
     await expect(iapService.purchasePremium()).rejects.toMatchObject({
       message: expect.stringMatching(/Invalid product ID/),
-      code: 'E_ITEM_UNAVAILABLE',
     });
-    expect(requestSubscription).not.toHaveBeenCalled();
+    expect(requestSubscription).toHaveBeenCalled();
   });
 
   it('restores premium purchases and finishes them', async () => {

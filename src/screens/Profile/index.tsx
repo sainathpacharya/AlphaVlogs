@@ -3,7 +3,7 @@ import {ActivityIndicator, Alert, ScrollView} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {ChevronRight, LogOut, Trash2, Users} from 'lucide-react-native';
+import {ChevronRight, Crown, LogOut, Trash2, Users} from 'lucide-react-native';
 import {
   VStack,
   HStack,
@@ -12,7 +12,7 @@ import {
   Pressable,
   UserAvatar,
 } from '@/components';
-import {APP_CONFIG} from '@/constants';
+import {APP_CONFIG, SUBSCRIPTION} from '@/constants';
 import {useThemeColors} from '@/utils/colors';
 import {maskEmail, maskMobile} from '@/utils/privacy';
 import {getAppVersion} from '@/utils/platform';
@@ -360,6 +360,16 @@ const ProfileScreen = () => {
         </ProfileSection>
 
         <ProfileSection testID="profile-account-menu" title="Account" colors={colors}>
+          {SUBSCRIPTION.PAYWALL_ENABLED ? (
+            <ProfileMenuItem
+              testID="profile-subscription-button"
+              label="Premium Subscription"
+              colors={colors}
+              showChevron
+              icon={<Crown size={20} color={colors.primaryText} strokeWidth={2} />}
+              onPress={() => navigation.navigate('Subscription')}
+            />
+          ) : null}
           <ProfileMenuItem
             testID="profile-switch-student-button"
             label="Switch Student"
@@ -367,6 +377,7 @@ const ProfileScreen = () => {
             showChevron
             icon={<Users size={20} color={colors.primaryText} strokeWidth={2} />}
             onPress={() => navigation.navigate('SwitchProfile')}
+            isLast
           />
         </ProfileSection>
 

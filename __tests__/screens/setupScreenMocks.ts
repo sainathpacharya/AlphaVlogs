@@ -392,8 +392,25 @@ jest.mock('@/services/subscription-service', () => ({
     isStudentSubscribed: jest.fn().mockResolvedValue(false),
     subscribe: jest.fn(),
     cancelSubscription: jest.fn(),
+    getStudentSubscription: jest.fn().mockResolvedValue(null),
     getPaymentMethods: jest.fn().mockResolvedValue([]),
     getSubscriptionStatus: jest.fn().mockResolvedValue({isSubscribed: false}),
+  },
+}));
+
+jest.mock('@/services/iap-service', () => ({
+  iapService: {
+    getPremiumSubscription: jest.fn().mockResolvedValue({
+      productId: 'com.nsnr.alphavlogsindia.annual.premium',
+      title: 'Annual Premium',
+      localizedPrice: '₹100',
+      price: '100',
+      currency: 'INR',
+      subscriptionPeriodNumberIOS: '1',
+      subscriptionPeriodUnitIOS: 'YEAR',
+    }),
+    purchasePremium: jest.fn(),
+    restorePurchases: jest.fn(),
   },
 }));
 

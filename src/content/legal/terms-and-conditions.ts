@@ -54,12 +54,14 @@ export const TERMS_AND_CONDITIONS: LegalDocumentContent = {
     {
       title: '5. Subscriptions and Payments',
       paragraphs: [
-        'Some features may require an active subscription or approved payment method. Pricing, billing cycles, and benefits will be shown before purchase.',
+        'Some features require an active auto-renewable subscription. Before you purchase, the app shows the subscription title, length, price, and price per unit.',
       ],
       bullets: [
+        'iOS subscriptions are billed through your Apple ID using In-App Purchase.',
+        'Annual Premium auto-renews every 1 year unless cancelled at least 24 hours before the current period ends.',
+        'iOS Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
         'Subscription access is personal and non-transferable unless stated otherwise.',
         'Refunds, cancellations, and billing disputes are handled according to store policies and applicable law.',
-        'We may modify subscription plans or pricing with reasonable notice where required.',
       ],
     },
     {

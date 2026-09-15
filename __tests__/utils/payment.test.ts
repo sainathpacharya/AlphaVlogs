@@ -38,6 +38,16 @@ describe('payment utils', () => {
     ).toBe(true);
   });
 
+  it('allows payment when role is missing on a logged-in user', () => {
+    expect(
+      canAccessPayment({
+        ...student,
+        role: undefined as unknown as User['role'],
+        roleId: undefined as unknown as number,
+      }),
+    ).toBe(true);
+  });
+
   it('denies payment for influencer role', () => {
     expect(
       canAccessPayment({

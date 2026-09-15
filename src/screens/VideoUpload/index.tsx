@@ -12,7 +12,7 @@ import {
   Progress,
   Pressable,
 } from '@/components';
-import {VIDEO_UPLOAD} from '@/constants';
+import {SUBSCRIPTION, VIDEO_UPLOAD} from '@/constants';
 import {i18n} from '@/services/i18n-service';
 import {commonStyles, screenStyles} from '@/utils/styles';
 import {useThemeColors} from '@/utils/colors';
@@ -27,6 +27,10 @@ import {getEventIcon} from '@/utils/event-icons';
 
 const SUBSCRIPTION_REQUIRED_MESSAGE =
   'This feature is only for subscribed students. Subscribe to upload videos for events.';
+
+const UPLOADS_PAUSED_TITLE = 'Uploads paused';
+const UPLOADS_PAUSED_MESSAGE =
+  'Video uploads will resume shortly. You can still browse events and manage your profile.';
 
 interface VideoUploadNavProps {
   route: {
@@ -96,7 +100,14 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
 
   const {requestVideoUploadPermissions} = usePermissions();
 
+  const showUploadsPaused = !SUBSCRIPTION.PAYWALL_ENABLED;
+
   const handleSelectVideo = async () => {
+    if (showUploadsPaused) {
+      Alert.alert(UPLOADS_PAUSED_TITLE, UPLOADS_PAUSED_MESSAGE);
+      return;
+    }
+
     const eligibility = evaluateEventUploadEligibility({
       isActive,
       canUpload,
@@ -185,6 +196,11 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
   };
 
   const handleUploadVideo = async () => {
+    if (showUploadsPaused) {
+      Alert.alert(UPLOADS_PAUSED_TITLE, UPLOADS_PAUSED_MESSAGE);
+      return;
+    }
+
     if (!selectedVideo) {
       Alert.alert('No Video', 'Please select a video from your library first.');
       return;
@@ -305,6 +321,21 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
             </Text>
           </VStack>
 
+          {showUploadsPaused ? (
+            <Box
+              testID="video-upload-paused-banner"
+              style={screenStyles.videoUpload.guidelinesCard}>
+              <Text
+                testID="video-upload-paused-title"
+                style={screenStyles.videoUpload.guidelinesTitle as any}>
+                {UPLOADS_PAUSED_TITLE}
+              </Text>
+              <Text style={screenStyles.videoUpload.guidelineText}>
+                {UPLOADS_PAUSED_MESSAGE}
+              </Text>
+            </Box>
+          ) : null}
+
           {guidelines && (
             <Box style={screenStyles.videoUpload.guidelinesCard}>
               <Text style={screenStyles.videoUpload.guidelinesTitle as any}>
@@ -326,7 +357,7 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
                 <Text style={screenStyles.videoUpload.guidelineText}>
                   • {i18n.t('videoUpload.galleryOnly')}
                 </Text>
-                {guidelines.tips.map((tip: string, index: number) => (
+                {guidelines.tips?.map((tip: string, index: number) => (
                   <Text
                     key={index}
                     style={screenStyles.videoUpload.guidelineText}>
@@ -343,6 +374,7 @@ const VideoUploadScreen: React.FC<VideoUploadNavProps> = ({route}) => {
             </Text>
 
             <Pressable
+              testID="video-upload-select-video"
               onPress={handleSelectVideo}
               style={screenStyles.videoUpload.selectVideoCard as any}>
               <VStack space="sm" alignItems="center">

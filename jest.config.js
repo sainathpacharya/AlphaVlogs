@@ -73,6 +73,9 @@ module.exports = {
     '!src/components/**/*', // UI primitives — covered by screen/integration tests
     '!src/navigation/**/*',
     '!src/screens/**',
+    '!src/content/types.ts',
+    '!src/**/* 2.ts',
+    '!src/**/* 2.tsx',
     '!src/stores/**/*', // Zustand globally mocked — state covered via hook/screen tests
     '!src/services/mock-api.ts',
     '!src/services/mock/**/*',

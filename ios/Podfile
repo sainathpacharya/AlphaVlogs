@@ -83,6 +83,8 @@ target 'JackMarvelsApp' do
 
     fix_react_native_script_phases_for_spaces(installer)
 
+    system('node', File.join(__dir__, '..', 'scripts', 'patch-rn-iap-ipad.js'))
+
     installer.generated_projects.each do |project|
       project.targets.each do |target|
         target.build_configurations.each do |config|
