@@ -68,6 +68,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile --ignore-scripts
 
+      - name: Patch Play Billing Library 8 APIs
+        run: node scripts/patch-rn-iap-android-billing8.js
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
