@@ -302,8 +302,6 @@ dependencies {
 configurations.all {
     resolutionStrategy {
         force 'androidx.core:core:1.15.0'
-        force 'com.android.billingclient:billing:8.0.0'
-        force 'com.android.billingclient:billing-ktx:8.0.0'
         exclude group: 'com.android.support', module: 'support-compat'
     }
 }

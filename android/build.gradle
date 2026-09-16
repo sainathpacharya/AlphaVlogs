@@ -6,9 +6,6 @@ buildscript {
         targetSdkVersion = 36
         ndkVersion = "27.1.12297006"
         kotlinVersion = "2.0.21"
-        // Play rejects AABs that still ship Billing Library 7 (from react-native-iap 12.16.2).
-        // Keep the JS paywall off; this only upgrades the native Play Billing dependency.
-        playBillingSdkVersion = "8.0.0"
         // Set React Native node modules directory to avoid node lookup issues
         // This prevents react-native-svg from trying to use node to find react-native
         REACT_NATIVE_NODE_MODULES_DIR = file("../node_modules/react-native")

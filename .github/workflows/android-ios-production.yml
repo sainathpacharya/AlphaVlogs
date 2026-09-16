@@ -90,9 +90,6 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile --ignore-scripts
 
-      - name: Patch Play Billing Library 8 APIs
-        run: node scripts/patch-rn-iap-android-billing8.js
-
       - name: Validate required secrets
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}

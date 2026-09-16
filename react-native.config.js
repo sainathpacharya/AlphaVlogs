@@ -7,5 +7,13 @@ module.exports = {
         ios: null,
       },
     },
+    // Play Billing 8 cannot compile against react-native-iap 12.16.2, and
+    // Android IAP is unused while PAYWALL_ENABLED is false. Keep the JS/iOS
+    // module; do not ship Play Billing in this AAB.
+    'react-native-iap': {
+      platforms: {
+        android: null,
+      },
+    },
   },
 };
