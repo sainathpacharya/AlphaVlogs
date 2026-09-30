@@ -2,6 +2,15 @@ name: Submit iOS for Review
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Optional App Store version to submit (e.g. 1.0.4). Defaults to highest TestFlight marketing version.'
+        required: false
+        type: string
+      build:
+        description: 'Optional build number (e.g. 51). Defaults to highest build for that version.'
+        required: false
+        type: string
 
 jobs:
   submit:
@@ -24,4 +33,6 @@ jobs:
           APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
           APPLE_PRIVATE_KEY: ${{ secrets.APPLE_PRIVATE_KEY }}
           IOS_BUNDLE_ID: com.nsnr.alphavlogsindia
+          TARGET_VERSION: ${{ github.event.inputs.version || '' }}
+          TARGET_BUILD: ${{ github.event.inputs.build || '' }}
         run: node .github/scripts/submit-ios-review.js

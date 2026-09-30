@@ -3,9 +3,11 @@
  * Submit the latest processed TestFlight build of Alpha Vlogs for App Review.
  *
  * Uses the App Store Connect API (APPLE_KEY_ID, APPLE_ISSUER_ID, APPLE_PRIVATE_KEY).
- * Does not upload a new binary. Attaches the newest VALID build, refreshes review
- * notes when they still describe the paused paywall as a live purchase, then
- * submits the iOS version.
+ * Does not upload a new binary. Picks the highest marketing version (then highest
+ * build), cancels an open Waiting for Review submission when a newer version must
+ * replace it, refreshes review notes for the paused paywall, and submits.
+ *
+ * Optional overrides: TARGET_VERSION, TARGET_BUILD
  */
 'use strict';
 
@@ -13,6 +15,8 @@ const crypto = require('crypto');
 const https = require('https');
 
 const BUNDLE_ID = process.env.IOS_BUNDLE_ID || 'com.nsnr.alphavlogsindia';
+const TARGET_VERSION = (process.env.TARGET_VERSION || '').trim();
+const TARGET_BUILD = (process.env.TARGET_BUILD || '').trim();
 const API = 'https://api.appstoreconnect.apple.com/v1';
 
 const EDITABLE_STATES = new Set([
@@ -29,12 +33,61 @@ const IN_REVIEW_STATES = new Set([
   'PROCESSING_FOR_APP_STORE',
 ]);
 
+const CANCELABLE_SUBMISSION_STATES = new Set([
+  'READY_FOR_REVIEW',
+  'WAITING_FOR_REVIEW',
+  'UNRESOLVED_ISSUES',
+]);
+
 const OPEN_SUBMISSION_STATES = new Set([
   'READY_FOR_REVIEW',
   'WAITING_FOR_REVIEW',
   'IN_REVIEW',
   'UNRESOLVED_ISSUES',
 ]);
+
+function parseSemver(version) {
+  const match = String(version || '')
+    .trim()
+    .match(/^(\d+)\.(\d+)\.(\d+)$/);
+  if (!match) {
+    return null;
+  }
+  return {
+    major: Number(match[1]),
+    minor: Number(match[2]),
+    patch: Number(match[3]),
+  };
+}
+
+function compareSemver(left, right) {
+  const a = parseSemver(left);
+  const b = parseSemver(right);
+  if (!a && !b) {
+    return 0;
+  }
+  if (!a) {
+    return -1;
+  }
+  if (!b) {
+    return 1;
+  }
+  if (a.major !== b.major) {
+    return a.major - b.major;
+  }
+  if (a.minor !== b.minor) {
+    return a.minor - b.minor;
+  }
+  return a.patch - b.patch;
+}
+
+function compareBuilds(left, right) {
+  const versionDelta = compareSemver(left.marketingVersion, right.marketingVersion);
+  if (versionDelta !== 0) {
+    return versionDelta;
+  }
+  return Number(left.buildNumber) - Number(right.buildNumber);
+}
 
 const REVIEW_NOTES = [
   'This version does not include in-app purchases. Premium subscription is hidden, and video upload shows that uploads are paused and will resume shortly.',
@@ -177,7 +230,7 @@ async function main() {
   console.log(`App: ${app.attributes?.name || BUNDLE_ID} (${appId})`);
 
   const buildsResponse = await httpsJson(
-    `${API}/builds?filter[app]=${appId}&filter[processingState]=VALID&include=preReleaseVersion&sort=-uploadedDate&limit=20`,
+    `${API}/builds?filter[app]=${appId}&filter[processingState]=VALID&include=preReleaseVersion&sort=-uploadedDate&limit=50`,
     {headers},
   );
   const preReleaseById = new Map(
@@ -185,25 +238,48 @@ async function main() {
       .filter(item => item.type === 'preReleaseVersions')
       .map(item => [item.id, item]),
   );
-  const latestBuild = (buildsResponse.data || [])
-    .map(build => {
-      const preReleaseId = build.relationships?.preReleaseVersion?.data?.id;
-      const preRelease = preReleaseById.get(preReleaseId);
-      return {
-        id: build.id,
-        buildNumber: String(build.attributes?.version || ''),
-        marketingVersion: preRelease?.attributes?.version || '',
-        uploadedDate: build.attributes?.uploadedDate || '',
-        usesNonExemptEncryption: build.attributes?.usesNonExemptEncryption,
-      };
-    })
-    .sort((left, right) => Number(right.buildNumber) - Number(left.buildNumber))[0];
+  const builds = (buildsResponse.data || []).map(build => {
+    const preReleaseId = build.relationships?.preReleaseVersion?.data?.id;
+    const preRelease = preReleaseById.get(preReleaseId);
+    return {
+      id: build.id,
+      buildNumber: String(build.attributes?.version || ''),
+      marketingVersion: preRelease?.attributes?.version || '',
+      uploadedDate: build.attributes?.uploadedDate || '',
+      usesNonExemptEncryption: build.attributes?.usesNonExemptEncryption,
+    };
+  });
+  for (const build of [...builds].sort(compareBuilds).reverse().slice(0, 8)) {
+    console.log(
+      `TestFlight ${build.marketingVersion} (${build.buildNumber}) uploaded ${build.uploadedDate}`,
+    );
+  }
+
+  let latestBuild;
+  if (TARGET_VERSION || TARGET_BUILD) {
+    latestBuild = builds.find(build => {
+      if (TARGET_VERSION && build.marketingVersion !== TARGET_VERSION) {
+        return false;
+      }
+      if (TARGET_BUILD && build.buildNumber !== TARGET_BUILD) {
+        return false;
+      }
+      return true;
+    });
+    if (!latestBuild) {
+      fail(
+        `No VALID build matches TARGET_VERSION=${TARGET_VERSION || '*'} TARGET_BUILD=${TARGET_BUILD || '*'}`,
+      );
+    }
+  } else {
+    latestBuild = [...builds].sort(compareBuilds).pop();
+  }
 
   if (!latestBuild) {
     fail('No processed (VALID) TestFlight build found to submit');
   }
   console.log(
-    `Latest build: ${latestBuild.marketingVersion} (${latestBuild.buildNumber}) uploaded ${latestBuild.uploadedDate}`,
+    `Selected build: ${latestBuild.marketingVersion} (${latestBuild.buildNumber}) uploaded ${latestBuild.uploadedDate}`,
   );
 
   if (latestBuild.usesNonExemptEncryption == null) {
@@ -222,10 +298,10 @@ async function main() {
   }
 
   const versionsResponse = await httpsJson(
-    `${API}/apps/${appId}/appStoreVersions?filter[platform]=IOS&limit=10`,
+    `${API}/apps/${appId}/appStoreVersions?filter[platform]=IOS&limit=15`,
     {headers},
   );
-  const versions = (versionsResponse.data || []).map(version => ({
+  let versions = (versionsResponse.data || []).map(version => ({
     id: version.id,
     versionString: version.attributes?.versionString,
     state: version.attributes?.appStoreState,
@@ -236,6 +312,20 @@ async function main() {
       `Version ${version.versionString}: ${version.state}${version.buildId ? ` build=${version.buildId}` : ''}`,
     );
   }
+
+  await cancelOpenReviewSubmissions(headers, appId);
+
+  // Refresh version states after a cancel (Waiting for Review → Developer Rejected).
+  const refreshedVersions = await httpsJson(
+    `${API}/apps/${appId}/appStoreVersions?filter[platform]=IOS&limit=15`,
+    {headers},
+  );
+  versions = (refreshedVersions.data || []).map(version => ({
+    id: version.id,
+    versionString: version.attributes?.versionString,
+    state: version.attributes?.appStoreState,
+    buildId: version.relationships?.build?.data?.id || null,
+  }));
 
   let version = versions.find(item => item.versionString === latestBuild.marketingVersion);
   if (version && IN_REVIEW_STATES.has(version.state)) {
@@ -250,10 +340,14 @@ async function main() {
     );
   }
   if (!version) {
-    const blocking = versions.find(item => EDITABLE_STATES.has(item.state));
+    const blocking = versions.find(
+      item =>
+        item.state === 'PREPARE_FOR_SUBMISSION' &&
+        item.versionString !== latestBuild.marketingVersion,
+    );
     if (blocking) {
       fail(
-        `Cannot create ${latestBuild.marketingVersion} while ${blocking.versionString} is ${blocking.state}. Finish or remove that version in App Store Connect first.`,
+        `Cannot create ${latestBuild.marketingVersion} while ${blocking.versionString} is ${blocking.state}. Remove or replace that version in App Store Connect first.`,
       );
     }
     const created = await httpsJson(`${API}/appStoreVersions`, {
@@ -312,16 +406,14 @@ async function main() {
 
   if (
     submission &&
-    (submission.attributes?.state === 'WAITING_FOR_REVIEW' ||
-      submission.attributes?.state === 'IN_REVIEW')
+    submission.attributes?.state === 'IN_REVIEW' &&
+    versions.find(item => item.id === version.id && IN_REVIEW_STATES.has(item.state))
   ) {
-    console.log(
-      `Review submission ${submission.id} is already ${submission.attributes.state}.`,
-    );
+    console.log(`Review submission ${submission.id} is already IN_REVIEW.`);
     return;
   }
 
-  if (!submission) {
+  if (!submission || !OPEN_SUBMISSION_STATES.has(submission.attributes?.state)) {
     const created = await httpsJson(`${API}/reviewSubmissions`, {
       method: 'POST',
       headers,
@@ -387,6 +479,32 @@ async function main() {
   console.log(
     `Submitted ${version.versionString} (${latestBuild.buildNumber}) for App Review. State: ${submitted.data?.attributes?.state}`,
   );
+}
+
+async function cancelOpenReviewSubmissions(headers, appId) {
+  const submissionsResponse = await httpsJson(
+    `${API}/apps/${appId}/reviewSubmissions?filter[platform]=IOS&limit=20`,
+    {headers},
+  );
+  for (const submission of submissionsResponse.data || []) {
+    const state = submission.attributes?.state;
+    console.log(`Review submission ${submission.id}: ${state}`);
+    if (!CANCELABLE_SUBMISSION_STATES.has(state)) {
+      continue;
+    }
+    await httpsJson(`${API}/reviewSubmissions/${submission.id}`, {
+      method: 'PATCH',
+      headers,
+      body: {
+        data: {
+          type: 'reviewSubmissions',
+          id: submission.id,
+          attributes: {canceled: true},
+        },
+      },
+    });
+    console.log(`Canceled review submission ${submission.id}`);
+  }
 }
 
 async function updateReviewNotes(headers, versionId) {
