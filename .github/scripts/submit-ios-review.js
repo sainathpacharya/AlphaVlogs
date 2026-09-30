@@ -340,39 +340,62 @@ async function main() {
     );
   }
   if (!version) {
-    const blocking = versions.find(
-      item =>
-        item.state === 'PREPARE_FOR_SUBMISSION' &&
-        item.versionString !== latestBuild.marketingVersion,
-    );
-    if (blocking) {
-      fail(
-        `Cannot create ${latestBuild.marketingVersion} while ${blocking.versionString} is ${blocking.state}. Remove or replace that version in App Store Connect first.`,
-      );
-    }
-    const created = await httpsJson(`${API}/appStoreVersions`, {
-      method: 'POST',
-      headers,
-      body: {
-        data: {
-          type: 'appStoreVersions',
-          attributes: {
-            platform: 'IOS',
-            versionString: latestBuild.marketingVersion,
-          },
-          relationships: {
-            app: {data: {type: 'apps', id: appId}},
+    const editable = versions
+      .filter(item => EDITABLE_STATES.has(item.state))
+      .sort((left, right) => compareSemver(right.versionString, left.versionString))[0];
+    if (
+      editable &&
+      compareSemver(latestBuild.marketingVersion, editable.versionString) > 0
+    ) {
+      await httpsJson(`${API}/appStoreVersions/${editable.id}`, {
+        method: 'PATCH',
+        headers,
+        body: {
+          data: {
+            type: 'appStoreVersions',
+            id: editable.id,
+            attributes: {versionString: latestBuild.marketingVersion},
           },
         },
-      },
-    });
-    version = {
-      id: created.data.id,
-      versionString: created.data.attributes?.versionString,
-      state: created.data.attributes?.appStoreState,
-      buildId: null,
-    };
-    console.log(`Created version ${version.versionString} (${version.id})`);
+      });
+      version = {
+        id: editable.id,
+        versionString: latestBuild.marketingVersion,
+        state: editable.state,
+        buildId: editable.buildId,
+      };
+      console.log(
+        `Raised App Store version ${editable.versionString} → ${latestBuild.marketingVersion}`,
+      );
+    } else if (editable && editable.state === 'PREPARE_FOR_SUBMISSION') {
+      fail(
+        `Cannot create ${latestBuild.marketingVersion} while ${editable.versionString} is ${editable.state}. Remove or replace that version in App Store Connect first.`,
+      );
+    } else {
+      const created = await httpsJson(`${API}/appStoreVersions`, {
+        method: 'POST',
+        headers,
+        body: {
+          data: {
+            type: 'appStoreVersions',
+            attributes: {
+              platform: 'IOS',
+              versionString: latestBuild.marketingVersion,
+            },
+            relationships: {
+              app: {data: {type: 'apps', id: appId}},
+            },
+          },
+        },
+      });
+      version = {
+        id: created.data.id,
+        versionString: created.data.attributes?.versionString,
+        state: created.data.attributes?.appStoreState,
+        buildId: null,
+      };
+      console.log(`Created version ${version.versionString} (${version.id})`);
+    }
   }
 
   if (version.buildId !== latestBuild.id) {
