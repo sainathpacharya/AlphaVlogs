@@ -1,0 +1,27 @@
+name: Submit iOS for Review
+
+on:
+  workflow_dispatch:
+
+jobs:
+  submit:
+    name: Submit iOS for App Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      - name: Submit latest TestFlight build
+        env:
+          APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
+          APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
+          APPLE_PRIVATE_KEY: ${{ secrets.APPLE_PRIVATE_KEY }}
+          IOS_BUNDLE_ID: com.nsnr.alphavlogsindia
+        run: node .github/scripts/submit-ios-review.js
