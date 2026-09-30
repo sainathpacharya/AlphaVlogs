@@ -298,7 +298,7 @@ async function main() {
   }
 
   const versionsResponse = await httpsJson(
-    `${API}/apps/${appId}/appStoreVersions?filter[platform]=IOS&limit=15`,
+    `${API}/apps/${appId}/appStoreVersions?filter[platform]=IOS&include=build&limit=15`,
     {headers},
   );
   let versions = (versionsResponse.data || []).map(version => ({
@@ -313,26 +313,58 @@ async function main() {
     );
   }
 
-  await cancelOpenReviewSubmissions(headers, appId);
-
-  // Refresh version states after a cancel (Waiting for Review → Developer Rejected).
-  const refreshedVersions = await httpsJson(
-    `${API}/apps/${appId}/appStoreVersions?filter[platform]=IOS&limit=15`,
-    {headers},
-  );
-  versions = (refreshedVersions.data || []).map(version => ({
-    id: version.id,
-    versionString: version.attributes?.versionString,
-    state: version.attributes?.appStoreState,
-    buildId: version.relationships?.build?.data?.id || null,
-  }));
-
   let version = versions.find(item => item.versionString === latestBuild.marketingVersion);
-  if (version && IN_REVIEW_STATES.has(version.state)) {
+  if (
+    version &&
+    IN_REVIEW_STATES.has(version.state) &&
+    version.buildId === latestBuild.id
+  ) {
     console.log(
-      `Version ${version.versionString} is already ${version.state}. Nothing to submit.`,
+      `Version ${version.versionString} (${latestBuild.buildNumber}) is already ${version.state}. Nothing to submit.`,
     );
     return;
+  }
+
+  // Only cancel an open review when we need to replace it with a different version/build.
+  const mustReplaceInReview = versions.some(
+    item =>
+      IN_REVIEW_STATES.has(item.state) &&
+      !(
+        item.versionString === latestBuild.marketingVersion &&
+        item.buildId === latestBuild.id
+      ),
+  );
+  if (mustReplaceInReview) {
+    await cancelOpenReviewSubmissions(headers, appId);
+  }
+
+  // Refresh version states after a possible cancel (Waiting for Review → Developer Rejected).
+  const refreshedVersions = await httpsJson(
+    `${API}/apps/${appId}/appStoreVersions?filter[platform]=IOS&include=build&limit=15`,
+    {headers},
+  );
+  versions = (refreshedVersions.data || []).map(versionItem => ({
+    id: versionItem.id,
+    versionString: versionItem.attributes?.versionString,
+    state: versionItem.attributes?.appStoreState,
+    buildId: versionItem.relationships?.build?.data?.id || null,
+  }));
+
+  version = versions.find(item => item.versionString === latestBuild.marketingVersion);
+  if (
+    version &&
+    IN_REVIEW_STATES.has(version.state) &&
+    version.buildId === latestBuild.id
+  ) {
+    console.log(
+      `Version ${version.versionString} (${latestBuild.buildNumber}) is already ${version.state}. Nothing to submit.`,
+    );
+    return;
+  }
+  if (version && IN_REVIEW_STATES.has(version.state) && version.buildId !== latestBuild.id) {
+    fail(
+      `Version ${version.versionString} is still ${version.state} with a different build. Cancel it in App Store Connect, then retry.`,
+    );
   }
   if (version && !EDITABLE_STATES.has(version.state)) {
     fail(
