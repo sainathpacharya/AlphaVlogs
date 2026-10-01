@@ -1,0 +1,35 @@
+name: Submit plain iOS app
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'App Store version'
+        required: true
+        type: string
+        default: '1.0.4'
+      build:
+        description: 'TestFlight build number'
+        required: true
+        type: string
+        default: '51'
+
+jobs:
+  submit:
+    name: Remove subscriptions and submit plain app
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: Clean subscriptions and submit
+        env:
+          APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
+          APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
+          APPLE_PRIVATE_KEY: ${{ secrets.APPLE_PRIVATE_KEY }}
+          IOS_BUNDLE_ID: com.nsnr.alphavlogsindia
+          TARGET_VERSION: ${{ github.event.inputs.version }}
+          TARGET_BUILD: ${{ github.event.inputs.build }}
+        run: node .github/scripts/plain-ios-app-submit.js
