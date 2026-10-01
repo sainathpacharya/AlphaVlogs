@@ -473,6 +473,19 @@ async function main() {
 
   if (
     submission &&
+    (submission.attributes?.state === 'UNRESOLVED_ISSUES' ||
+      version.state === 'REJECTED' ||
+      version.state === 'METADATA_REJECTED' ||
+      version.state === 'DEVELOPER_REJECTED')
+  ) {
+    // Rejected / unresolved submissions cannot be patched with submitted=true after
+    // metadata fixes. Cancel and open a fresh review submission.
+    await cancelOpenReviewSubmissions(headers, appId);
+    submission = null;
+  }
+
+  if (
+    submission &&
     submission.attributes?.state === 'IN_REVIEW' &&
     IN_REVIEW_STATES.has(version.state)
   ) {
