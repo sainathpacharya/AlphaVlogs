@@ -684,18 +684,24 @@ async function cancelOpenReviewSubmissions(headers, appId) {
     if (!CANCELABLE_SUBMISSION_STATES.has(state)) {
       continue;
     }
-    await httpsJson(`${API}/reviewSubmissions/${submission.id}`, {
-      method: 'PATCH',
-      headers,
-      body: {
-        data: {
-          type: 'reviewSubmissions',
-          id: submission.id,
-          attributes: {canceled: true},
+    try {
+      await httpsJson(`${API}/reviewSubmissions/${submission.id}`, {
+        method: 'PATCH',
+        headers,
+        body: {
+          data: {
+            type: 'reviewSubmissions',
+            id: submission.id,
+            attributes: {canceled: true},
+          },
         },
-      },
-    });
-    console.log(`Canceled review submission ${submission.id}`);
+      });
+      console.log(`Canceled review submission ${submission.id}`);
+    } catch (error) {
+      console.log(
+        `Could not cancel review submission ${submission.id}: ${error.message}`,
+      );
+    }
   }
 }
 
