@@ -1,0 +1,17 @@
+name: Audit iOS subscription metadata
+on: workflow_dispatch
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: Audit
+        env:
+          APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
+          APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
+          APPLE_PRIVATE_KEY: ${{ secrets.APPLE_PRIVATE_KEY }}
+          IOS_BUNDLE_ID: com.nsnr.alphavlogsindia
+        run: node .github/scripts/audit-ios-subscription-metadata.js
