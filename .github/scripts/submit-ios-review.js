@@ -34,7 +34,6 @@ const IN_REVIEW_STATES = new Set([
 ]);
 
 const CANCELABLE_SUBMISSION_STATES = new Set([
-  'READY_FOR_REVIEW',
   'WAITING_FOR_REVIEW',
   'UNRESOLVED_ISSUES',
 ]);
@@ -473,34 +472,6 @@ async function main() {
 
   await ensurePrivacyPolicyUrl(headers, appId);
 
-  if (
-    version.state === 'REJECTED' ||
-    version.state === 'METADATA_REJECTED' ||
-    version.state === 'DEVELOPER_REJECTED' ||
-    version.state === 'PREPARE_FOR_SUBMISSION'
-  ) {
-    // Classic endpoint is more reliable for rejected versions than reviewSubmissions.
-    await cancelOpenReviewSubmissions(headers, appId);
-    const submitted = await httpsJson(`${API}/appStoreVersionSubmissions`, {
-      method: 'POST',
-      headers,
-      body: {
-        data: {
-          type: 'appStoreVersionSubmissions',
-          relationships: {
-            appStoreVersion: {
-              data: {type: 'appStoreVersions', id: version.id},
-            },
-          },
-        },
-      },
-    });
-    console.log(
-      `Submitted ${version.versionString} (${latestBuild.buildNumber}) via appStoreVersionSubmissions (${submitted.data?.id || 'ok'}).`,
-    );
-    return;
-  }
-
   const submissionsResponse = await httpsJson(
     `${API}/apps/${appId}/reviewSubmissions?filter[platform]=IOS&limit=10`,
     {headers},
@@ -509,10 +480,7 @@ async function main() {
     OPEN_SUBMISSION_STATES.has(item.attributes?.state),
   );
 
-  if (
-    submission &&
-    submission.attributes?.state === 'UNRESOLVED_ISSUES'
-  ) {
+  if (submission && submission.attributes?.state === 'UNRESOLVED_ISSUES') {
     await cancelOpenReviewSubmissions(headers, appId);
     submission = null;
   }
@@ -558,24 +526,48 @@ async function main() {
     item => item.relationships?.appStoreVersion?.data?.id === version.id,
   );
   if (!alreadyAdded) {
-    await httpsJson(`${API}/reviewSubmissionItems`, {
-      method: 'POST',
-      headers,
-      body: {
-        data: {
-          type: 'reviewSubmissionItems',
-          relationships: {
-            reviewSubmission: {
-              data: {type: 'reviewSubmissions', id: submission.id},
-            },
-            appStoreVersion: {
-              data: {type: 'appStoreVersions', id: version.id},
+    try {
+      await httpsJson(`${API}/reviewSubmissionItems`, {
+        method: 'POST',
+        headers,
+        body: {
+          data: {
+            type: 'reviewSubmissionItems',
+            relationships: {
+              reviewSubmission: {
+                data: {type: 'reviewSubmissions', id: submission.id},
+              },
+              appStoreVersion: {
+                data: {type: 'appStoreVersions', id: version.id},
+              },
             },
           },
         },
-      },
-    });
-    console.log(`Added version ${version.versionString} to the review submission`);
+      });
+      console.log(`Added version ${version.versionString} to the review submission`);
+    } catch (error) {
+      // Rejected versions sometimes need a short delay after metadata edits.
+      console.log(`First item add failed: ${error.message}`);
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      await httpsJson(`${API}/reviewSubmissionItems`, {
+        method: 'POST',
+        headers,
+        body: {
+          data: {
+            type: 'reviewSubmissionItems',
+            relationships: {
+              reviewSubmission: {
+                data: {type: 'reviewSubmissions', id: submission.id},
+              },
+              appStoreVersion: {
+                data: {type: 'appStoreVersions', id: version.id},
+              },
+            },
+          },
+        },
+      });
+      console.log(`Added version ${version.versionString} to the review submission (retry)`);
+    }
   }
 
   const submitted = await httpsJson(`${API}/reviewSubmissions/${submission.id}`, {
