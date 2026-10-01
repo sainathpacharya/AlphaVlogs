@@ -184,12 +184,20 @@ function httpsJson(url, {method = 'GET', headers = {}, body} = {}) {
             const details = (json && json.errors) || [];
             const summary = details
               .map(error =>
-                [error.title, error.detail].filter(Boolean).join(': '),
+                [
+                  error.title,
+                  error.detail,
+                  error.code,
+                  error.source ? JSON.stringify(error.source) : '',
+                  error.meta ? JSON.stringify(error.meta) : '',
+                ]
+                  .filter(Boolean)
+                  .join(': '),
               )
               .join('\n');
             reject(
               new Error(
-                `${method} ${url} failed (${response.statusCode})${summary ? `\n${summary}` : text ? `\n${text.slice(0, 800)}` : ''}`,
+                `${method} ${url} failed (${response.statusCode})${summary ? `\n${summary}` : text ? `\n${text.slice(0, 1200)}` : ''}`,
               ),
             );
             return;
@@ -463,6 +471,36 @@ async function main() {
     console.log(`After metadata fix, version state is ${version.state}`);
   }
 
+  await ensurePrivacyPolicyUrl(headers, appId);
+
+  if (
+    version.state === 'REJECTED' ||
+    version.state === 'METADATA_REJECTED' ||
+    version.state === 'DEVELOPER_REJECTED' ||
+    version.state === 'PREPARE_FOR_SUBMISSION'
+  ) {
+    // Classic endpoint is more reliable for rejected versions than reviewSubmissions.
+    await cancelOpenReviewSubmissions(headers, appId);
+    const submitted = await httpsJson(`${API}/appStoreVersionSubmissions`, {
+      method: 'POST',
+      headers,
+      body: {
+        data: {
+          type: 'appStoreVersionSubmissions',
+          relationships: {
+            appStoreVersion: {
+              data: {type: 'appStoreVersions', id: version.id},
+            },
+          },
+        },
+      },
+    });
+    console.log(
+      `Submitted ${version.versionString} (${latestBuild.buildNumber}) via appStoreVersionSubmissions (${submitted.data?.id || 'ok'}).`,
+    );
+    return;
+  }
+
   const submissionsResponse = await httpsJson(
     `${API}/apps/${appId}/reviewSubmissions?filter[platform]=IOS&limit=10`,
     {headers},
@@ -473,13 +511,8 @@ async function main() {
 
   if (
     submission &&
-    (submission.attributes?.state === 'UNRESOLVED_ISSUES' ||
-      version.state === 'REJECTED' ||
-      version.state === 'METADATA_REJECTED' ||
-      version.state === 'DEVELOPER_REJECTED')
+    submission.attributes?.state === 'UNRESOLVED_ISSUES'
   ) {
-    // Rejected / unresolved submissions cannot be patched with submitted=true after
-    // metadata fixes. Cancel and open a fresh review submission.
     await cancelOpenReviewSubmissions(headers, appId);
     submission = null;
   }
@@ -559,6 +592,39 @@ async function main() {
   console.log(
     `Submitted ${version.versionString} (${latestBuild.buildNumber}) for App Review. State: ${submitted.data?.attributes?.state}`,
   );
+}
+
+async function ensurePrivacyPolicyUrl(headers, appId) {
+  const infos = await httpsJson(`${API}/apps/${appId}/appInfos?limit=5`, {headers});
+  const appInfo = infos.data?.[0];
+  if (!appInfo) {
+    console.log('No appInfos found to set Privacy Policy URL');
+    return;
+  }
+  const locales = await httpsJson(
+    `${API}/appInfos/${appInfo.id}/appInfoLocalizations?limit=20`,
+    {headers},
+  );
+  for (const locale of locales.data || []) {
+    const localeCode = locale.attributes?.locale || locale.id;
+    const current = String(locale.attributes?.privacyPolicyUrl || '').trim();
+    if (current === PRIVACY_URL) {
+      console.log(`Privacy Policy URL already set (${localeCode})`);
+      continue;
+    }
+    await httpsJson(`${API}/appInfoLocalizations/${locale.id}`, {
+      method: 'PATCH',
+      headers,
+      body: {
+        data: {
+          type: 'appInfoLocalizations',
+          id: locale.id,
+          attributes: {privacyPolicyUrl: PRIVACY_URL},
+        },
+      },
+    });
+    console.log(`Set Privacy Policy URL for ${localeCode}`);
+  }
 }
 
 async function ensureEulaInAppDescription(headers, versionId) {
