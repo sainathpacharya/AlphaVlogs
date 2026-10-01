@@ -198,6 +198,28 @@ async function cancelOpenReviewSubmissions(headers, appId) {
   }
 }
 
+async function waitForEditableVersion(headers, versionId, initialState) {
+  let state = initialState;
+  for (let attempt = 0; attempt < 24; attempt += 1) {
+    if (
+      state === 'DEVELOPER_REJECTED' ||
+      state === 'REJECTED' ||
+      state === 'METADATA_REJECTED' ||
+      state === 'PREPARE_FOR_SUBMISSION' ||
+      state === 'INVALID_BINARY'
+    ) {
+      return state;
+    }
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    const refreshed = await httpsJson(`${API}/appStoreVersions/${versionId}`, {
+      headers,
+    });
+    state = refreshed.data?.attributes?.appStoreState || state;
+    console.log(`Waiting for editable version state… now ${state}`);
+  }
+  return state;
+}
+
 async function removeSubscriptions(headers, appId) {
   const groups = await httpsJson(
     `${API}/apps/${appId}/subscriptionGroups?limit=20`,
@@ -232,51 +254,27 @@ async function removeSubscriptions(headers, appId) {
         console.log(`  Delete failed for ${productId}: ${error.message}`);
       }
 
-      // Fallback: stop offering in new territories / mark not for sale if supported.
+      // Fallback: recreate availability with no territories (CREATE only).
       try {
-        await httpsJson(`${API}/subscriptions/${sub.id}`, {
-          method: 'PATCH',
+        await httpsJson(`${API}/subscriptionAvailabilities`, {
+          method: 'POST',
           headers,
           body: {
             data: {
-              type: 'subscriptions',
-              id: sub.id,
+              type: 'subscriptionAvailabilities',
               attributes: {
                 availableInNewTerritories: false,
+              },
+              relationships: {
+                subscription: {
+                  data: {type: 'subscriptions', id: sub.id},
+                },
+                availableTerritories: {data: []},
               },
             },
           },
         });
-        console.log(`  Set availableInNewTerritories=false for ${productId}`);
-      } catch (error) {
-        console.log(`  Could not update availability for ${productId}: ${error.message}`);
-      }
-
-      try {
-        const availability = await httpsJson(
-          `${API}/subscriptions/${sub.id}/subscriptionAvailability?include=availableTerritories`,
-          {headers},
-        );
-        const availabilityId = availability.data?.id;
-        if (availabilityId) {
-          await httpsJson(`${API}/subscriptionAvailabilities/${availabilityId}`, {
-            method: 'PATCH',
-            headers,
-            body: {
-              data: {
-                type: 'subscriptionAvailabilities',
-                id: availabilityId,
-                attributes: {
-                  availableInNewTerritories: false,
-                },
-                relationships: {
-                  availableTerritories: {data: []},
-                },
-              },
-            },
-          });
-          console.log(`  Cleared territories for ${productId}`);
-        }
+        console.log(`  Cleared sale territories for ${productId}`);
       } catch (error) {
         console.log(`  Could not clear territories for ${productId}: ${error.message}`);
       }
@@ -521,9 +519,6 @@ async function main() {
   }
   console.log(`App: ${app.attributes?.name} (${app.id})`);
 
-  console.log('\n## Remove subscriptions');
-  await removeSubscriptions(headers, app.id);
-
   const versionsResponse = await httpsJson(
     `${API}/apps/${app.id}/appStoreVersions?filter[platform]=IOS&include=build&limit=15`,
     {headers},
@@ -544,12 +539,17 @@ async function main() {
   if (IN_REVIEW_STATES.has(version.state)) {
     console.log('Removing version from review so subscription cleanup can apply');
     await cancelOpenReviewSubmissions(headers, app.id);
-    const refreshed = await httpsJson(`${API}/appStoreVersions/${version.id}`, {
-      headers,
-    });
-    version.state = refreshed.data?.attributes?.appStoreState || version.state;
+    version.state = await waitForEditableVersion(headers, version.id, version.state);
     console.log(`Version state after cancel: ${version.state}`);
+    if (IN_REVIEW_STATES.has(version.state)) {
+      fail(
+        `Version is still ${version.state}. Open App Store Connect and remove 1.0.4 from review, then rerun.`,
+      );
+    }
   }
+
+  console.log('\n## Remove subscriptions');
+  await removeSubscriptions(headers, app.id);
 
   const buildsResponse = await httpsJson(
     `${API}/builds?filter[app]=${app.id}&filter[processingState]=VALID&include=preReleaseVersion&sort=-uploadedDate&limit=50`,
