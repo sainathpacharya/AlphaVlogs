@@ -1,0 +1,29 @@
+name: Clean iOS subscription store copy
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'App Store version to update (e.g. 1.0.4)'
+        required: true
+        type: string
+        default: '1.0.4'
+
+jobs:
+  clean:
+    name: Clean Premium marketing copy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: Update App Store metadata
+        env:
+          APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
+          APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
+          APPLE_PRIVATE_KEY: ${{ secrets.APPLE_PRIVATE_KEY }}
+          IOS_BUNDLE_ID: com.nsnr.alphavlogsindia
+          TARGET_VERSION: ${{ github.event.inputs.version }}
+        run: node .github/scripts/clean-ios-subscription-copy.js
