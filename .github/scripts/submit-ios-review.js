@@ -90,10 +90,17 @@ function compareBuilds(left, right) {
 }
 
 const REVIEW_NOTES = [
-  'This version does not include in-app purchases. Premium subscription is hidden, and video upload shows that uploads are paused and will resume shortly.',
+  'This version does not include a live purchase flow. Premium subscription UI is hidden, and video upload shows that uploads are paused and will resume shortly.',
+  'App Store Connect still lists Annual Premium (com.nsnr.alphavlogsindia.annual.premium). Terms of Use (EULA) is linked in the App Description: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
   'Login is a mobile number plus an SMS one-time password. There is no username and password.',
   'Privacy Policy: https://alphavlogs.com/privacy-policy',
 ].join('\n\n');
+
+const EULA_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+const PRIVACY_URL = 'https://alphavlogs.com/privacy-policy';
+const SUBSCRIPTION_DESCRIPTION_BLURB =
+  'Annual Premium is an auto-renewable subscription. Length: 1 year. Price is shown in the app before purchase (localized App Store price; ₹100/year in India). Payment is charged to your Apple ID at confirmation of purchase and renews unless cancelled at least 24 hours before the end of the current period. Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/ Privacy Policy: https://alphavlogs.com/privacy-policy';
+const DESCRIPTION_MAX = 4000;
 
 function fail(message) {
   console.error(message);
@@ -314,16 +321,6 @@ async function main() {
   }
 
   let version = versions.find(item => item.versionString === latestBuild.marketingVersion);
-  if (
-    version &&
-    IN_REVIEW_STATES.has(version.state) &&
-    version.buildId === latestBuild.id
-  ) {
-    console.log(
-      `Version ${version.versionString} (${latestBuild.buildNumber}) is already ${version.state}. Nothing to submit.`,
-    );
-    return;
-  }
 
   // Only cancel an open review when we need to replace it with a different version/build.
   const mustReplaceInReview = versions.some(
@@ -351,22 +348,16 @@ async function main() {
   }));
 
   version = versions.find(item => item.versionString === latestBuild.marketingVersion);
-  if (
-    version &&
-    IN_REVIEW_STATES.has(version.state) &&
-    version.buildId === latestBuild.id
-  ) {
-    console.log(
-      `Version ${version.versionString} (${latestBuild.buildNumber}) is already ${version.state}. Nothing to submit.`,
-    );
-    return;
-  }
   if (version && IN_REVIEW_STATES.has(version.state) && version.buildId !== latestBuild.id) {
     fail(
       `Version ${version.versionString} is still ${version.state} with a different build. Cancel it in App Store Connect, then retry.`,
     );
   }
-  if (version && !EDITABLE_STATES.has(version.state)) {
+  if (
+    version &&
+    !EDITABLE_STATES.has(version.state) &&
+    !IN_REVIEW_STATES.has(version.state)
+  ) {
     fail(
       `Version ${version.versionString} is ${version.state} and cannot be submitted from this state.`,
     );
@@ -449,7 +440,28 @@ async function main() {
     console.log(`Build ${latestBuild.buildNumber} is already attached`);
   }
 
+  const descriptionChanged = await ensureEulaInAppDescription(headers, version.id);
   await updateReviewNotes(headers, version.id);
+
+  if (
+    IN_REVIEW_STATES.has(version.state) &&
+    version.buildId === latestBuild.id &&
+    !descriptionChanged
+  ) {
+    console.log(
+      `Version ${version.versionString} (${latestBuild.buildNumber}) is already ${version.state}. Nothing to submit.`,
+    );
+    return;
+  }
+
+  if (IN_REVIEW_STATES.has(version.state)) {
+    await cancelOpenReviewSubmissions(headers, appId);
+    const afterCancel = await httpsJson(`${API}/appStoreVersions/${version.id}`, {
+      headers,
+    });
+    version.state = afterCancel.data?.attributes?.appStoreState || version.state;
+    console.log(`After metadata fix, version state is ${version.state}`);
+  }
 
   const submissionsResponse = await httpsJson(
     `${API}/apps/${appId}/reviewSubmissions?filter[platform]=IOS&limit=10`,
@@ -462,7 +474,7 @@ async function main() {
   if (
     submission &&
     submission.attributes?.state === 'IN_REVIEW' &&
-    versions.find(item => item.id === version.id && IN_REVIEW_STATES.has(item.state))
+    IN_REVIEW_STATES.has(version.state)
   ) {
     console.log(`Review submission ${submission.id} is already IN_REVIEW.`);
     return;
@@ -536,6 +548,52 @@ async function main() {
   );
 }
 
+async function ensureEulaInAppDescription(headers, versionId) {
+  const localizations = await httpsJson(
+    `${API}/appStoreVersions/${versionId}/appStoreVersionLocalizations?limit=20`,
+    {headers},
+  );
+  const locales = localizations.data || [];
+  if (!locales.length) {
+    fail('No App Store version localizations found to update the App Description');
+  }
+
+  let changed = false;
+  for (const locale of locales) {
+    const localeCode = locale.attributes?.locale || locale.id;
+    const current = String(locale.attributes?.description || '').trim();
+    let next = current;
+    if (!next.includes(EULA_URL)) {
+      next = next
+        ? `${next}\n\n${SUBSCRIPTION_DESCRIPTION_BLURB}`
+        : SUBSCRIPTION_DESCRIPTION_BLURB;
+    }
+    if (next.length > DESCRIPTION_MAX) {
+      const blurb = `\n\n${SUBSCRIPTION_DESCRIPTION_BLURB}`;
+      const truncated = current.slice(0, Math.max(0, DESCRIPTION_MAX - blurb.length));
+      next = `${truncated}${blurb}`;
+    }
+    if (next === current) {
+      console.log(`App Description already includes EULA (${localeCode})`);
+      continue;
+    }
+    await httpsJson(`${API}/appStoreVersionLocalizations/${locale.id}`, {
+      method: 'PATCH',
+      headers,
+      body: {
+        data: {
+          type: 'appStoreVersionLocalizations',
+          id: locale.id,
+          attributes: {description: next},
+        },
+      },
+    });
+    console.log(`Updated App Description with Terms of Use (EULA) for ${localeCode}`);
+    changed = true;
+  }
+  return changed;
+}
+
 async function cancelOpenReviewSubmissions(headers, appId) {
   const submissionsResponse = await httpsJson(
     `${API}/apps/${appId}/reviewSubmissions?filter[platform]=IOS&limit=20`,
@@ -577,7 +635,11 @@ async function updateReviewNotes(headers, versionId) {
   }
 
   const existingNotes = detail?.attributes?.notes || '';
-  if (existingNotes && !notesDescribeLivePurchase(existingNotes)) {
+  if (
+    existingNotes &&
+    !notesDescribeLivePurchase(existingNotes) &&
+    existingNotes.includes(EULA_URL)
+  ) {
     console.log('Kept existing App Review notes');
     return;
   }
