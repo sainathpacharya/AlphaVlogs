@@ -8,10 +8,14 @@
 
 
 
-    <!-- Storage / media (version-aware; runtime checks in permissions-service) -->
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <!-- One-time gallery picks use the Android photo picker, so broad media
+         access is not declared. tools:node="remove" also strips these if a
+         library merges them back in. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove" />
     <uses-permission
-        android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+        android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
+        tools:node="remove" />
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />

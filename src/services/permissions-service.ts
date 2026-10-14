@@ -111,11 +111,18 @@ class PermissionsService {
     permissions: PermissionConstant[],
     results: PermissionResultMap,
   ): PermissionResult {
-    const readPermission = getAndroidVideoGalleryPermissions()[0];
+    const galleryPermissions = getAndroidVideoGalleryPermissions();
+    const readPermission = galleryPermissions[0];
     const notificationPermission = getAndroidNotificationPermission();
     const readPermissionResult = readPermission
       ? results[readPermission]
       : undefined;
+    const galleryAccessNotRequired = galleryPermissions.length === 0;
+    const grantedWithoutPrompt: PermissionStatus = {
+      granted: true,
+      blocked: false,
+      unavailable: false,
+    };
 
     if (Platform.OS === 'ios') {
       return {
@@ -130,13 +137,17 @@ class PermissionsService {
 
     return {
       camera: this.mapPermissionResult(results[PERMISSIONS.ANDROID.CAMERA] || RESULTS.UNAVAILABLE),
-      photoLibrary: this.mapPermissionResult(readPermissionResult || RESULTS.UNAVAILABLE),
-      storage: this.mapPermissionResult(
-        results[PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE] ||
-          results[PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE] ||
-          readPermissionResult ||
-          RESULTS.UNAVAILABLE,
-      ),
+      photoLibrary: galleryAccessNotRequired
+        ? grantedWithoutPrompt
+        : this.mapPermissionResult(readPermissionResult || RESULTS.UNAVAILABLE),
+      storage: galleryAccessNotRequired
+        ? grantedWithoutPrompt
+        : this.mapPermissionResult(
+            results[PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE] ||
+              results[PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE] ||
+              readPermissionResult ||
+              RESULTS.UNAVAILABLE,
+          ),
       location: this.mapPermissionResult(results[PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION] || RESULTS.UNAVAILABLE),
       microphone: this.mapPermissionResult(results[PERMISSIONS.ANDROID.RECORD_AUDIO] || RESULTS.UNAVAILABLE),
       notifications: notificationPermission
@@ -250,6 +261,11 @@ class PermissionsService {
 
   private async requestAndroidVideoReadPermissions(): Promise<boolean> {
     const permissions = getAndroidVideoGalleryPermissions();
+
+    // Android 13+ opens the system photo picker, which does not need a grant.
+    if (permissions.length === 0) {
+      return true;
+    }
 
     for (const permission of permissions) {
       const granted = await this.requestPermissionWithRationale(

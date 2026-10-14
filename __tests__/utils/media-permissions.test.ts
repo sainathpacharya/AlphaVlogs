@@ -39,16 +39,12 @@ describe('media-permissions', () => {
     expect(getAndroidApiLevel()).toBe(0);
   });
 
-  it('uses READ_MEDIA_VIDEO on Android 13+', () => {
+  it('uses the system photo picker on Android 13+ with no media permission', () => {
     setAndroidApi(33);
-    expect(getAndroidVideoGalleryPermissions()).toEqual([
-      PERMISSIONS.ANDROID.READ_MEDIA_VIDEO,
-    ]);
+    expect(getAndroidVideoGalleryPermissions()).toEqual([]);
 
     setAndroidApi(35);
-    expect(getAndroidVideoGalleryPermissions()).toEqual([
-      PERMISSIONS.ANDROID.READ_MEDIA_VIDEO,
-    ]);
+    expect(getAndroidVideoGalleryPermissions()).toEqual([]);
   });
 
   it('uses READ_EXTERNAL_STORAGE on Android 10–12', () => {
@@ -71,14 +67,12 @@ describe('media-permissions', () => {
     ]);
   });
 
-  it('exposes partial gallery permission only on Android 14+', () => {
+  it('does not request partial gallery access', () => {
     setAndroidApi(33);
     expect(getAndroidPartialGalleryPermission()).toBeNull();
 
     setAndroidApi(34);
-    expect(getAndroidPartialGalleryPermission()).toBe(
-      PERMISSIONS.ANDROID.READ_MEDIA_VISUAL_USER_SELECTED,
-    );
+    expect(getAndroidPartialGalleryPermission()).toBeNull();
   });
 
   it('exposes notification permission only on Android 13+', () => {

@@ -31,7 +31,8 @@ export function isPermissionSatisfied(status: {
 /**
  * Runtime read permissions needed to pick videos from the gallery.
  *
- * Android 13+ (API 33): READ_MEDIA_VIDEO
+ * Android 13+ uses the system photo picker, which grants a one-time URI and
+ * does not allow READ_MEDIA_IMAGES or READ_MEDIA_VIDEO.
  * Android 10–12 (API 29–32): READ_EXTERNAL_STORAGE (scoped storage)
  * Android 7–9 (API 24–28): READ_EXTERNAL_STORAGE (+ WRITE for legacy devices)
  */
@@ -39,7 +40,7 @@ export function getAndroidVideoGalleryPermissions(): PermissionConstant[] {
   const apiLevel = getAndroidApiLevel();
 
   if (apiLevel >= 33) {
-    return [PERMISSIONS.ANDROID.READ_MEDIA_VIDEO];
+    return [];
   }
 
   if (apiLevel >= 29) {
@@ -52,11 +53,9 @@ export function getAndroidVideoGalleryPermissions(): PermissionConstant[] {
   ];
 }
 
-/** Android 14+ partial gallery access after the system photo picker. */
+/** Partial gallery access is unused; the photo picker replaces it. */
 export function getAndroidPartialGalleryPermission(): PermissionConstant | null {
-  return getAndroidApiLevel() >= 34
-    ? PERMISSIONS.ANDROID.READ_MEDIA_VISUAL_USER_SELECTED
-    : null;
+  return null;
 }
 
 /** POST_NOTIFICATIONS is only a runtime permission from Android 13+. */

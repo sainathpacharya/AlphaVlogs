@@ -136,7 +136,7 @@ describe('PermissionsService', () => {
       const result = await permissionsService.checkMultiplePermissions();
 
       expect(result.camera.granted).toBe(true);
-      expect(result.photoLibrary.granted).toBe(false);
+      expect(result.photoLibrary.granted).toBe(true);
       expect(result.location.granted).toBe(true);
     });
 
@@ -326,10 +326,11 @@ describe('PermissionsService', () => {
       expect(mockCheck).toHaveBeenCalled();
     });
 
-    it('requestVideoUploadPermissions requires photo library and storage', async () => {
+    it('requestVideoUploadPermissions skips media permission on Android 13+', async () => {
       const result = await permissionsService.requestVideoUploadPermissions();
       expect(result).toBe(true);
-      expect(mockCheck).toHaveBeenCalledWith(PERMISSIONS.ANDROID.READ_MEDIA_VIDEO);
+      expect(mockCheck).not.toHaveBeenCalledWith(PERMISSIONS.ANDROID.READ_MEDIA_VIDEO);
+      expect(mockRequest).not.toHaveBeenCalled();
     });
 
     it('requestVideoUploadPermissions uses legacy storage on older Android', async () => {
@@ -373,19 +374,14 @@ describe('PermissionsService', () => {
       expect(mockRequest).not.toHaveBeenCalled();
     });
 
-    it('accepts partial gallery access on Android 14 when full read is denied', async () => {
+    it('does not request partial gallery access on Android 14', async () => {
       Object.defineProperty(Platform, 'Version', { configurable: true, value: 34 });
-      mockCheck
-        .mockResolvedValueOnce(RESULTS.DENIED)
-        .mockResolvedValueOnce(RESULTS.LIMITED);
-      mockRequest.mockResolvedValue(RESULTS.DENIED);
 
       const result = await permissionsService.requestVideoUploadPermissions();
 
       expect(result).toBe(true);
-      expect(mockCheck).toHaveBeenCalledWith(
-        PERMISSIONS.ANDROID.READ_MEDIA_VISUAL_USER_SELECTED,
-      );
+      expect(mockCheck).not.toHaveBeenCalled();
+      expect(mockRequest).not.toHaveBeenCalled();
     });
 
     it('requests notification permission on Android 13+', async () => {

@@ -16,6 +16,15 @@ on:
         description: 'Optional marketing version (e.g. 1.0.4). If omitted or not higher than the live store version, CI auto-bumps the patch.'
         required: false
         type: string
+      play_tracks:
+        description: 'Play tracks for the Android AAB. internal,production replaces older bundles and starts the production rollout.'
+        required: true
+        type: choice
+        options:
+          - internal
+          - production
+          - internal,production
+        default: internal
   push:
     tags:
       - 'v*.*.*'
@@ -26,7 +35,6 @@ concurrency:
 
 env:
   ANDROID_PACKAGE_NAME: com.nsnr.alphavlogs
-  PLAY_STORE_TRACK: internal
   IOS_BUNDLE_ID: com.nsnr.alphavlogsindia
   # Xcode 26 runners default to the Metal cryptex toolchain, whose Swift lib
   # search path lacks the back-compat archives (libswiftCompatibility56.a, etc.)
@@ -195,7 +203,9 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: ${{ env.ANDROID_PACKAGE_NAME }}
           releaseFiles: android/app/build/outputs/bundle/productionRelease/app-production-release.aab
-          tracks: ${{ env.PLAY_STORE_TRACK }}
+          tracks: ${{ github.event.inputs.play_tracks || 'internal' }}
+          releaseName: ${{ steps.version.outputs.version_name }}
+          whatsNewDirectory: whatsnew
           status: completed
           changesNotSentForReview: false
 
@@ -206,7 +216,7 @@ jobs:
             echo "- **Package:** \`${{ env.ANDROID_PACKAGE_NAME }}\`"
             echo "- **Version name:** \`${{ steps.version.outputs.version_name }}\`"
             echo "- **Version code:** \`${{ steps.version.outputs.version_code }}\`"
-            echo "- **Play Store track:** \`${{ env.PLAY_STORE_TRACK }}\` (not production)"
+            echo "- **Play Store tracks:** \`${{ github.event.inputs.play_tracks || 'internal' }}\`"
             echo "- **Store before upload:** \`${{ steps.version.outputs.store_version_name || 'none' }}\` (${{ steps.version.outputs.store_version_code || '0' }})"
             echo "- **Auto-bumped:** \`${{ steps.version.outputs.bumped }}\`"
             echo "- **Commit:** \`${{ github.sha }}\`"
