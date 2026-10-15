@@ -124,6 +124,31 @@ describe('PermissionsService', () => {
   });
 
   describe('checkMultiplePermissions', () => {
+    it('maps legacy gallery permissions on Android 10', async () => {
+      Object.defineProperty(Platform, 'Version', { configurable: true, value: 29 });
+      mockCheckMultiple.mockResolvedValue({
+        [PERMISSIONS.ANDROID.CAMERA]: RESULTS.GRANTED,
+        [PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE]: RESULTS.DENIED,
+        [PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION]: RESULTS.GRANTED,
+        [PERMISSIONS.ANDROID.RECORD_AUDIO]: RESULTS.GRANTED,
+      } as any);
+
+      const result = await permissionsService.checkMultiplePermissions();
+
+      expect(result.photoLibrary.granted).toBe(false);
+      expect(result.storage.granted).toBe(false);
+    });
+
+    it('returns false when older Android denies gallery access', async () => {
+      Object.defineProperty(Platform, 'Version', { configurable: true, value: 28 });
+      mockCheck.mockResolvedValue(RESULTS.DENIED);
+      mockRequest.mockResolvedValue(RESULTS.DENIED);
+
+      const result = await permissionsService.requestVideoUploadPermissions();
+
+      expect(result).toBe(false);
+    });
+
     it('maps all permission slots', async () => {
       mockCheckMultiple.mockResolvedValue({
         [PERMISSIONS.ANDROID.CAMERA]: RESULTS.GRANTED,

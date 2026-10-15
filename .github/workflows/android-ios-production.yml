@@ -24,6 +24,7 @@ on:
           - internal
           - production
           - internal,production
+          - internal,alpha,production
         default: internal
   push:
     tags:

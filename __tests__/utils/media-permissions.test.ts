@@ -3,7 +3,6 @@ import {PERMISSIONS} from 'react-native-permissions';
 import {
   getAndroidApiLevel,
   getAndroidNotificationPermission,
-  getAndroidPartialGalleryPermission,
   getAndroidVideoGalleryPermissions,
   getIosPhotoLibraryPermission,
   isPermissionSatisfied,
@@ -65,14 +64,6 @@ describe('media-permissions', () => {
       PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
       PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE,
     ]);
-  });
-
-  it('does not request partial gallery access', () => {
-    setAndroidApi(33);
-    expect(getAndroidPartialGalleryPermission()).toBeNull();
-
-    setAndroidApi(34);
-    expect(getAndroidPartialGalleryPermission()).toBeNull();
   });
 
   it('exposes notification permission only on Android 13+', () => {

@@ -53,11 +53,6 @@ export function getAndroidVideoGalleryPermissions(): PermissionConstant[] {
   ];
 }
 
-/** Partial gallery access is unused; the photo picker replaces it. */
-export function getAndroidPartialGalleryPermission(): PermissionConstant | null {
-  return null;
-}
-
 /** POST_NOTIFICATIONS is only a runtime permission from Android 13+. */
 export function getAndroidNotificationPermission(): PermissionConstant | null {
   return getAndroidApiLevel() >= 33

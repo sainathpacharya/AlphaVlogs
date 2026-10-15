@@ -11,7 +11,6 @@ import {
 import {
   getAndroidApiLevel,
   getAndroidNotificationPermission,
-  getAndroidPartialGalleryPermission,
   getAndroidVideoGalleryPermissions,
   getIosPhotoLibraryPermission,
   isPermissionSatisfied,
@@ -276,13 +275,6 @@ class PermissionsService {
       );
 
       if (!granted) {
-        const partialPermission = getAndroidPartialGalleryPermission();
-        if (partialPermission) {
-          const partialStatus = await this.checkPermission(partialPermission);
-          if (isPermissionSatisfied(partialStatus)) {
-            return true;
-          }
-        }
         return false;
       }
     }
